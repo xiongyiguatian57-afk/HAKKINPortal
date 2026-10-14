@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白金ブランド生産計画 勝ち負け表</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.7/dist/dexie.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f7f7f5;
+  --bg-card: #ffffff;
+  --bg-soft: #fafaf8;
+  --bg-shortage: #fef2f2;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --border: #e5e5e2;
+  --accent: #b45309;
+  --accent-soft: #fef3e2;
+  --success: #059669;
+  --danger: #dc2626;
+  --demand: #2563eb;
+  --supply: #059669;
+  --stock: #7c3aed;
+  --shortage: #dc2626;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --space-1: 8px; --space-2: 16px; --space-3: 24px; --space-4: 32px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181a;
+    --bg-card: #1f2124;
+    --bg-soft: #232629;
+    --bg-shortage: #3a1a1a;
+    --text: #ececec;
+    --text-muted: #9ca3af;
+    --border: #2f3236;
+    --accent: #f59e0b;
+    --accent-soft: #3a2a10;
+    --demand: #60a5fa;
+    --supply: #34d399;
+    --stock: #a78bfa;
+    --shortage: #f87171;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: var(--space-3);
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  font-size: 13px; line-height: 1.5;
+}
+header.app-header {
+  display: flex; align-items: center; gap: var(--space-3);
+  margin-bottom: var(--space-3); padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+header.app-header h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+header.app-header .sub { color: var(--text-muted); font-size: 12px; }
+header.app-header .storage-info { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+
+.tabs { display: flex; gap: 2px; margin-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
+.tab {
+  padding: 10px 20px; cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--text-muted); border: none; background: transparent;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font-family: inherit;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ===== upload page ===== */
+.grid { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+@media (min-width: 960px) { .grid { grid-template-columns: 380px 1fr; } }
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: var(--space-3);
+}
+.card h2 {
+  font-size: 15px; font-weight: 600; margin: 0 0 var(--space-2) 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.card h2 .dot { width: 8px; height: 8px; border-radius: 50%; }
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: var(--space-4) var(--space-2); text-align: center;
+  background: var(--bg-soft); transition: all 150ms ease; cursor: pointer;
+}
+.drop-zone.drag { border-color: var(--accent); background: var(--accent-soft); }
+.drop-zone .icon { font-size: 32px; margin-bottom: 8px; color: var(--text-muted); }
+.drop-zone .primary { font-weight: 600; color: var(--text); margin: 0 0 4px 0; }
+.drop-zone p { margin: 0; font-size: 12px; color: var(--text-muted); }
+#file-input { display: none; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: var(--space-2); }
+.field label {
+  font-size: 11px; font-weight: 500; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.field select, .field input {
+  height: 34px; padding: 0 10px;
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  font-size: 13px; font-family: inherit; min-width: 120px;
+}
+.field select:focus, .field input:focus { outline: none; border-color: var(--accent); }
+button {
+  height: 34px; padding: 0 14px; border: none; border-radius: 6px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: filter 120ms ease; font-family: inherit;
+}
+button.primary { background: var(--accent); color: white; }
+button.primary:hover:not(:disabled) { filter: brightness(1.1); }
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+button.ghost {
+  background: transparent; color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+button.ghost:hover { color: var(--text); background: var(--bg-soft); }
+button.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+button.danger:hover { background: var(--danger); color: white; }
+.progress { height: 4px; background: var(--border); border-radius: 2px; margin-top: var(--space-2); overflow: hidden; display: none; }
+.progress.on { display: block; }
+.progress .bar { height: 100%; background: var(--accent); transition: width 200ms ease; }
+
+.preview-info {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px; margin-top: var(--space-2); font-size: 12px;
+}
+.preview-info .row { display: flex; justify-content: space-between; padding: 3px 0; }
+.preview-info .row span:first-child { color: var(--text-muted); }
+.preview-info .row span:last-child { font-weight: 500; }
+
+.help { font-size: 11px; color: var(--text-muted); margin-top: var(--space-2); line-height: 1.7; }
+
+.section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--space-2); }
+.count { font-size: 12px; color: var(--text-muted); }
+.empty { text-align: center; padding: var(--space-3); color: var(--text-muted); font-size: 13px; }
+
+/* ===== history table ===== */
+#history-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
+#history-body th {
+  text-align: left; padding: 8px 6px; background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+#history-body td { padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+#history-body tr.inactive td { opacity: 0.4; }
+#history-body .actions { display: flex; gap: 4px; }
+#history-body .actions button { height: 26px; padding: 0 8px; font-size: 11px; }
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 600;
+}
+.badge.demand { background: color-mix(in oklab, var(--demand) 15%, transparent); color: var(--demand); }
+.badge.supply { background: color-mix(in oklab, var(--supply) 15%, transparent); color: var(--supply); }
+.badge.stock  { background: color-mix(in oklab, var(--stock) 15%, transparent); color: var(--stock); }
+
+/* ===== win/loss page ===== */
+.controls {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 16px; margin-bottom: 20px;
+  display: flex; align-items: end; flex-wrap: wrap; gap: 16px;
+}
+.stats { display: flex; gap: 24px; margin-left: auto; color: var(--text-muted); font-size: 12px; }
+.stats span strong {
+  color: var(--text); font-variant-numeric: tabular-nums;
+  font-weight: 600; margin-left: 4px;
+}
+.table-wrap { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+table.winloss { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 12px; }
+table.winloss thead th {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 8px;
+  font-weight: 600; font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;
+}
+table.winloss thead th.month-col { text-align: right; }
+table.winloss thead th.pet-col {
+  position: sticky; left: 0; z-index: 4;
+  background: var(--bg-soft);
+  text-align: left; min-width: 220px;
+  border-right: 1px solid var(--border);
+}
+table.winloss thead th.metric-col {
+  position: sticky; left: 220px; z-index: 4;
+  background: var(--bg-soft);
+  text-align: left; min-width: 90px;
+  border-right: 1px solid var(--border);
+}
+table.winloss tbody td {
+  padding: 6px 8px; border-bottom: 1px solid var(--border);
+  text-align: right; white-space: nowrap;
+}
+table.winloss tbody td.pet-col {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--bg-card); text-align: left;
+  border-right: 1px solid var(--border);
+  font-weight: 500; max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+}
+table.winloss tbody td.metric-col {
+  position: sticky; left: 220px; z-index: 2;
+  background: var(--bg-card); text-align: left;
+  border-right: 1px solid var(--border);
+  color: var(--text-muted); font-size: 11px;
+}
+table.winloss tbody tr:hover td { background: var(--bg-soft); }
+table.winloss tbody tr:hover td.pet-col, table.winloss tbody tr:hover td.metric-col { background: var(--bg-soft); }
+table.winloss tbody tr.first-of-pet td { border-top: 2px solid var(--border); }
+td.demand { color: var(--demand); }
+td.supply { color: var(--supply); }
+td.stock { color: var(--stock); font-weight: 600; }
+td.shortage-value { color: var(--shortage); font-weight: 600; }
+td.shortage-bg { background: var(--bg-shortage) !important; }
+td.zero { color: var(--text-muted); opacity: 0.5; }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--text); color: var(--bg-card);
+  padding: 12px 16px; border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-size: 13px; opacity: 0; transform: translateY(10px);
+  transition: all 200ms ease; pointer-events: none; z-index: 100;
+}
+.toast.on { opacity: 1; transform: translateY(0); }
+.toast.error { background: var(--danger); color: white; }
+.toast.success { background: var(--success); color: white; }
+
+#loading, #error, #empty-view {
+  padding: 60px 20px; text-align: center; color: var(--text-muted);
+}
+#error { color: var(--shortage); }
+
+.toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+
+/* ===== dashboard page ===== */
+.dash-warning { --warning: #d97706; }
+@media (prefers-color-scheme: dark) { .dash-warning { --warning: #fbbf24; } }
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2); margin-bottom: var(--space-3);
+}
+.kpi {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: var(--space-2);
+}
+.kpi .label {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500;
+}
+.kpi .value {
+  font-size: 30px; font-weight: 600; line-height: 1.15;
+  margin-top: 8px; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.kpi .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.kpi.danger .value { color: var(--danger); }
+.kpi.supply .value { color: var(--supply); }
+.kpi.demand .value { color: var(--demand); }
+.kpi.warning .value { color: #d97706; }
+@media (prefers-color-scheme: dark) { .kpi.warning .value { color: #fbbf24; } }
+
+.row-grid {
+  display: grid; gap: var(--space-3); margin-bottom: var(--space-3);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) { .row-grid.two { grid-template-columns: 3fr 2fr; } }
+.card h2.dash { font-size: 14px; }
+.card .card-sub {
+  font-size: 12px; color: var(--text-muted); margin: -8px 0 var(--space-2) 0;
+}
+.chart-wrap { position: relative; height: 300px; }
+table.dash { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.dash th, table.dash td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+table.dash th { text-align: left; font-weight: 500; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+table.dash tr:last-child td { border-bottom: none; }
+table.dash td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.dash td.pet { font-weight: 500; }
+.bar-cell {
+  position: relative; height: 6px; background: var(--bg-soft); border-radius: 3px; overflow: hidden; min-width: 80px;
+}
+.bar-cell .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--supply); }
+.bar-cell .fill.low { background: var(--danger); }
+.bar-cell .fill.mid { background: #d97706; }
+.pill {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 11px; font-weight: 600;
+  background: color-mix(in oklab, var(--demand) 15%, transparent); color: var(--demand);
+}
+.pill.supply { background: color-mix(in oklab, var(--supply) 15%, transparent); color: var(--supply); }
+.pill.stock  { background: color-mix(in oklab, var(--stock) 15%, transparent); color: var(--stock); }
+.pill.inactive { background: var(--bg-soft); color: var(--text-muted); }
+.dash-stamp { color: var(--text); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <h1>白金ブランド生産計画 勝ち負け表</h1>
+    <div class="sub">単独動作版（データはこのブラウザに保存されます）</div>
+  </div>
+  <div class="storage-info" id="storage-info">-</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-page="upload">データアップロード</button>
+  <button class="tab" data-page="winloss">勝ち負け表</button>
+  <button class="tab" data-page="dashboard">在庫過不足ダッシュボード</button>
+  <button class="tab" data-page="backup">バックアップ</button>
+</div>
+
+<!-- ═══════════════════ アップロードページ ═══════════════════ -->
+<div class="page active" id="page-upload">
+  <div class="grid">
+    <!-- Left: new upload -->
+    <div class="card">
+      <h2><span class="dot" style="background: var(--accent);"></span>新規アップロード</h2>
+      <div class="field">
+        <label>データ種別</label>
+        <select id="file-type">
+          <option value="auto">自動判定（推奨）</option>
+          <option value="demand">需要データ</option>
+          <option value="supply">供給データ（工程計画ピボット）</option>
+          <option value="stock">在庫データ（在庫pivot）</option>
+        </select>
+      </div>
+      <div class="drop-zone" id="drop-zone">
+        <div class="icon">⬆</div>
+        <p class="primary">クリックまたはドラッグ&ドロップ</p>
+        <p>.xlsx / .xls / .csv</p>
+      </div>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+      <div id="preview" style="display:none;"></div>
+      <div class="progress" id="progress"><div class="bar" id="progress-bar" style="width:0%"></div></div>
+      <div style="display:flex; gap:8px; margin-top: var(--space-2);">
+        <button class="primary" id="upload-btn" disabled>取り込む</button>
+        <button class="ghost" id="clear-btn">クリア</button>
+      </div>
+      <p class="help">
+        対応ファイル：<br>
+        ・<strong>需要</strong>：シート先頭行が「ペットネーム / 月ヘッダ...」<br>
+        ・<strong>供給</strong>：シート「ピボット」内。月ヘッダは「7月」等（年は需要側最小月から自動判定）<br>
+        ・<strong>在庫</strong>：シート「在庫pivot」の「実残」列を在庫として登録
+      </p>
+    </div>
+    <!-- Right: history -->
+    <div class="card">
+      <div class="section-head">
+        <h2 style="margin-bottom:0;"><span class="dot" style="background: var(--text-muted);"></span>アップロード履歴</h2>
+        <span class="count" id="upload-count">0件</span>
+      </div>
+      <div id="history-body"><div class="empty">読み込み中...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ 勝ち負け表ページ ═══════════════════ -->
+<div class="page" id="page-winloss">
+  <div class="controls" id="controls" style="display:none;">
+    <div class="field" style="margin-bottom:0;">
+      <label>開始月</label>
+      <input type="month" id="start-month">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label>終了月</label>
+      <input type="month" id="end-month">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label>フィルタ</label>
+      <select id="filter-mode">
+        <option value="all">すべて表示</option>
+        <option value="shortage">不足があるものだけ</option>
+      </select>
+    </div>
+    <button class="primary" id="reload-btn">再読込</button>
+    <button class="ghost" id="export-btn">Excel出力</button>
+    <div class="stats">
+      <span>ペットネーム<strong id="stat-pets">-</strong></span>
+      <span>月数<strong id="stat-months">-</strong></span>
+      <span>不足合計<strong id="stat-shortage">-</strong></span>
+    </div>
+  </div>
+  <div id="loading">読み込み中...</div>
+  <div id="error" style="display:none;"></div>
+  <div id="empty-view" style="display:none;">対象期間にデータがありません</div>
+  <div class="card" id="content" style="display:none;">
+    <div class="table-wrap">
+      <table class="winloss" id="table">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ 在庫過不足ダッシュボード ═══════════════════ -->
+<div class="page" id="page-dashboard">
+  <p class="sub" style="color: var(--text-muted); margin: 0 0 var(--space-3) 0; font-size: 13px;">
+    最新アップロード: <span class="dash-stamp" id="dash-last-upload">-</span>
+  </p>
+  <div class="kpi-grid" id="dash-kpi-grid">
+    <div class="kpi"><div class="label">品目数</div><div class="value">-</div></div>
+  </div>
+  <div class="row-grid two">
+    <div class="card">
+      <h2 class="dash">月別 需要・供給・不足</h2>
+      <p class="card-sub">全品目合計。棒: 需要/供給の月次、赤線: 手配過不足の月次合計</p>
+      <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <h2 class="dash">不足TOP 品目</h2>
+      <p class="card-sub">期末時点で需要累計 &gt; 供給累計 の品目</p>
+      <div id="top-shortage"><div class="empty">読み込み中...</div></div>
+    </div>
+  </div>
+  <div class="row-grid two">
+    <div class="card">
+      <h2 class="dash">累計 需要 vs 供給</h2>
+      <p class="card-sub">全品目合計の累計推移</p>
+      <div class="chart-wrap"><canvas id="chart-cumulative"></canvas></div>
+    </div>
+    <div class="card">
+      <h2 class="dash">直近アップロード</h2>
+      <div id="dash-recent-uploads"><div class="empty">読み込み中...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ バックアップページ ═══════════════════ -->
+<div class="page" id="page-backup">
+  <div class="card" style="max-width: 720px;">
+    <h2><span class="dot" style="background: var(--stock);"></span>データのエクスポート / インポート</h2>
+    <p style="color: var(--text-muted); font-size: 13px;">
+      このブラウザに保存された全データ（アップロード履歴と需要/供給/在庫）を JSON ファイルとして書き出し・読み込みできます。<br>
+      別PC間でのデータ移行や、ブラウザ再インストール時のバックアップにお使いください。
+    </p>
+    <div style="display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
+      <button class="primary" id="export-json-btn">全データをJSONに書き出し</button>
+      <button class="ghost" id="import-json-btn">JSONから読み込み</button>
+      <input type="file" id="import-json-input" accept=".json" style="display:none;">
+      <button class="danger" id="clear-all-btn">全データを削除</button>
+    </div>
+    <div id="backup-status" style="margin-top: 16px; font-size: 12px; color: var(--text-muted);"></div>
+    <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+    <h3 style="font-size: 13px; margin: 0 0 8px 0;">ストレージ使用状況</h3>
+    <div id="storage-detail" style="font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// IndexedDB (Dexie) スキーマ
+// ═══════════════════════════════════════════════════════════════
+const db = new Dexie('KachiMakeApp');
+db.version(1).stores({
+  upload_history: '++id, file_type, is_active, uploaded_at',
+  demand:  '++id, upload_id, pet_name, period_month',
+  supply:  '++id, upload_id, pet_name, period_month',
+  stock:   '++id, upload_id, pet_name'
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 共通ユーティリティ
+// ═══════════════════════════════════════════════════════════════
+function toast(msg, kind='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast on ' + kind;
+  setTimeout(() => t.className = 'toast', 3500);
+}
+function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+function fmtInt(n) {
+  if (n === null || n === undefined) return '';
+  const v = Number(n); if (isNaN(v)) return '';
+  return v.toLocaleString('ja-JP');
+}
+function fmtMonth(d) {
+  if (!d) return '';
+  const dt = (d instanceof Date) ? d : new Date(d);
+  if (isNaN(dt)) return String(d);
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0');
+}
+function ymKey(dt) {
+  // Date → 'YYYY-MM' (UTC基準)
+  return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth()+1).padStart(2,'0');
+}
+function isoDate(d) { return d.toISOString().slice(0,10); }
+
+// ペットネーム正規化：全角/半角スペース削除、全角英数→半角、大文字化
+function normalizePetKey(name) {
+  if (!name) return '';
+  // 全角→半角
+  let s = name.replace(/[０-９Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  s = s.replace(/ｰ/g, '-');
+  // 全角/半角スペース削除
+  s = s.replace(/[\s　]/g, '');
+  return s.toUpperCase();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// タブ切替
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const page = btn.dataset.page;
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+    if (page === 'winloss') initWinLoss();
+    if (page === 'dashboard') initDashboard();
+    if (page === 'backup') updateStorageDetail();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 【アップロード画面】ファイルパーサ
+// ═══════════════════════════════════════════════════════════════
+const upState = {
+  parsedRows: null, fileName: null, fileType: 'auto',
+  detectedType: null
+};
+
+function parseFullMonthCell(v) {
+  if (v instanceof Date) return new Date(Date.UTC(v.getFullYear(), v.getMonth(), 1));
+  if (typeof v === 'number') {
+    const epoch = new Date(Date.UTC(1899, 11, 30));
+    const dt = new Date(epoch.getTime() + v * 86400000);
+    return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1));
+  }
+  if (typeof v === 'string') {
+    const s = v.trim();
+    const m = s.match(/(\d{4})[-\/年](\d{1,2})/);
+    if (m) return new Date(Date.UTC(+m[1], +m[2]-1, 1));
+    return null;
+  }
+  return null;
+}
+function parseMonthOnly(v) {
+  if (typeof v === 'string') {
+    const m = v.trim().match(/^(\d{1,2})月$/);
+    if (m) return +m[1];
+  }
+  return null;
+}
+function readSheetRows(wb, preferredSheet) {
+  let ws = null;
+  if (preferredSheet && wb.Sheets[preferredSheet]) ws = wb.Sheets[preferredSheet];
+  else {
+    for (const name of wb.SheetNames) {
+      const s = wb.Sheets[name];
+      const range = XLSX.utils.decode_range(s['!ref'] || 'A1');
+      if (range.e.r > 1) { ws = s; break; }
+    }
+    if (!ws) ws = wb.Sheets[wb.SheetNames[0]];
+  }
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+}
+function detectFileKind(wb) {
+  const sheets = wb.SheetNames;
+  if (sheets.some(n => n.includes('在庫') && n.toLowerCase().includes('pivot'))) return 'stock';
+  if (sheets.some(n => n === '在庫pivot')) return 'stock';
+  if (sheets.some(n => n === 'ピボット' || n.includes('ピボット'))) return 'supply';
+  const firstSheet = wb.Sheets[sheets[0]];
+  const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: null, raw: true });
+  if (rows.length > 0) {
+    const r0 = rows[0] || [];
+    let dateCells = 0;
+    for (const c of r0) if (parseFullMonthCell(c)) dateCells++;
+    if (dateCells >= 2) return 'demand';
+  }
+  return null;
+}
+function findPetHeaderRow(rows, opts = {}) {
+  const maxScan = opts.maxScan || 30;
+  const requireMonths = opts.requireMonths || false;
+  const candidates = [];
+  for (let i = 0; i < Math.min(rows.length, maxScan); i++) {
+    const row = rows[i] || [];
+    for (let j = 0; j < row.length; j++) {
+      if (typeof row[j] === 'string' && row[j].trim() === 'ペットネーム') {
+        let monthCount = 0;
+        for (let k = j + 1; k < row.length; k++) {
+          if (parseFullMonthCell(row[k]) || parseMonthOnly(row[k])) monthCount++;
+        }
+        candidates.push({ rowIdx: i, colIdx: j, monthCount });
+      }
+    }
+  }
+  if (!candidates.length) return null;
+  if (requireMonths) {
+    const withMonths = candidates.filter(c => c.monthCount >= 2);
+    if (withMonths.length) return withMonths[0];
+    return null;
+  }
+  candidates.sort((a, b) => b.monthCount - a.monthCount);
+  return candidates[0];
+}
+function parseDemand(wb) {
+  const rows = readSheetRows(wb, wb.SheetNames[0]);
+  const hdr = findPetHeaderRow(rows, { requireMonths: true }) || { rowIdx: 0, colIdx: 0 };
+  const header = rows[hdr.rowIdx];
+  const petCol = hdr.colIdx;
+  const monthCols = [];
+  for (let i = petCol + 1; i < header.length; i++) {
+    const dt = parseFullMonthCell(header[i]);
+    if (dt) monthCols.push({ idx: i, month: dt });
+  }
+  if (!monthCols.length) throw new Error('需要ファイル: 月列を検出できませんでした');
+  const items = []; const petSet = new Set();
+  for (let r = hdr.rowIdx + 1; r < rows.length; r++) {
+    const row = rows[r] || [];
+    const pet = row[petCol];
+    if (!pet || typeof pet !== 'string') continue;
+    if (pet.includes('総計') || pet.includes('合計')) continue;
+    petSet.add(pet);
+    for (const mc of monthCols) {
+      const v = row[mc.idx];
+      if (v === null || v === undefined || v === '' || v === 0) continue;
+      const n = Number(v);
+      if (isNaN(n)) continue;
+      items.push({ pet, month: mc.month, qty: n });
+    }
+  }
+  return {
+    kind: 'demand', items, stocks: [], hasStock: false,
+    monthMin: monthCols[0].month, monthMax: monthCols[monthCols.length-1].month,
+    monthCount: monthCols.length, petCount: petSet.size, petNames: [...petSet]
+  };
+}
+async function parseSupply(wb) {
+  const rows = readSheetRows(wb, 'ピボット');
+  const hdr = findPetHeaderRow(rows, { requireMonths: true });
+  if (!hdr) throw new Error('供給ファイル: 「ペットネーム」ヘッダ（月列付き）を検出できませんでした');
+  const header = rows[hdr.rowIdx];
+  const petCol = hdr.colIdx;
+  // Determine base year from demand min month
+  let baseYear = new Date().getFullYear(), baseMonth = 1;
+  const minRow = await db.demand.orderBy('period_month').first();
+  if (minRow && minRow.period_month) {
+    const dt = new Date(minRow.period_month);
+    baseYear = dt.getUTCFullYear();
+    baseMonth = dt.getUTCMonth() + 1;
+  }
+  const monthCols = [];
+  for (let i = petCol + 1; i < header.length; i++) {
+    const label = header[i];
+    if (typeof label === 'string' && (label.includes('総計') || label.includes('合計'))) continue;
+    let dt = parseFullMonthCell(label);
+    if (!dt) {
+      const m = parseMonthOnly(label);
+      if (m) {
+        const y = (m < baseMonth) ? baseYear + 1 : baseYear;
+        dt = new Date(Date.UTC(y, m - 1, 1));
+      }
+    }
+    if (dt) monthCols.push({ idx: i, month: dt });
+  }
+  if (!monthCols.length) throw new Error('供給ファイル: 月列を検出できませんでした');
+  const items = []; const petSet = new Set();
+  for (let r = hdr.rowIdx + 1; r < rows.length; r++) {
+    const row = rows[r] || [];
+    const pet = row[petCol];
+    if (!pet || typeof pet !== 'string') continue;
+    if (pet.includes('総計') || pet.includes('合計')) continue;
+    petSet.add(pet);
+    for (const mc of monthCols) {
+      const v = row[mc.idx];
+      if (v === null || v === undefined || v === '' || v === 0) continue;
+      const n = Number(v);
+      if (isNaN(n)) continue;
+      items.push({ pet, month: mc.month, qty: n });
+    }
+  }
+  return {
+    kind: 'supply', items, stocks: [], hasStock: false,
+    monthMin: monthCols[0].month, monthMax: monthCols[monthCols.length-1].month,
+    monthCount: monthCols.length, petCount: petSet.size, petNames: [...petSet],
+    yearBase: baseYear + '-' + String(baseMonth).padStart(2, '0')
+  };
+}
+function parseStock(wb) {
+  const rows = readSheetRows(wb, '在庫pivot');
+  let hdr = null;
+  for (let i = 0; i < Math.min(rows.length, 30); i++) {
+    const row = rows[i] || [];
+    let petCol = -1, hasZangan = false;
+    for (let j = 0; j < row.length; j++) {
+      const v = row[j];
+      if (typeof v === 'string') {
+        if (v.trim() === 'ペットネーム') petCol = j;
+        if (v.includes('実残')) hasZangan = true;
+      }
+    }
+    if (petCol >= 0 && hasZangan) { hdr = { rowIdx: i, colIdx: petCol }; break; }
+  }
+  if (!hdr) throw new Error('在庫ファイル: 「ペットネーム / 実残」ヘッダを検出できませんでした');
+  const header = rows[hdr.rowIdx];
+  const petCol = hdr.colIdx;
+  let stockCol = -1;
+  for (let i = 0; i < header.length; i++) {
+    if (typeof header[i] === 'string' && header[i].includes('実残')) { stockCol = i; break; }
+  }
+  if (stockCol < 0) throw new Error('在庫ファイル: 「実残」列を検出できませんでした');
+  const stocks = []; const petSet = new Set();
+  for (let r = hdr.rowIdx + 1; r < rows.length; r++) {
+    const row = rows[r] || [];
+    const pet = row[petCol];
+    if (!pet || typeof pet !== 'string') continue;
+    if (pet.includes('総計') || pet.includes('合計')) continue;
+    const v = row[stockCol];
+    if (v === null || v === undefined || v === '') continue;
+    const n = Number(v);
+    if (isNaN(n)) continue;
+    petSet.add(pet);
+    stocks.push({ pet, qty: n });
+  }
+  if (!stocks.length) throw new Error('在庫ファイル: 有効な在庫行がありませんでした');
+  return {
+    kind: 'stock', items: [], stocks, hasStock: true,
+    monthMin: null, monthMax: null, monthCount: 0,
+    petCount: petSet.size, petNames: [...petSet]
+  };
+}
+async function parseFile(file, requestedType) {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  let kind = requestedType;
+  if (!kind || kind === 'auto') {
+    kind = detectFileKind(wb);
+    if (!kind) throw new Error('ファイル種別を自動判定できませんでした。データ種別を手動選択してください');
+  }
+  if (kind === 'demand') return parseDemand(wb);
+  if (kind === 'supply') return await parseSupply(wb);
+  if (kind === 'stock')  return parseStock(wb);
+  throw new Error('未対応のファイル種別: ' + kind);
+}
+function kindLabel(k) {
+  return k === 'demand' ? '需要' : k === 'supply' ? '供給' : k === 'stock' ? '在庫' : k;
+}
+function renderPreview(info) {
+  const el = document.getElementById('preview');
+  el.style.display = 'block';
+  const rows = [];
+  rows.push(`<div class="row"><span>ファイル</span><span>${esc(upState.fileName)}</span></div>`);
+  rows.push(`<div class="row"><span>データ種別</span><span>${kindLabel(info.kind)}${upState.fileType === 'auto' ? '（自動判定）' : ''}</span></div>`);
+  rows.push(`<div class="row"><span>ペットネーム件数</span><span>${info.petCount}</span></div>`);
+  if (info.kind !== 'stock') {
+    rows.push(`<div class="row"><span>期間</span><span>${fmtMonth(info.monthMin)} 〜 ${fmtMonth(info.monthMax)} (${info.monthCount}ヶ月)</span></div>`);
+    rows.push(`<div class="row"><span>データ行数</span><span>${info.items.length}</span></div>`);
+    if (info.yearBase) rows.push(`<div class="row"><span>年判定基準</span><span>需要側 ${info.yearBase} 以降</span></div>`);
+  } else {
+    rows.push(`<div class="row"><span>在庫レコード</span><span>${info.stocks.length}</span></div>`);
+  }
+  el.innerHTML = `<div class="preview-info">${rows.join('')}</div>`;
+}
+async function handleFile(file) {
+  if (!file) return;
+  upState.fileName = file.name;
+  document.getElementById('upload-btn').disabled = true;
+  try {
+    const info = await parseFile(file, upState.fileType);
+    upState.parsedRows = info;
+    upState.detectedType = info.kind;
+    renderPreview(info);
+    document.getElementById('upload-btn').disabled = false;
+    const summary = info.kind === 'stock' ? `${info.stocks.length}件の在庫` : `${info.items.length}行`;
+    toast('ファイル解析完了: ' + kindLabel(info.kind) + ' ' + summary + '検出', 'success');
+  } catch (e) {
+    console.error('[error] parse', e);
+    upState.parsedRows = null;
+    document.getElementById('preview').style.display = 'none';
+    toast('解析失敗: ' + e.message, 'error');
+  }
+}
+async function doUpload() {
+  const info = upState.parsedRows;
+  if (!info) return;
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  const prog = document.getElementById('progress');
+  const bar = document.getElementById('progress-bar');
+  prog.classList.add('on'); bar.style.width = '5%';
+  const kind = info.kind;
+  try {
+    const notes = info.yearBase ? ('年判定基準: ' + info.yearBase) : null;
+    const periodMin = info.monthMin ? isoDate(info.monthMin) : isoDate(new Date());
+    const periodMax = info.monthMax ? isoDate(info.monthMax) : periodMin;
+    const rowCount = kind === 'stock' ? info.stocks.length : info.items.length;
+    const uploadId = await db.upload_history.add({
+      file_name: upState.fileName,
+      file_type: kind,
+      row_count: rowCount,
+      period_min: periodMin,
+      period_max: periodMax,
+      notes: notes,
+      is_active: 1,   // Dexie では boolean index が扱えないため 0/1
+      uploaded_at: new Date().toISOString()
+    });
+    bar.style.width = '15%';
+
+    if (kind === 'demand' || kind === 'supply') {
+      const tbl = kind === 'demand' ? db.demand : db.supply;
+      const rows = info.items.map(it => ({
+        upload_id: uploadId,
+        pet_name: it.pet,
+        period_month: isoDate(it.month),
+        quantity: it.qty
+      }));
+      // bulkAdd はチャンクで進捗表示
+      const CHUNK = 500;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        await tbl.bulkAdd(rows.slice(i, i + CHUNK));
+        bar.style.width = (15 + (i / rows.length) * 80) + '%';
+      }
+    } else if (kind === 'stock') {
+      const asOf = isoDate(new Date());
+      const rows = info.stocks.map(s => ({
+        upload_id: uploadId,
+        pet_name: s.pet,
+        quantity: s.qty,
+        as_of_date: asOf
+      }));
+      await db.stock.bulkAdd(rows);
+    }
+    bar.style.width = '100%';
+    const total = (info.items?.length || 0) + (info.stocks?.length || 0);
+    toast('取り込み完了: ' + kindLabel(kind) + ' ' + total + '行', 'success');
+    upState.parsedRows = null;
+    document.getElementById('preview').style.display = 'none';
+    document.getElementById('file-input').value = '';
+    setTimeout(() => { prog.classList.remove('on'); bar.style.width = '0%'; }, 800);
+    await loadHistory();
+    updateStorageBadge();
+  } catch (e) {
+    console.error('[error] upload', e);
+    toast('取り込み失敗: ' + e.message, 'error');
+    btn.disabled = false;
+    prog.classList.remove('on');
+  }
+}
+
+async function loadHistory() {
+  const uploads = await db.upload_history.orderBy('uploaded_at').reverse().toArray();
+  const body = document.getElementById('history-body');
+  document.getElementById('upload-count').textContent = uploads.length + '件';
+  if (uploads.length === 0) {
+    body.innerHTML = '<div class="empty">まだアップロードがありません</div>';
+    return;
+  }
+  const rows = uploads.map(r => {
+    const uploadedAt = new Date(r.uploaded_at);
+    const uploadedStr = uploadedAt.toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const pmin = r.period_min ? r.period_min.slice(0,7) : '';
+    const pmax = r.period_max ? r.period_max.slice(0,7) : '';
+    const label = r.file_type === 'demand' ? '需要' : r.file_type === 'supply' ? '供給' : r.file_type === 'stock' ? '在庫' : r.file_type;
+    return `
+      <tr class="${r.is_active ? '' : 'inactive'}">
+        <td>${esc(uploadedStr)}</td>
+        <td><span class="badge ${esc(r.file_type)}">${label}</span></td>
+        <td>${esc(r.file_name)}</td>
+        <td style="text-align:right;">${r.row_count ?? ''}</td>
+        <td>${esc(pmin)} 〜 ${esc(pmax)}</td>
+        <td>
+          <div class="actions">
+            <button class="ghost" data-toggle="${r.id}">${r.is_active ? '無効化' : '有効化'}</button>
+            <button class="danger" data-delete="${r.id}">削除</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+  body.innerHTML = `
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>日時</th><th>種別</th><th>ファイル名</th><th style="text-align:right;">件数</th><th>期間</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  body.querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => {
+    const id = +b.dataset.toggle;
+    const cur = await db.upload_history.get(id);
+    await db.upload_history.update(id, { is_active: cur.is_active ? 0 : 1 });
+    await loadHistory(); toast('更新しました', 'success');
+  });
+  body.querySelectorAll('[data-delete]').forEach(b => b.onclick = async () => {
+    const id = +b.dataset.delete;
+    if (!confirm('このアップロードを削除しますか？関連する需要/供給/在庫データも削除されます。')) return;
+    await db.transaction('rw', db.upload_history, db.demand, db.supply, db.stock, async () => {
+      await db.demand.where('upload_id').equals(id).delete();
+      await db.supply.where('upload_id').equals(id).delete();
+      await db.stock.where('upload_id').equals(id).delete();
+      await db.upload_history.delete(id);
+    });
+    await loadHistory(); updateStorageBadge(); toast('削除しました', 'success');
+  });
+}
+
+// アップロード画面 DnD
+(function () {
+  const dz = document.getElementById('drop-zone');
+  const input = document.getElementById('file-input');
+  dz.addEventListener('click', () => input.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag');
+    handleFile(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', e => handleFile(e.target.files[0]));
+  document.getElementById('file-type').addEventListener('change', e => { upState.fileType = e.target.value; });
+  document.getElementById('upload-btn').addEventListener('click', doUpload);
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    upState.parsedRows = null;
+    document.getElementById('preview').style.display = 'none';
+    document.getElementById('file-input').value = '';
+    document.getElementById('upload-btn').disabled = true;
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// 【勝ち負け表画面】集計ロジック（SQLをJS移植）
+// ═══════════════════════════════════════════════════════════════
+const wlState = { bounds: null, data: null, months: [], pets: [], initialized: false };
+
+async function getActiveUploadIds() {
+  const active = await db.upload_history.filter(u => !!u.is_active).toArray();
+  return new Set(active.map(u => u.id));
+}
+
+// アクティブなアップロードのみの需要/供給/在庫を取得
+async function loadActiveData() {
+  const activeIds = await getActiveUploadIds();
+  const [dAll, sAll, stAll] = await Promise.all([
+    db.demand.toArray(),
+    db.supply.toArray(),
+    db.stock.toArray()
+  ]);
+  return {
+    demand: dAll.filter(r => activeIds.has(r.upload_id)),
+    supply: sAll.filter(r => activeIds.has(r.upload_id)),
+    stock:  stAll.filter(r => activeIds.has(r.upload_id))
+  };
+}
+
+// 表示名決定: 同一 pet_key 内で 供給→需要→在庫 の順で最新 upload_id
+function buildDisplayNames(data) {
+  const pick = (rows) => {
+    // pet_key → { raw_name, upload_id }
+    const map = new Map();
+    for (const r of rows) {
+      const k = normalizePetKey(r.pet_name);
+      const cur = map.get(k);
+      if (!cur || r.upload_id > cur.upload_id) {
+        map.set(k, { raw_name: r.pet_name, upload_id: r.upload_id });
+      }
+    }
+    return map;
+  };
+  const sn = pick(data.supply), dn = pick(data.demand), stn = pick(data.stock);
+  const keys = new Set([...sn.keys(), ...dn.keys(), ...stn.keys()]);
+  const display = new Map();
+  for (const k of keys) {
+    display.set(k, (sn.get(k) || dn.get(k) || stn.get(k)).raw_name);
+  }
+  return display;
+}
+
+// 期間フィルタ + 正規化キーで集計
+function aggregate(data, display, startYm, endYm) {
+  // (pet_name, month_key) → qty
+  const demandMap = new Map(), supplyMap = new Map(), stockMap = new Map();
+  const addTo = (map, disp, monthKey, qty) => {
+    if (!map.has(disp)) map.set(disp, {});
+    map.get(disp)[monthKey] = (map.get(disp)[monthKey] || 0) + qty;
+  };
+  const inRange = (ym) => ym >= startYm && ym <= endYm;
+  for (const r of data.demand) {
+    const disp = display.get(normalizePetKey(r.pet_name));
+    if (!disp) continue;
+    const ym = r.period_month.slice(0, 7);
+    if (!inRange(ym)) continue;
+    addTo(demandMap, disp, ym, r.quantity);
+  }
+  for (const r of data.supply) {
+    const disp = display.get(normalizePetKey(r.pet_name));
+    if (!disp) continue;
+    const ym = r.period_month.slice(0, 7);
+    if (!inRange(ym)) continue;
+    addTo(supplyMap, disp, ym, r.quantity);
+  }
+  for (const r of data.stock) {
+    const disp = display.get(normalizePetKey(r.pet_name));
+    if (!disp) continue;
+    stockMap.set(disp, (stockMap.get(disp) || 0) + r.quantity);
+  }
+  return { demandMap, supplyMap, stockMap };
+}
+
+// v_win_loss 相当を JS で計算
+function buildWinLoss(agg, months) {
+  const petSet = new Set([...agg.demandMap.keys(), ...agg.supplyMap.keys(), ...agg.stockMap.keys()]);
+  const pets = [...petSet].sort();
+  const rows = [];
+  for (const pet of pets) {
+    const dm = agg.demandMap.get(pet) || {};
+    const sm = agg.supplyMap.get(pet) || {};
+    const stk = agg.stockMap.get(pet) || 0;
+    let dCum = 0, sCum = stk;
+    for (const m of months) {
+      const dq = dm[m] || 0;
+      const sq = sm[m] || 0;
+      dCum += dq; sCum += sq;
+      const shortage = Math.max(0, dCum - sCum);
+      rows.push({
+        pet_name: pet, month_key: m,
+        demand_qty: dq, supply_qty: sq, stock_qty: stk,
+        demand_cum: dCum, supply_cum: sCum, shortage
+      });
+    }
+  }
+  return { rows, pets };
+}
+
+// 期間境界（MIN/MAX の demand/supply month）
+async function loadBounds() {
+  const data = await loadActiveData();
+  const allMonths = new Set();
+  for (const r of data.demand) allMonths.add(r.period_month.slice(0, 7));
+  for (const r of data.supply) allMonths.add(r.period_month.slice(0, 7));
+  if (allMonths.size === 0) return null;
+  const arr = [...allMonths].sort();
+  return { pmin: arr[0], pmax: arr[arr.length - 1] };
+}
+
+// 月配列
+function buildMonths(startYm, endYm) {
+  const [sy, sm] = startYm.split('-').map(Number);
+  const [ey, em] = endYm.split('-').map(Number);
+  const out = [];
+  let y = sy, m = sm;
+  while (y < ey || (y === ey && m <= em)) {
+    out.push(y + '-' + String(m).padStart(2, '0'));
+    m++; if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
+// 描画
+function renderWinLoss(winLoss, months, filterMode) {
+  const thead = document.getElementById('thead');
+  const tbody = document.getElementById('tbody');
+  const pets = winLoss.pets;
+  // フィルタ
+  const shortageByPet = new Map();
+  for (const r of winLoss.rows) {
+    if (r.shortage > 0) shortageByPet.set(r.pet_name, (shortageByPet.get(r.pet_name) || 0) + r.shortage);
+  }
+  const filteredPets = (filterMode === 'shortage')
+    ? pets.filter(p => (shortageByPet.get(p) || 0) > 0)
+    : pets;
+  // header
+  thead.innerHTML = `<tr>
+    <th class="pet-col">ペットネーム</th>
+    <th class="metric-col">指標</th>
+    ${months.map(m => `<th class="month-col">${m}</th>`).join('')}
+  </tr>`;
+  // group rows by pet
+  const byPet = new Map();
+  for (const r of winLoss.rows) {
+    if (!byPet.has(r.pet_name)) byPet.set(r.pet_name, new Map());
+    byPet.get(r.pet_name).set(r.month_key, r);
+  }
+  const metrics = [
+    { key: 'demand_qty', label: '需要', cls: 'demand' },
+    { key: 'demand_cum', label: '需要累計', cls: 'demand' },
+    { key: 'supply_qty', label: '供給', cls: 'supply' },
+    { key: 'supply_cum', label: '供給累計', cls: 'supply' },
+    { key: 'shortage',   label: '手配過不足', cls: 'shortage-value' }
+  ];
+  const html = [];
+  for (const pet of filteredPets) {
+    const petRows = byPet.get(pet);
+    for (let mi = 0; mi < metrics.length; mi++) {
+      const m = metrics[mi];
+      const isFirst = mi === 0;
+      html.push(`<tr${isFirst ? ' class="first-of-pet"' : ''}>`);
+      if (isFirst) html.push(`<td class="pet-col" rowspan="${metrics.length}">${esc(pet)}</td>`);
+      html.push(`<td class="metric-col">${m.label}</td>`);
+      for (const mk of months) {
+        const r = petRows.get(mk);
+        const v = r ? r[m.key] : 0;
+        const isShort = m.key === 'shortage' && v > 0;
+        html.push(`<td class="${m.cls}${v === 0 ? ' zero' : ''}${isShort ? ' shortage-bg' : ''}">${fmtInt(v)}</td>`);
+      }
+      html.push(`</tr>`);
+    }
+  }
+  tbody.innerHTML = html.join('');
+  document.getElementById('stat-pets').textContent = filteredPets.length;
+  document.getElementById('stat-months').textContent = months.length;
+  let totalShort = 0;
+  for (const r of winLoss.rows) if (filteredPets.includes(r.pet_name)) totalShort += r.shortage;
+  document.getElementById('stat-shortage').textContent = fmtInt(totalShort);
+  document.getElementById('content').style.display = filteredPets.length ? 'block' : 'none';
+  document.getElementById('empty-view').style.display = filteredPets.length ? 'none' : 'block';
+}
+
+async function reloadWinLoss() {
+  const startYm = document.getElementById('start-month').value;
+  const endYm = document.getElementById('end-month').value;
+  const months = buildMonths(startYm, endYm);
+  wlState.months = months;
+  const data = await loadActiveData();
+  const display = buildDisplayNames(data);
+  const agg = aggregate(data, display, startYm, endYm);
+  const wl = buildWinLoss(agg, months);
+  wlState.data = wl;
+  wlState.pets = wl.pets;
+  renderWinLoss(wl, months, document.getElementById('filter-mode').value);
+  document.getElementById('loading').style.display = 'none';
+}
+
+async function initWinLoss() {
+  if (wlState.initialized) { await reloadWinLoss(); return; }
+  wlState.initialized = true;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('empty-view').style.display = 'none';
+  const bounds = await loadBounds();
+  if (!bounds) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('empty-view').style.display = 'block';
+    document.getElementById('empty-view').textContent = 'データがまだアップロードされていません（アップロード画面から取り込んでください）';
+    document.getElementById('controls').style.display = 'none';
+    return;
+  }
+  wlState.bounds = bounds;
+  document.getElementById('controls').style.display = 'flex';
+  const sm = document.getElementById('start-month');
+  const em = document.getElementById('end-month');
+  sm.value = bounds.pmin; sm.min = bounds.pmin; sm.max = bounds.pmax;
+  em.value = bounds.pmax; em.min = bounds.pmin; em.max = bounds.pmax;
+  await reloadWinLoss();
+}
+
+document.getElementById('reload-btn').addEventListener('click', reloadWinLoss);
+document.getElementById('start-month').addEventListener('change', reloadWinLoss);
+document.getElementById('end-month').addEventListener('change', reloadWinLoss);
+document.getElementById('filter-mode').addEventListener('change', () => {
+  if (wlState.data) renderWinLoss(wlState.data, wlState.months, document.getElementById('filter-mode').value);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Excel出力
+// ═══════════════════════════════════════════════════════════════
+const FONT_JA = { name: '游ゴシック', size: 11 };
+const NFMT_ACCOUNTING = '0_);[Red](0)';
+const FILL_YELLOW = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFCC' } };
+const FILL_GREEN  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF99FFCC' } };
+const FILL_HEADER = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEECE1' } };
+const BORDER_THIN   = { style: 'thin',   color: { argb: 'FF000000' } };
+const BORDER_MEDIUM = { style: 'medium', color: { argb: 'FF000000' } };
+const BORDER_DOTTED = { style: 'dotted', color: { argb: 'FF000000' } };
+
+function setBorder(cell, top, right, bottom, left) {
+  cell.border = { top: top||undefined, right: right||undefined, bottom: bottom||undefined, left: left||undefined };
+}
+function ymToDate(ym) { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)); }
+function ymToMonthLabel(ym) { const [, m] = ym.split('-').map(Number); return `${m}月`; }
+
+async function exportExcel() {
+  if (!wlState.data || !wlState.pets.length) { toast('データがありません', 'error'); return; }
+  const startYm = document.getElementById('start-month').value;
+  const endYm = document.getElementById('end-month').value;
+  toast('Excelを生成中...', 'info');
+  try {
+    // 集計データを取得
+    const data = await loadActiveData();
+    const display = buildDisplayNames(data);
+    const agg = aggregate(data, display, startYm, endYm);
+    const { demandMap, supplyMap, stockMap } = agg;
+    const petSet = new Set([...demandMap.keys(), ...supplyMap.keys(), ...stockMap.keys()]);
+    const pets = [...petSet].sort();
+    const months = wlState.months;
+    const now = new Date();
+    const jstOffsetMs = 9 * 60 * 60 * 1000;
+    const jstNow = new Date(now.getTime() + jstOffsetMs);
+    const today = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()));
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = '白金ブランド生産計画 勝ち負け表';
+    wb.created = today;
+
+    // ═══ Sheet 1: 需要 ═══
+    const ws1 = wb.addWorksheet('需要', { views: [{ showGridLines: false }] });
+    ws1.getColumn(1).width = 2;
+    ws1.getColumn(2).width = 42;
+    for (let i = 0; i < months.length; i++) ws1.getColumn(3 + i).width = 10;
+    ws1.getColumn(3 + months.length).width = 11;
+    ws1.getRow(1).height = 15;
+    const r2Row = ws1.getRow(2);
+    r2Row.height = 29.25;
+    r2Row.getCell(2).value = '需要(未出荷分のみ)';
+    r2Row.getCell(2).font = { ...FONT_JA, bold: true, size: 14 };
+    r2Row.getCell(months.length + 2).value = today;
+    r2Row.getCell(months.length + 2).font = FONT_JA;
+    r2Row.getCell(months.length + 2).numFmt = 'yyyy/m/d';
+    r2Row.getCell(months.length + 2).alignment = { horizontal: 'right' };
+    const r3Row = ws1.getRow(3);
+    r3Row.height = 23.25;
+    r3Row.getCell(2).value = 'ペットネーム';
+    for (let i = 0; i < months.length; i++) {
+      const c = r3Row.getCell(3 + i);
+      c.value = ymToDate(months[i]);
+      c.numFmt = 'yyyy/mm';
+    }
+    r3Row.getCell(3 + months.length).value = '総計';
+    for (let c = 2; c <= 3 + months.length; c++) {
+      const cell = r3Row.getCell(c);
+      cell.font = { ...FONT_JA, bold: true };
+      cell.fill = FILL_HEADER;
+      cell.alignment = { horizontal: 'center', vertical: 'center' };
+      setBorder(cell, BORDER_MEDIUM, BORDER_THIN, BORDER_MEDIUM, c === 2 ? BORDER_MEDIUM : BORDER_THIN);
+      if (c === 3 + months.length) setBorder(cell, BORDER_MEDIUM, BORDER_MEDIUM, BORDER_MEDIUM, BORDER_THIN);
+    }
+    for (let i = 0; i < pets.length; i++) {
+      const pet = pets[i];
+      const dm = demandMap.get(pet) || {};
+      const monthVals = months.map(m => dm[m] || 0);
+      const rowTotal = monthVals.reduce((a, b) => a + b, 0);
+      const r = ws1.getRow(4 + i);
+      r.height = 18.75;
+      r.getCell(2).value = pet;
+      r.getCell(2).font = FONT_JA;
+      r.getCell(2).alignment = { horizontal: 'left', vertical: 'center' };
+      for (let j = 0; j < months.length; j++) {
+        const v = monthVals[j];
+        const c = r.getCell(3 + j);
+        c.value = v === 0 ? null : v;
+        c.font = FONT_JA; c.numFmt = NFMT_ACCOUNTING;
+        c.alignment = { vertical: 'center' };
+      }
+      const totalCell = r.getCell(3 + months.length);
+      totalCell.value = rowTotal || null;
+      totalCell.font = { ...FONT_JA, bold: true };
+      totalCell.numFmt = NFMT_ACCOUNTING;
+      totalCell.alignment = { vertical: 'center' };
+      const isLast = i === pets.length - 1;
+      for (let c = 2; c <= 3 + months.length; c++) {
+        const cell = r.getCell(c);
+        setBorder(cell, BORDER_THIN,
+          c === 3 + months.length ? BORDER_MEDIUM : BORDER_THIN,
+          isLast ? BORDER_MEDIUM : BORDER_THIN,
+          c === 2 ? BORDER_MEDIUM : BORDER_THIN);
+      }
+    }
+    const colTotals1 = months.map(m => pets.reduce((a, p) => a + ((demandMap.get(p)||{})[m] || 0), 0));
+    const grandTotal1 = colTotals1.reduce((a, b) => a + b, 0);
+    const totalRow1 = ws1.getRow(4 + pets.length);
+    totalRow1.height = 18.75;
+    totalRow1.getCell(2).value = '総計';
+    totalRow1.getCell(2).font = { ...FONT_JA, bold: true };
+    totalRow1.getCell(2).alignment = { horizontal: 'left', vertical: 'center' };
+    totalRow1.getCell(2).fill = FILL_HEADER;
+    for (let j = 0; j < months.length; j++) {
+      const c = totalRow1.getCell(3 + j);
+      c.value = colTotals1[j] || null;
+      c.font = { ...FONT_JA, bold: true }; c.numFmt = NFMT_ACCOUNTING;
+      c.fill = FILL_HEADER; c.alignment = { vertical: 'center' };
+    }
+    const gtc = totalRow1.getCell(3 + months.length);
+    gtc.value = grandTotal1;
+    gtc.font = { ...FONT_JA, bold: true }; gtc.numFmt = NFMT_ACCOUNTING;
+    gtc.fill = FILL_HEADER; gtc.alignment = { vertical: 'center' };
+    for (let c = 2; c <= 3 + months.length; c++) {
+      const cell = totalRow1.getCell(c);
+      setBorder(cell, BORDER_THIN, c === 3 + months.length ? BORDER_MEDIUM : BORDER_THIN, BORDER_MEDIUM, c === 2 ? BORDER_MEDIUM : BORDER_THIN);
+    }
+
+    // ═══ Sheet 2: 供給 ═══
+    const ws2 = wb.addWorksheet('供給', { views: [{ showGridLines: false }] });
+    ws2.getColumn(1).width = 2; ws2.getColumn(2).width = 42; ws2.getColumn(3).width = 9;
+    for (let i = 0; i < months.length; i++) ws2.getColumn(4 + i).width = 10;
+    ws2.getColumn(4 + months.length).width = 11;
+    ws2.getRow(1).height = 15;
+    const w2r2 = ws2.getRow(2);
+    w2r2.height = 29.25;
+    w2r2.getCell(2).value = '供給';
+    w2r2.getCell(2).font = { ...FONT_JA, bold: true, size: 14 };
+    w2r2.getCell(months.length + 3).value = today;
+    w2r2.getCell(months.length + 3).font = FONT_JA;
+    w2r2.getCell(months.length + 3).numFmt = 'yyyy/m/d';
+    w2r2.getCell(months.length + 3).alignment = { horizontal: 'right' };
+    const w2r3 = ws2.getRow(3);
+    w2r3.height = 23.25;
+    w2r3.getCell(2).value = 'ペットネーム';
+    w2r3.getCell(3).value = '在庫';
+    for (let i = 0; i < months.length; i++) {
+      const c = w2r3.getCell(4 + i);
+      c.value = ymToDate(months[i]); c.numFmt = 'yyyy/mm';
+    }
+    w2r3.getCell(4 + months.length).value = '総計';
+    for (let c = 2; c <= 4 + months.length; c++) {
+      const cell = w2r3.getCell(c);
+      cell.font = { ...FONT_JA, bold: true };
+      cell.fill = c === 3 ? FILL_GREEN : FILL_HEADER;
+      cell.alignment = { horizontal: 'center', vertical: 'center' };
+      setBorder(cell, BORDER_MEDIUM, BORDER_THIN, BORDER_MEDIUM, c === 2 ? BORDER_MEDIUM : BORDER_THIN);
+      if (c === 4 + months.length) setBorder(cell, BORDER_MEDIUM, BORDER_MEDIUM, BORDER_MEDIUM, BORDER_THIN);
+    }
+    for (let i = 0; i < pets.length; i++) {
+      const pet = pets[i];
+      const sm = supplyMap.get(pet) || {};
+      const stk = stockMap.get(pet) || 0;
+      const monthVals = months.map(m => sm[m] || 0);
+      const rowTotal = stk + monthVals.reduce((a, b) => a + b, 0);
+      const r = ws2.getRow(4 + i);
+      r.height = 18.75;
+      r.getCell(2).value = pet;
+      r.getCell(2).font = FONT_JA;
+      r.getCell(2).alignment = { horizontal: 'left', vertical: 'center' };
+      const stCell = r.getCell(3);
+      stCell.value = stk || null;
+      stCell.font = FONT_JA; stCell.numFmt = NFMT_ACCOUNTING;
+      stCell.fill = FILL_GREEN; stCell.alignment = { vertical: 'center' };
+      for (let j = 0; j < months.length; j++) {
+        const c = r.getCell(4 + j);
+        c.value = monthVals[j] === 0 ? null : monthVals[j];
+        c.font = FONT_JA; c.numFmt = NFMT_ACCOUNTING;
+        c.alignment = { vertical: 'center' };
+      }
+      const totalCell = r.getCell(4 + months.length);
+      totalCell.value = rowTotal || null;
+      totalCell.font = { ...FONT_JA, bold: true };
+      totalCell.numFmt = NFMT_ACCOUNTING;
+      totalCell.alignment = { vertical: 'center' };
+      const isLast = i === pets.length - 1;
+      for (let c = 2; c <= 4 + months.length; c++) {
+        const cell = r.getCell(c);
+        setBorder(cell, BORDER_THIN,
+          c === 4 + months.length ? BORDER_MEDIUM : BORDER_THIN,
+          isLast ? BORDER_MEDIUM : BORDER_THIN,
+          c === 2 ? BORDER_MEDIUM : BORDER_THIN);
+      }
+    }
+    const colStockTotal = pets.reduce((a, p) => a + (stockMap.get(p) || 0), 0);
+    const colTotals2 = months.map(m => pets.reduce((a, p) => a + ((supplyMap.get(p)||{})[m] || 0), 0));
+    const grandTotal2 = colStockTotal + colTotals2.reduce((a, b) => a + b, 0);
+    const totalRow2 = ws2.getRow(4 + pets.length);
+    totalRow2.height = 18.75;
+    totalRow2.getCell(2).value = '総計';
+    totalRow2.getCell(2).font = { ...FONT_JA, bold: true };
+    totalRow2.getCell(2).alignment = { horizontal: 'left', vertical: 'center' };
+    totalRow2.getCell(2).fill = FILL_HEADER;
+    totalRow2.getCell(3).value = colStockTotal || null;
+    totalRow2.getCell(3).font = { ...FONT_JA, bold: true };
+    totalRow2.getCell(3).numFmt = NFMT_ACCOUNTING;
+    totalRow2.getCell(3).fill = FILL_GREEN;
+    totalRow2.getCell(3).alignment = { vertical: 'center' };
+    for (let j = 0; j < months.length; j++) {
+      const c = totalRow2.getCell(4 + j);
+      c.value = colTotals2[j] || null;
+      c.font = { ...FONT_JA, bold: true }; c.numFmt = NFMT_ACCOUNTING;
+      c.fill = FILL_HEADER; c.alignment = { vertical: 'center' };
+    }
+    const gtc2 = totalRow2.getCell(4 + months.length);
+    gtc2.value = grandTotal2;
+    gtc2.font = { ...FONT_JA, bold: true }; gtc2.numFmt = NFMT_ACCOUNTING;
+    gtc2.fill = FILL_HEADER; gtc2.alignment = { vertical: 'center' };
+    for (let c = 2; c <= 4 + months.length; c++) {
+      const cell = totalRow2.getCell(c);
+      setBorder(cell, BORDER_THIN, c === 4 + months.length ? BORDER_MEDIUM : BORDER_THIN, BORDER_MEDIUM, c === 2 ? BORDER_MEDIUM : BORDER_THIN);
+    }
+
+    // ═══ Sheet 3: 勝ち負け表 ═══
+    const ws3 = wb.addWorksheet('勝ち負け表', { views: [{ showGridLines: false, state: 'frozen', xSplit: 2, ySplit: 5 }] });
+    ws3.getColumn(1).width = 2; ws3.getColumn(2).width = 24;
+    for (let i = 0; i < months.length; i++) ws3.getColumn(3 + i).width = 12;
+    ws3.getColumn(3 + months.length).width = 12;
+    ws3.getRow(1).height = 15;
+    const w3r2 = ws3.getRow(2);
+    w3r2.height = 29.25;
+    w3r2.getCell(2).value = '白金ブランド生産計画検討';
+    w3r2.getCell(2).font = { ...FONT_JA, bold: true, size: 16 };
+    w3r2.getCell(4).value = '勝ち負け表';
+    w3r2.getCell(4).font = { ...FONT_JA, bold: true, size: 16 };
+    w3r2.getCell(months.length + 3).value = today;
+    w3r2.getCell(months.length + 3).font = FONT_JA;
+    w3r2.getCell(months.length + 3).numFmt = 'yyyy/m/d';
+    w3r2.getCell(months.length + 3).alignment = { horizontal: 'right' };
+    const w3r3 = ws3.getRow(3);
+    w3r3.height = 29.25;
+    w3r3.getCell(2).value = 'ペットネーム別　件名と手配済の月別・累計比較表';
+    w3r3.getCell(2).font = { ...FONT_JA, bold: true, size: 12 };
+    ws3.getRow(4).height = 20.25;
+    const w3r5 = ws3.getRow(5);
+    w3r5.height = 23.25;
+    w3r5.getCell(2).value = 'ペットネーム';
+    for (let i = 0; i < months.length; i++) {
+      const c = w3r5.getCell(3 + i);
+      c.value = ymToDate(months[i]);
+      c.numFmt = 'yyyy/mm/dd';
+    }
+    w3r5.getCell(3 + months.length).value = '小計';
+    for (let c = 2; c <= 3 + months.length; c++) {
+      const cell = w3r5.getCell(c);
+      cell.font = { ...FONT_JA, bold: true };
+      cell.fill = FILL_HEADER;
+      cell.alignment = { horizontal: 'center', vertical: 'center' };
+      setBorder(cell, BORDER_MEDIUM, BORDER_THIN, BORDER_MEDIUM, c === 2 ? BORDER_MEDIUM : BORDER_THIN);
+      if (c === 3 + months.length) setBorder(cell, BORDER_MEDIUM, BORDER_MEDIUM, BORDER_MEDIUM, BORDER_THIN);
+    }
+    let rowIdx = 6;
+    for (const pet of pets) {
+      const dm = demandMap.get(pet) || {};
+      const sm = supplyMap.get(pet) || {};
+      const stk = stockMap.get(pet) || 0;
+      const dVals = months.map(m => dm[m] || 0);
+      const sVals = months.map(m => sm[m] || 0);
+      const dCum = []; let ac = 0; for (const v of dVals) { ac += v; dCum.push(ac); }
+      const sCum = []; ac = stk; for (const v of sVals) { ac += v; sCum.push(ac); }
+      const short = sCum.map((sc, i) => sc - dCum[i]);
+      const dTotal = dVals.reduce((a, b) => a + b, 0);
+      const sTotal = stk + sVals.reduce((a, b) => a + b, 0);
+      const petRow = ws3.getRow(rowIdx++);
+      petRow.height = 18.75;
+      petRow.getCell(2).value = pet;
+      petRow.getCell(2).font = { ...FONT_JA, bold: true };
+      petRow.getCell(2).fill = FILL_GREEN;
+      petRow.getCell(2).alignment = { vertical: 'center' };
+      setBorder(petRow.getCell(2), BORDER_MEDIUM, BORDER_THIN, BORDER_THIN, BORDER_MEDIUM);
+      for (let c = 3; c <= 3 + months.length; c++) {
+        const cell = petRow.getCell(c);
+        cell.fill = FILL_GREEN;
+        cell.font = { ...FONT_JA, bold: true };
+        setBorder(cell, BORDER_MEDIUM, c === 3 + months.length ? BORDER_MEDIUM : BORDER_THIN, BORDER_THIN, BORDER_THIN);
+      }
+      function writeMetricRow(label, vals, opts) {
+        const row = ws3.getRow(rowIdx++);
+        row.height = 18.75;
+        const labelCell = row.getCell(2);
+        labelCell.value = label;
+        labelCell.font = { ...FONT_JA, bold: opts.labelBold !== false };
+        labelCell.alignment = { horizontal: 'left', vertical: 'center' };
+        if (opts.fill) labelCell.fill = opts.fill;
+        setBorder(labelCell, opts.topBorder || BORDER_THIN, BORDER_THIN, opts.bottomBorder || BORDER_THIN, BORDER_MEDIUM);
+        for (let j = 0; j < months.length; j++) {
+          const c = row.getCell(3 + j);
+          c.value = vals[j]; c.font = { ...FONT_JA, bold: opts.valBold || false };
+          c.numFmt = NFMT_ACCOUNTING; c.alignment = { vertical: 'center' };
+          if (opts.fill) c.fill = opts.fill;
+          setBorder(c, opts.topBorder || BORDER_THIN, BORDER_THIN, opts.bottomBorder || BORDER_THIN, BORDER_THIN);
+        }
+        const totalC = row.getCell(3 + months.length);
+        if (opts.total !== undefined) {
+          totalC.value = opts.total;
+          totalC.font = { ...FONT_JA, bold: true };
+          totalC.numFmt = NFMT_ACCOUNTING;
+          totalC.alignment = { vertical: 'center' };
+        } else { totalC.value = null; }
+        if (opts.fill) totalC.fill = opts.fill;
+        setBorder(totalC, opts.topBorder || BORDER_THIN, BORDER_MEDIUM, opts.bottomBorder || BORDER_THIN, BORDER_THIN);
+      }
+      writeMetricRow('需要', dVals, { total: dTotal, bottomBorder: BORDER_DOTTED });
+      writeMetricRow('累計', dCum, { valBold: true, topBorder: BORDER_DOTTED });
+      writeMetricRow('供給', sVals, { total: sTotal, bottomBorder: BORDER_DOTTED });
+      writeMetricRow('累計', sCum, { valBold: true, topBorder: BORDER_DOTTED });
+      writeMetricRow('手配過不足', short, { valBold: true, fill: FILL_YELLOW, bottomBorder: BORDER_MEDIUM });
+    }
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const fn = `ペットネーム別_勝ち負け表_${startYm}_${endYm}.xlsx`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fn;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Excelを出力しました: ' + fn, 'success');
+  } catch (e) {
+    console.error('[error] export', e);
+    toast('出力失敗: ' + e.message, 'error');
+  }
+}
+document.getElementById('export-btn').addEventListener('click', exportExcel);
+
+// ═══════════════════════════════════════════════════════════════
+// バックアップ・ストレージ
+// ═══════════════════════════════════════════════════════════════
+async function updateStorageBadge() {
+  const c = await db.upload_history.count();
+  document.getElementById('storage-info').textContent = `アップロード ${c} 件`;
+}
+async function updateStorageDetail() {
+  const [uh, d, s, st] = await Promise.all([
+    db.upload_history.count(), db.demand.count(), db.supply.count(), db.stock.count()
+  ]);
+  let quotaStr = '';
+  if (navigator.storage && navigator.storage.estimate) {
+    try {
+      const q = await navigator.storage.estimate();
+      const usedMb = (q.usage / 1024 / 1024).toFixed(2);
+      const totalMb = (q.quota / 1024 / 1024).toFixed(0);
+      quotaStr = `<br>ブラウザ全体: ${usedMb} MB / ${totalMb} MB`;
+    } catch(e) {}
+  }
+  document.getElementById('storage-detail').innerHTML = `
+    アップロード履歴: ${uh} 件<br>
+    需要データ: ${d} 行<br>
+    供給データ: ${s} 行<br>
+    在庫データ: ${st} 行${quotaStr}`;
+}
+async function exportJson() {
+  const [uh, d, s, st] = await Promise.all([
+    db.upload_history.toArray(), db.demand.toArray(), db.supply.toArray(), db.stock.toArray()
+  ]);
+  const payload = {
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    upload_history: uh, demand: d, supply: s, stock: st
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `勝ち負け表_バックアップ_${isoDate(new Date())}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('バックアップを書き出しました', 'success');
+}
+async function importJson(file) {
+  try {
+    const text = await file.text();
+    const p = JSON.parse(text);
+    if (!p.upload_history || !Array.isArray(p.upload_history)) throw new Error('不正なバックアップファイルです');
+    if (!confirm('現在のデータをすべて置き換えます。よろしいですか？')) return;
+    await db.transaction('rw', db.upload_history, db.demand, db.supply, db.stock, async () => {
+      await db.upload_history.clear(); await db.demand.clear();
+      await db.supply.clear(); await db.stock.clear();
+      if (p.upload_history.length) await db.upload_history.bulkAdd(p.upload_history);
+      if (p.demand?.length) await db.demand.bulkAdd(p.demand);
+      if (p.supply?.length) await db.supply.bulkAdd(p.supply);
+      if (p.stock?.length) await db.stock.bulkAdd(p.stock);
+    });
+    toast('インポート完了', 'success');
+    await loadHistory(); await updateStorageDetail(); updateStorageBadge();
+    wlState.initialized = false;
+  } catch (e) {
+    console.error(e); toast('インポート失敗: ' + e.message, 'error');
+  }
+}
+async function clearAll() {
+  if (!confirm('すべてのデータを削除します。この操作は取り消せません。よろしいですか？')) return;
+  if (!confirm('本当に削除しますか？（最終確認）')) return;
+  await db.transaction('rw', db.upload_history, db.demand, db.supply, db.stock, async () => {
+    await db.upload_history.clear(); await db.demand.clear();
+    await db.supply.clear(); await db.stock.clear();
+  });
+  toast('全データを削除しました', 'success');
+  await loadHistory(); await updateStorageDetail(); updateStorageBadge();
+  wlState.initialized = false;
+}
+document.getElementById('export-json-btn').addEventListener('click', exportJson);
+document.getElementById('import-json-btn').addEventListener('click', () => document.getElementById('import-json-input').click());
+document.getElementById('import-json-input').addEventListener('change', e => { if (e.target.files[0]) importJson(e.target.files[0]); });
+document.getElementById('clear-all-btn').addEventListener('click', clearAll);
+
+// ═══════════════════════════════════════════════════════════════
+// 【在庫過不足ダッシュボード】
+// ═══════════════════════════════════════════════════════════════
+let chartMonthly = null, chartCum = null;
+
+function dashTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  return {
+    text:   cs.getPropertyValue('--text').trim(),
+    muted:  cs.getPropertyValue('--text-muted').trim(),
+    border: cs.getPropertyValue('--border').trim(),
+    demand: cs.getPropertyValue('--demand').trim(),
+    supply: cs.getPropertyValue('--supply').trim(),
+    danger: cs.getPropertyValue('--danger').trim()
+  };
+}
+function fmtInt0(n) { if (n == null) return '0'; return Math.round(Number(n)).toLocaleString('ja-JP'); }
+function monthLabel(mk) { const [y, m] = mk.split('-'); return +m + '月\n' + y; }
+
+// 期末時点（各pet_nameのMAX(period_month)）の累計を抽出
+function buildEndState(winLossRows) {
+  // pet_name 毎に 最後の月のレコード
+  const last = new Map();
+  for (const r of winLossRows) {
+    const cur = last.get(r.pet_name);
+    if (!cur || r.month_key > cur.month_key) last.set(r.pet_name, r);
+  }
+  return [...last.values()];
+}
+
+// 月別 合計 need/supply/shortage
+function buildMonthlyAgg(winLossRows) {
+  const map = new Map();
+  for (const r of winLossRows) {
+    const cur = map.get(r.month_key) || { demand: 0, supply: 0, shortage: 0 };
+    cur.demand   += r.demand_qty;
+    cur.supply   += r.supply_qty;
+    cur.shortage += r.shortage;
+    map.set(r.month_key, cur);
+  }
+  return [...map.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1)
+    .map(([month_key, v]) => ({ month_key, ...v }));
+}
+
+async function buildFullWinLossData() {
+  // 全期間の勝ち負けデータを計算（ダッシュボード用）
+  const data = await loadActiveData();
+  const display = buildDisplayNames(data);
+  // 全月を集める
+  const monthsSet = new Set();
+  for (const r of data.demand) monthsSet.add(r.period_month.slice(0, 7));
+  for (const r of data.supply) monthsSet.add(r.period_month.slice(0, 7));
+  if (monthsSet.size === 0) return null;
+  const monthsArr = [...monthsSet].sort();
+  const startYm = monthsArr[0], endYm = monthsArr[monthsArr.length - 1];
+  const agg = aggregate(data, display, startYm, endYm);
+  const wl = buildWinLoss(agg, monthsArr);
+  return { winLoss: wl, months: monthsArr };
+}
+
+async function loadDashKpis(allWinLoss) {
+  const dash = document.getElementById('dash-kpi-grid');
+  const stamp = document.getElementById('dash-last-upload');
+  // last upload
+  const lastU = await db.upload_history.orderBy('uploaded_at').reverse().first();
+  stamp.textContent = lastU
+    ? new Date(lastU.uploaded_at).toLocaleString('ja-JP', { year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit' })
+    : '未取込';
+  if (!allWinLoss) {
+    dash.innerHTML = '<div class="empty" style="grid-column:1/-1;">データがまだありません</div>';
+    return;
+  }
+  const endState = buildEndState(allWinLoss.winLoss.rows);
+  const total_items = endState.length;
+  const short_items = endState.filter(r => r.shortage > 0).length;
+  const total_demand = endState.reduce((a, r) => a + r.demand_cum, 0);
+  const total_supply = endState.reduce((a, r) => a + r.supply_cum, 0);
+  const total_shortage = endState.reduce((a, r) => a + r.shortage, 0);
+  const coverage = total_demand > 0 ? Math.round((total_supply / total_demand) * 100) : 100;
+  dash.innerHTML = `
+    <div class="kpi"><div class="label">対象品目</div><div class="value">${fmtInt0(total_items)}</div><div class="sub">ペットネーム数</div></div>
+    <div class="kpi ${short_items>0?'danger':''}"><div class="label">不足品目</div><div class="value">${fmtInt0(short_items)}</div><div class="sub">期末時点</div></div>
+    <div class="kpi demand"><div class="label">需要 累計</div><div class="value">${fmtInt0(total_demand)}</div><div class="sub">総需要</div></div>
+    <div class="kpi supply"><div class="label">供給 累計</div><div class="value">${fmtInt0(total_supply)}</div><div class="sub">在庫+手配</div></div>
+    <div class="kpi ${coverage<100?'danger':(coverage<110?'warning':'')}">
+      <div class="label">充足率</div><div class="value">${coverage}%</div><div class="sub">供給/需要</div></div>
+    <div class="kpi ${total_shortage>0?'danger':''}"><div class="label">不足数量</div><div class="value">${fmtInt0(total_shortage)}</div><div class="sub">期末累計</div></div>
+  `;
+}
+
+async function loadDashCharts(allWinLoss) {
+  if (!allWinLoss) return;
+  const t = dashTokens();
+  const monthly = buildMonthlyAgg(allWinLoss.winLoss.rows);
+  const labels = monthly.map(r => monthLabel(r.month_key));
+  const demand = monthly.map(r => r.demand);
+  const supply = monthly.map(r => r.supply);
+  const shortage = monthly.map(r => r.shortage);
+  let cd = 0, cs = 0;
+  const cumD = demand.map(v => (cd += v));
+  const cumS = supply.map(v => (cs += v));
+  Chart.defaults.color = t.muted;
+  Chart.defaults.borderColor = t.border;
+  Chart.defaults.font.family = 'inherit';
+  Chart.defaults.font.size = 11;
+  if (chartMonthly) chartMonthly.destroy();
+  chartMonthly = new Chart(document.getElementById('chart-monthly'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { type: 'bar', label: '需要', data: demand, backgroundColor: t.demand + '66', borderColor: t.demand, borderWidth: 1, borderRadius: 3, order: 2 },
+      { type: 'bar', label: '供給', data: supply, backgroundColor: t.supply + '66', borderColor: t.supply, borderWidth: 1, borderRadius: 3, order: 2 },
+      { type: 'line', label: '不足', data: shortage, borderColor: t.danger, backgroundColor: t.danger, tension: 0.25, pointRadius: 3, borderWidth: 2, order: 1 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0 } },
+        y: { beginAtZero: true, grid: { color: t.border } }
+      }
+    }
+  });
+  if (chartCum) chartCum.destroy();
+  chartCum = new Chart(document.getElementById('chart-cumulative'), {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: '需要累計', data: cumD, borderColor: t.demand, backgroundColor: t.demand + '20', fill: true, tension: 0.2, pointRadius: 2, borderWidth: 2 },
+      { label: '供給累計', data: cumS, borderColor: t.supply, backgroundColor: t.supply + '20', fill: true, tension: 0.2, pointRadius: 2, borderWidth: 2 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0 } },
+        y: { beginAtZero: true, grid: { color: t.border } }
+      }
+    }
+  });
+}
+
+async function loadDashTopShortage(allWinLoss) {
+  const el = document.getElementById('top-shortage');
+  if (!allWinLoss) { el.innerHTML = '<div class="empty">データがありません</div>'; return; }
+  const endState = buildEndState(allWinLoss.winLoss.rows)
+    .filter(r => r.shortage > 0)
+    .map(r => ({
+      pet_name: r.pet_name,
+      shortage: r.shortage,
+      demand_cum: r.demand_cum,
+      supply_cum: r.supply_cum,
+      coverage_ratio: r.demand_cum > 0 ? (r.supply_cum / r.demand_cum) : 1
+    }))
+    .sort((a, b) => b.shortage - a.shortage)
+    .slice(0, 15);
+  if (!endState.length) { el.innerHTML = '<div class="empty">不足品目はありません 🎉</div>'; return; }
+  let rows = '';
+  for (const r of endState) {
+    const cov = Math.round(r.coverage_ratio * 100);
+    const cls = cov < 50 ? 'low' : (cov < 90 ? 'mid' : '');
+    rows += `<tr>
+      <td class="pet">${esc(r.pet_name)}</td>
+      <td class="num">${fmtInt0(r.shortage)}</td>
+      <td style="min-width:100px;">
+        <div class="bar-cell"><div class="fill ${cls}" style="width:${Math.min(cov, 100)}%"></div></div>
+      </td>
+      <td class="num">${cov}%</td>
+    </tr>`;
+  }
+  el.innerHTML = `<div style="overflow-x:auto;"><table class="dash">
+    <thead><tr><th>ペットネーム</th><th style="text-align:right;">不足</th><th>充足率</th><th style="text-align:right;">%</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+async function loadDashRecentUploads() {
+  const el = document.getElementById('dash-recent-uploads');
+  const list = await db.upload_history.orderBy('uploaded_at').reverse().limit(10).toArray();
+  if (!list.length) { el.innerHTML = '<div class="empty">アップロード履歴なし</div>'; return; }
+  let rows = '';
+  for (const r of list) {
+    const typeLabel = r.file_type === 'demand' ? '需要' : r.file_type === 'supply' ? '供給' : '在庫';
+    const typeCls = r.file_type === 'demand' ? '' : r.file_type === 'supply' ? 'supply' : 'stock';
+    const uploadedStr = r.uploaded_at
+      ? new Date(r.uploaded_at).toLocaleString('ja-JP', { year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit' })
+      : '';
+    rows += `<tr>
+      <td>${esc(uploadedStr)}</td>
+      <td><span class="pill ${typeCls} ${r.is_active?'':'inactive'}">${typeLabel}</span></td>
+      <td>${esc(r.file_name)}</td>
+      <td class="num">${fmtInt0(r.row_count)}</td>
+    </tr>`;
+  }
+  el.innerHTML = `<div style="overflow-x:auto;"><table class="dash">
+    <thead><tr><th>日時</th><th>種別</th><th>ファイル</th><th style="text-align:right;">行数</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+async function initDashboard() {
+  try {
+    const all = await buildFullWinLossData();
+    await Promise.all([
+      loadDashKpis(all),
+      loadDashCharts(all),
+      loadDashTopShortage(all),
+      loadDashRecentUploads()
+    ]);
+  } catch (e) {
+    console.error('[dashboard error]', e);
+    toast('ダッシュボード読み込み失敗: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 初期化
+// ═══════════════════════════════════════════════════════════════
+(async () => {
+  try {
+    await db.open();
+    await loadHistory();
+    updateStorageBadge();
+  } catch (e) {
+    console.error(e);
+    toast('データベース初期化失敗: ' + e.message, 'error');
+  }
+})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

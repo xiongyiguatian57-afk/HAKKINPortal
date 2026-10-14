@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>受注データ集計ツール v1.0</title>
+<!-- 外部ライブラリ: SheetJS (Excel入出力) + SQL.js (SQLite WebAssembly) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+<style>
+  :root {
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
+    --c-bg: #f7f8fa;
+    --c-panel: #ffffff;
+    --c-border: #e5e7eb;
+    --c-text: #0f172a;
+    --c-mute: #64748b;
+    --c-primary: #2563eb;
+    --c-primary-hover: #1d4ed8;
+    --c-warn: #dc2626;
+    --c-ok: #16a34a;
+    --c-header-bg: #1e293b;
+    --c-header-text: #f8fafc;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Meiryo", sans-serif;
+    color: var(--c-text);
+    background: var(--c-bg);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  /* ---------- レイアウト ---------- */
+  .app-header {
+    background: var(--c-header-bg);
+    color: var(--c-header-text);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .app-title { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+  .app-subtitle { font-size: 11px; opacity: 0.7; }
+  .app-header .spacer { flex: 1; }
+  .app-header .db-status {
+    font-size: 11px;
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 999px;
+  }
+  .app-header .db-status.saving { background: #fbbf24; color: #78350f; }
+  .app-header .db-status.saved { background: rgba(34,197,94,0.25); color: #86efac; }
+  .app-header .db-status.error { background: rgba(220,38,38,0.3); color: #fecaca; }
+
+  .main-tabs {
+    display: flex;
+    background: #fff;
+    border-bottom: 2px solid var(--c-border);
+    padding: 0 20px;
+  }
+  .main-tabs .main-tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    color: var(--c-mute);
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: -2px;
+    user-select: none;
+  }
+  .main-tabs .main-tab:hover { color: var(--c-text); }
+  .main-tabs .main-tab.active {
+    color: var(--c-primary);
+    border-bottom-color: var(--c-primary);
+  }
+
+  .page { display: none; padding: 20px; }
+  .page.active { display: block; }
+
+  .wrap { max-width: 1400px; margin: 0 auto; }
+
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 12px; color: var(--c-text); }
+
+  .card {
+    background: var(--c-panel);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .kpi {
+    background: var(--c-panel);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: var(--shadow);
+  }
+  .kpi .label { font-size: 11px; color: var(--c-mute); font-weight: 600; }
+  .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .kpi .sub { font-size: 10px; color: var(--c-mute); margin-top: 2px; }
+  .kpi.warn .value { color: var(--c-warn); }
+
+  /* ---------- ボタン ---------- */
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 16px;
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    color: var(--c-text);
+    transition: background 0.1s, filter 0.1s;
+  }
+  button:hover { background: #f1f5f9; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.primary {
+    background: var(--c-primary);
+    color: #fff;
+    border-color: var(--c-primary);
+    font-weight: 600;
+  }
+  button.primary:hover { background: var(--c-primary-hover); }
+  button.danger {
+    background: var(--c-warn);
+    color: #fff;
+    border-color: var(--c-warn);
+  }
+
+  /* ---------- ドロップゾーン ---------- */
+  .drop-zone {
+    border: 2px dashed var(--c-border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    background: #fafbfc;
+    margin-bottom: 12px;
+    transition: all 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--c-primary);
+    background: #eff6ff;
+  }
+  .drop-zone .big { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .drop-zone .small { font-size: 11px; color: var(--c-mute); }
+  input[type="file"] { display: none; }
+  .file-info {
+    font-size: 12px;
+    color: var(--c-mute);
+    padding: 6px 0;
+    min-height: 20px;
+  }
+  .file-info b { color: var(--c-text); }
+
+  .options { margin: 8px 0; }
+  .options label { font-size: 12px; color: var(--c-text); }
+  .actions { margin-top: 8px; }
+
+  /* ---------- ステータス ---------- */
+  .status { margin-top: 10px; font-size: 12px; min-height: 18px; }
+  .status.ok { color: var(--c-ok); }
+  .status.err { color: var(--c-warn); }
+  .status.info { color: var(--c-primary); }
+
+  .progress {
+    display: none;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress.show { display: block; }
+  .progress-bar {
+    height: 100%;
+    background: var(--c-primary);
+    width: 0%;
+    transition: width 0.2s;
+  }
+
+  .step-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+    font-size: 11px;
+  }
+  .step-list li {
+    padding: 3px 0;
+    color: var(--c-mute);
+    display: flex;
+    gap: 6px;
+  }
+  .step-list li.done { color: var(--c-ok); }
+  .step-list li.active { color: var(--c-primary); font-weight: 600; }
+  .step-list li.err { color: var(--c-warn); }
+  .step-list li::before { content: "•"; }
+  .step-list li.done::before { content: "✓"; }
+  .step-list li.active::before { content: "→"; }
+  .step-list li.err::before { content: "✗"; }
+
+  /* ---------- テーブル ---------- */
+  .table-scroll {
+    overflow: auto;
+    max-height: 560px;
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    background: #fff;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+  }
+  th, td {
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid #f1f5f9;
+    border-right: 1px solid #f1f5f9;
+    white-space: nowrap;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    text-align: center;
+  }
+  thead tr:first-child th { border-top: none; }
+  td:first-child, th:first-child { text-align: left; position: sticky; left: 0; background: #f8fafc; }
+  .total-col, .total-row td, .total-row th {
+    background: #fef3c7 !important;
+    font-weight: 700;
+  }
+
+  .empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--c-mute);
+  }
+
+  /* ---------- フィルタ・集計設定 ---------- */
+  .grid-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--c-mute);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .field select {
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    background: #fff;
+  }
+  .filter-select-panel {
+    max-height: 200px;
+    overflow: auto;
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 6px;
+    background: #fff;
+    font-size: 12px;
+  }
+  .filter-select-panel label {
+    display: block;
+    padding: 2px 4px;
+    cursor: pointer;
+  }
+  .filter-select-panel label:hover { background: #f1f5f9; }
+  .filter-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--c-mute);
+    margin-bottom: 4px;
+  }
+  .filter-header .count { color: var(--c-primary); font-weight: 600; }
+  .filter-search {
+    width: 100%; padding: 4px 6px; font-size: 11px;
+    border: 1px solid var(--c-border); border-radius: 3px; margin-bottom: 4px;
+    box-sizing: border-box;
+  }
+  .filter-actions {
+    display: flex; gap: 4px; margin-bottom: 4px;
+  }
+  .filter-actions button {
+    font-size: 10px; padding: 2px 6px; cursor: pointer;
+    background: #f8fafc; border: 1px solid var(--c-border); border-radius: 3px;
+  }
+  .filter-actions button:hover { background: #e2e8f0; }
+  .range-inputs { display: flex; gap: 4px; align-items: center; }
+  .range-inputs input, .range-inputs select {
+    flex: 1; padding: 4px 6px; font-size: 11px;
+    border: 1px solid var(--c-border); border-radius: 3px; box-sizing: border-box;
+    background: #fff; min-width: 0;
+  }
+  .range-inputs .sep { color: var(--c-mute); font-size: 11px; }
+
+  /* ---------- 複数値集計 ---------- */
+  .multi-select-panel {
+    max-height: 160px; overflow: auto; border: 1px solid var(--c-border);
+    border-radius: 4px; padding: 6px; background: #fff; font-size: 12px;
+  }
+  .multi-select-panel label { display: block; padding: 2px 4px; cursor: pointer; }
+  .multi-select-panel label:hover { background: #f1f5f9; }
+  .agg-chip-panel {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 6px;
+    border: 1px solid var(--c-border); border-radius: 4px; background: #fff;
+  }
+  .agg-chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+    border: 1px solid var(--c-border); border-radius: 999px; cursor: pointer;
+    font-size: 11px; user-select: none;
+  }
+  .agg-chip.on { background: var(--c-primary); color: #fff; border-color: var(--c-primary); }
+  table thead th.grouped-top {
+    background: #dce6f1; color: #1e3a5f; font-weight: 700;
+    border-bottom: 1px solid #a0b8d8;
+  }
+  table thead th.grouped-sub {
+    background: #edf3fa; color: #334155; font-weight: 600; font-size: 11px;
+  }
+
+  /* ---------- タブ (ピボット/未マッチ) ---------- */
+  .sub-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--c-border);
+    margin-bottom: 12px;
+  }
+  .sub-tabs .tab {
+    padding: 8px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--c-mute);
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: -2px;
+    user-select: none;
+  }
+  .sub-tabs .tab.active {
+    color: var(--c-primary);
+    border-bottom-color: var(--c-primary);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--c-primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .badge.warn { background: var(--c-warn); }
+  .hidden { display: none !important; }
+
+  /* ---------- 初期ロード オーバーレイ ---------- */
+  .boot-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,0.75);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+  }
+  .boot-overlay .box {
+    background: #1e293b;
+    padding: 24px 32px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+  }
+  .boot-overlay .spinner {
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    margin: 0 auto 12px;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- 危険ゾーン ---------- */
+  .danger-zone {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    margin-top: 16px;
+    font-size: 12px;
+  }
+  .danger-zone h3 { margin: 0 0 6px; font-size: 12px; color: var(--c-warn); }
+</style>
+</head>
+<body>
+<!-- ========== ヘッダ ========== -->
+<div class="app-header">
+  <div>
+    <div class="app-title">受注データ集計ツール</div>
+    <div class="app-subtitle">スタンドアロン版 v1.0 (SQL.js + IndexedDB)</div>
+  </div>
+  <span class="spacer"></span>
+  <div class="db-status" id="dbStatus">初期化中...</div>
+</div>
+
+<!-- ========== メインタブ ========== -->
+<div class="main-tabs">
+  <div class="main-tab active" data-page="import">① データ取込</div>
+  <div class="main-tab" data-page="pivot">② ピボット集計</div>
+</div>
+
+<!-- ========== ページ1: データ取込 ========== -->
+<div class="page active" id="page-import">
+<div class="wrap">
+  <div class="kpi-strip">
+    <div class="kpi"><div class="label">現在の受注データ</div><div class="value" id="kpiOrders">-</div><div class="sub" id="kpiOrdersSrc">-</div></div>
+    <div class="kpi"><div class="label">マスタ登録数</div><div class="value" id="kpiMaster">-</div><div class="sub">全型番シート</div></div>
+    <div class="kpi warn"><div class="label">マスタ未マッチ</div><div class="value" id="kpiUnmatched">-</div><div class="sub">「その他」扱い</div></div>
+    <div class="kpi"><div class="label">最終取込</div><div class="value" id="kpiLast" style="font-size:15px">-</div><div class="sub" id="kpiLastRel">-</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h2>① 受注データExcel取込</h2>
+      <div class="drop-zone" id="csvDrop">
+        <div class="big">Excelをドラッグ &amp; ドロップ</div>
+        <div class="small">またはクリックして選択 (.xlsx / .xls) — 「受注データYYYYMMDD」シートを自動選択</div>
+      </div>
+      <input type="file" id="csvFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <div class="file-info" id="csvInfo"></div>
+      <div class="options">
+        <label><input type="checkbox" id="csvReplace" checked> 前回の受注データを削除してから取込む (スナップショット型・推奨)</label>
+      </div>
+      <div class="actions">
+        <button class="primary" id="csvImportBtn" disabled>受注Excelを取込む</button>
+      </div>
+      <div class="status" id="csvStatus"></div>
+      <div class="progress" id="csvProgress"><div class="progress-bar" id="csvBar"></div></div>
+      <ol class="step-list" id="csvSteps"></ol>
+    </div>
+
+    <div class="card">
+      <h2>② 型番マスタExcel取込</h2>
+      <div class="drop-zone" id="mstDrop">
+        <div class="big">Excelをドラッグ &amp; ドロップ</div>
+        <div class="small">またはクリックして選択 (.xlsx / .xls) — 「全型番とペットネーム」シートを使用</div>
+      </div>
+      <input type="file" id="mstFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <div class="file-info" id="mstInfo"></div>
+      <div class="options">
+        <label><input type="checkbox" id="mstRejoin" checked> 取込後、受注データとマスタを再結合する (推奨)</label>
+      </div>
+      <div class="actions">
+        <button class="primary" id="mstImportBtn" disabled>マスタExcelを取込む</button>
+      </div>
+      <div class="status" id="mstStatus"></div>
+      <div class="progress" id="mstProgress"><div class="progress-bar" id="mstBar"></div></div>
+      <ol class="step-list" id="mstSteps"></ol>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>取込履歴</h2>
+    <div id="logArea" style="font-size:12px; max-height:220px; overflow:auto"></div>
+  </div>
+
+  <div class="card">
+    <h2>データベース管理</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <button id="btnExportDb">DBファイル (SQLite) をダウンロード</button>
+      <button id="btnImportDb">DBファイル (SQLite) を読込む</button>
+      <input type="file" id="importDbFile" accept=".sqlite,.db,.sqlite3">
+      <span style="flex:1"></span>
+      <span style="font-size:11px; color:var(--c-mute)" id="storageInfo"></span>
+    </div>
+    <div class="danger-zone">
+      <h3>⚠️ 全データ削除</h3>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:6px">
+        <button class="danger" id="btnResetDb">受注データもマスタも全て削除する</button>
+        <span style="font-size:11px; color:var(--c-mute)">この操作は元に戻せません。</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========== ページ2: ピボット集計 ========== -->
+<div class="page" id="page-pivot">
+<div class="wrap">
+  <div class="kpi-strip" id="pivotKpiStrip">
+    <div class="kpi"><div class="label">受注データ 行数</div><div class="value" id="kpiTotal">-</div></div>
+    <div class="kpi"><div class="label">マスタ登録数</div><div class="value" id="pkpiMaster">-</div></div>
+    <div class="kpi warn"><div class="label">マスタ未マッチ</div><div class="value" id="pkpiUnmatched">-</div></div>
+    <div class="kpi"><div class="label">合計 生産数</div><div class="value" id="kpiSeisan">-</div></div>
+    <div class="kpi"><div class="label">合計 金額</div><div class="value" id="kpiKingaku">-</div></div>
+  </div>
+
+  <div class="card">
+    <h2>フィルタ条件</h2>
+    <div class="grid-controls" id="filters"></div>
+  </div>
+
+  <div class="card">
+    <h2>集計設定</h2>
+    <div class="grid-controls">
+      <div class="field">
+        <label>行(縦軸)</label>
+        <select id="rowField"></select>
+      </div>
+      <div class="field">
+        <label>列(横軸)</label>
+        <select id="colField"></select>
+      </div>
+      <div class="field">
+        <label>値(複数選択可)</label>
+        <div class="multi-select-panel" id="valFieldPanel"></div>
+      </div>
+      <div class="field">
+        <label>集計関数(複数選択可)</label>
+        <div class="agg-chip-panel" id="aggFnPanel">
+          <span class="agg-chip on" data-fn="sum">合計</span>
+          <span class="agg-chip" data-fn="count">件数</span>
+          <span class="agg-chip" data-fn="avg">平均</span>
+          <span class="agg-chip" data-fn="max">最大</span>
+          <span class="agg-chip" data-fn="min">最小</span>
+        </div>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+      <button class="primary" id="applyBtn">集計を実行</button>
+      <button id="resetBtn">フィルタをクリア</button>
+      <button id="exportBtn">Excel出力</button>
+      <span style="flex:1"></span>
+      <span id="infoText" style="font-size:11px; color:var(--c-mute); align-self:center"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sub-tabs">
+      <div class="tab active" data-tab="pivot">ピボット集計<span id="titleBadge" class="badge" style="display:none"></span></div>
+      <div class="tab" data-tab="unmatched">マスタ未マッチ<span id="unmatchedBadge" class="badge warn" style="display:none">0</span></div>
+    </div>
+    <div id="pivotTab">
+      <div id="tableArea"><div class="empty">受注データを取込むと集計結果が表示されます。</div></div>
+    </div>
+    <div id="unmatchedTab" class="hidden">
+      <div style="margin-bottom:8px; display:flex; gap:8px; align-items:center">
+        <span style="font-size:12px; color:var(--c-mute)">マスタとマッチしなかった受注データの一覧です。</span>
+        <span style="flex:1"></span>
+        <button id="unmatchedExportBtn" style="font-size:11px; padding:4px 10px">CSVダウンロード</button>
+      </div>
+      <div id="unmatchedTableArea"><div class="empty">未マッチデータはありません。</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========== 起動オーバーレイ ========== -->
+<div class="boot-overlay" id="bootOverlay">
+  <div class="box">
+    <div class="spinner"></div>
+    <div id="bootMsg">データベースを初期化しています...</div>
+  </div>
+</div>
+
+<script>
+/* =============================================================
+   受注データ集計ツール - スタンドアロン版
+   ============================================================= */
+
+// ---------- グローバル ----------
+let SQL = null;      // SQL.js モジュール
+let DB = null;       // データベースインスタンス
+const DB_NAME = 'juchu-shukei-db';
+const DB_STORE = 'sqlite';
+const DB_KEY = 'main';
+let SAVE_TIMER = null;
+let IS_DIRTY = false;
+
+function setBootMsg(msg) {
+  const el = document.getElementById('bootMsg');
+  if (el) el.textContent = msg;
+}
+function hideBoot() {
+  const el = document.getElementById('bootOverlay');
+  if (el) el.style.display = 'none';
+}
+function setDbStatus(kind, msg) {
+  const el = document.getElementById('dbStatus');
+  el.className = 'db-status ' + kind;
+  el.textContent = msg;
+}
+
+// ---------- IndexedDB 永続化 ----------
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) {
+        db.createObjectStore(DB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readonly');
+    const store = tx.objectStore(DB_STORE);
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbPut(key, value) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    const store = tx.objectStore(DB_STORE);
+    const req = store.put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbDel(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    const store = tx.objectStore(DB_STORE);
+    const req = store.delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveDb() {
+  if (!DB) return;
+  setDbStatus('saving', '保存中...');
+  const data = DB.export();
+  await idbPut(DB_KEY, data);
+  IS_DIRTY = false;
+  setDbStatus('saved', '保存済 (' + Math.round(data.byteLength / 1024) + ' KB)');
+  updateStorageInfo();
+}
+function markDirty() {
+  IS_DIRTY = true;
+  if (SAVE_TIMER) clearTimeout(SAVE_TIMER);
+  SAVE_TIMER = setTimeout(() => saveDb().catch(err => {
+    console.error('save error', err);
+    setDbStatus('error', '保存エラー');
+  }), 400);
+}
+function updateStorageInfo() {
+  if (navigator.storage && navigator.storage.estimate) {
+    navigator.storage.estimate().then(est => {
+      const used = Math.round((est.usage || 0) / 1024);
+      const el = document.getElementById('storageInfo');
+      if (el) el.textContent = 'ブラウザ内保存: ' + used.toLocaleString() + ' KB 使用中';
+    });
+  }
+}
+
+// ---------- スキーマ (SQLite版) ----------
+const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  no_col INTEGER,
+  tantou TEXT,
+  seihin_code TEXT,
+  seihin_name TEXT,
+  nyuko_date TEXT,
+  seisan_su INTEGER,
+  toroku_date TEXT,
+  kibou_date TEXT,
+  ei_c TEXT,
+  mukesaki_name TEXT,
+  juchu_no TEXT,
+  kanryo_su INTEGER DEFAULT 0,
+  seizo_bumon_code TEXT,
+  daihyo_nyuko_basho TEXT,
+  saishin_hanbai_genka REAL,
+  kanren_kounyu_tanka REAL,
+  zan_su INTEGER,
+  tsuki TEXT,
+  kingaku REAL,
+  kanren_kounyu_tanka_kingaku REAL,
+  pet_name TEXT,
+  shubetsu TEXT,
+  hanbai_kubun TEXT,
+  matched INTEGER NOT NULL DEFAULT 0,
+  source_file TEXT,
+  imported_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_orders_tsuki ON orders(tsuki);
+CREATE INDEX IF NOT EXISTS idx_orders_pet_name ON orders(pet_name);
+CREATE INDEX IF NOT EXISTS idx_orders_seihin_name ON orders(seihin_name);
+CREATE INDEX IF NOT EXISTS idx_orders_matched ON orders(matched);
+
+CREATE TABLE IF NOT EXISTS product_master (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  no_col INTEGER,
+  keishiki TEXT NOT NULL,
+  eye_ito TEXT,
+  pet_name TEXT,
+  shubetsu TEXT,
+  hanbai_kubun TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_master_keishiki ON product_master(keishiki);
+
+CREATE TABLE IF NOT EXISTS import_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  target TEXT NOT NULL,
+  file_name TEXT,
+  row_count INTEGER,
+  message TEXT,
+  imported_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+`;
+
+// ---------- SQL実行ヘルパ (agentdb互換API) ----------
+// window.agentdb.query(name, params) を模倣
+function sqlExec(sql, params) {
+  const stmt = DB.prepare(sql);
+  const rows = [];
+  if (params && params.length) stmt.bind(params);
+  const cols = stmt.getColumnNames();
+  while (stmt.step()) {
+    const row = stmt.getAsObject();
+    rows.push(row);
+  }
+  stmt.free();
+  return { columns: cols, rows };
+}
+function sqlRun(sql, params) {
+  DB.run(sql, params || []);
+  markDirty();
+}
+
+// クラウド版のクエリ名互換ラッパ
+async function q(name, params) {
+  switch (name) {
+    case 'status_summary': {
+      const r = sqlExec(`
+        SELECT
+          (SELECT COUNT(*) FROM orders) AS orders_count,
+          (SELECT COUNT(*) FROM orders WHERE matched=0) AS unmatched_count,
+          (SELECT COUNT(*) FROM product_master) AS master_count,
+          (SELECT MAX(imported_at) FROM orders) AS orders_last_import,
+          (SELECT source_file FROM orders ORDER BY id DESC LIMIT 1) AS orders_source_file
+      `);
+      return r.rows[0] || {};
+    }
+    case 'recent_logs': {
+      const r = sqlExec(`
+        SELECT target, file_name, row_count, message, imported_at
+        FROM import_log ORDER BY id DESC LIMIT 20
+      `);
+      return r.rows;
+    }
+    case 'truncate_orders': {
+      sqlRun('DELETE FROM orders');
+      sqlRun("DELETE FROM sqlite_sequence WHERE name='orders'");
+      return {};
+    }
+    case 'truncate_master': {
+      sqlRun('DELETE FROM product_master');
+      sqlRun("DELETE FROM sqlite_sequence WHERE name='product_master'");
+      return {};
+    }
+    case 'insert_order_batch': {
+      const rows = params.rows;
+      const src = params.source_file;
+      DB.exec('BEGIN');
+      try {
+        const stmt = DB.prepare(`
+          INSERT INTO orders (no_col, tantou, seihin_code, seihin_name, nyuko_date, seisan_su,
+            toroku_date, kibou_date, ei_c, mukesaki_name, juchu_no, kanryo_su,
+            seizo_bumon_code, daihyo_nyuko_basho, saishin_hanbai_genka, kanren_kounyu_tanka,
+            zan_su, tsuki, kingaku, kanren_kounyu_tanka_kingaku, source_file, matched)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        `);
+        for (const r of rows) {
+          stmt.bind([
+            _nv(r.no_col, 'int'),
+            _nv(r.tantou),
+            _nv(r.seihin_code),
+            _nv(r.seihin_name),
+            _nv(r.nyuko_date),
+            _nv(r.seisan_su, 'int'),
+            _nv(r.toroku_date),
+            _nv(r.kibou_date),
+            _nv(r.ei_c),
+            _nv(r.mukesaki_name),
+            _nv(r.juchu_no),
+            _nv(r.kanryo_su, 'int') ?? 0,
+            _nv(r.seizo_bumon_code),
+            _nv(r.daihyo_nyuko_basho),
+            _nv(r.saishin_hanbai_genka, 'num'),
+            _nv(r.kanren_kounyu_tanka, 'num'),
+            _nv(r.zan_su, 'int'),
+            _nv(r.tsuki),
+            _nv(r.kingaku, 'num'),
+            _nv(r.kanren_kingaku, 'num'),
+            src
+          ]);
+          stmt.step();
+          stmt.reset();
+        }
+        stmt.free();
+        DB.exec('COMMIT');
+      } catch (e) {
+        DB.exec('ROLLBACK');
+        throw e;
+      }
+      markDirty();
+      return {};
+    }
+    case 'insert_master_batch': {
+      const rows = params.rows;
+      DB.exec('BEGIN');
+      try {
+        const stmt = DB.prepare(`
+          INSERT INTO product_master (no_col, keishiki, eye_ito, pet_name, shubetsu, hanbai_kubun)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `);
+        for (const r of rows) {
+          const keishiki = (r.keishiki == null ? '' : String(r.keishiki)).trim();
+          if (!keishiki) continue;
+          stmt.bind([
+            _nv(r.no_col, 'int'),
+            keishiki,
+            _nv(r.eye_ito),
+            _nv(r.pet_name),
+            _nv(r.shubetsu),
+            _nv(r.hanbai_kubun)
+          ]);
+          stmt.step();
+          stmt.reset();
+        }
+        stmt.free();
+        DB.exec('COMMIT');
+      } catch (e) {
+        DB.exec('ROLLBACK');
+        throw e;
+      }
+      markDirty();
+      return {};
+    }
+    case 'rejoin_master': {
+      // TRIM結合 (SQLiteは DISTINCT ON がないので相関サブクエリで MIN(m.id) を使う)
+      sqlRun(`
+        UPDATE orders
+        SET pet_name = COALESCE((
+              SELECT m.pet_name FROM product_master m
+              WHERE TRIM(m.keishiki) = TRIM(orders.seihin_name)
+              ORDER BY m.id LIMIT 1
+            ), 'その他'),
+            shubetsu = COALESCE((
+              SELECT m.shubetsu FROM product_master m
+              WHERE TRIM(m.keishiki) = TRIM(orders.seihin_name)
+              ORDER BY m.id LIMIT 1
+            ), 'それ以外'),
+            hanbai_kubun = COALESCE((
+              SELECT m.hanbai_kubun FROM product_master m
+              WHERE TRIM(m.keishiki) = TRIM(orders.seihin_name)
+              ORDER BY m.id LIMIT 1
+            ), '#N/A'),
+            matched = CASE WHEN EXISTS (
+              SELECT 1 FROM product_master m
+              WHERE TRIM(m.keishiki) = TRIM(orders.seihin_name)
+            ) THEN 1 ELSE 0 END
+      `);
+      return {};
+    }
+    case 'log_import': {
+      sqlRun(
+        `INSERT INTO import_log (target, file_name, row_count, message) VALUES (?, ?, ?, ?)`,
+        [params.target, params.file_name, params.row_count, params.message]
+      );
+      return {};
+    }
+    case 'list_filter_values': {
+      const uniq = (col) => sqlExec(
+        `SELECT DISTINCT ${col} AS v FROM orders WHERE ${col} IS NOT NULL AND ${col} <> '' ORDER BY ${col}`
+      ).rows.map(r => r.v);
+      const stats = sqlExec(`
+        SELECT
+          (SELECT COUNT(*) FROM orders) AS total_rows,
+          (SELECT COUNT(*) FROM orders WHERE matched=0) AS unmatched_rows,
+          (SELECT COUNT(*) FROM product_master) AS master_rows
+      `).rows[0] || {};
+      return {
+        ei_c_list: uniq('ei_c'),
+        shubetsu_list: uniq('shubetsu'),
+        mukesaki_list: uniq('mukesaki_name'),
+        juchu_list: uniq('juchu_no'),
+        hanbai_list: uniq('hanbai_kubun'),
+        tsuki_list: uniq('tsuki'),
+        tantou_list: uniq('tantou'),
+        total_rows: stats.total_rows || 0,
+        unmatched_rows: stats.unmatched_rows || 0,
+        master_rows: stats.master_rows || 0
+      };
+    }
+    case 'pivot_data': {
+      const r = sqlExec(`
+        SELECT
+          id AS __row_id,
+          COALESCE(NULLIF(ei_c, ''), '(空欄)') AS ei_c,
+          COALESCE(NULLIF(shubetsu, ''), '(空欄)') AS shubetsu,
+          COALESCE(NULLIF(mukesaki_name, ''), '(空欄)') AS mukesaki_name,
+          COALESCE(NULLIF(juchu_no, ''), '(空欄)') AS juchu_no,
+          COALESCE(NULLIF(hanbai_kubun, ''), '(空欄)') AS hanbai_kubun,
+          COALESCE(NULLIF(tsuki, ''), '(空欄)') AS tsuki,
+          COALESCE(NULLIF(pet_name, ''), '(空欄)') AS pet_name,
+          COALESCE(NULLIF(tantou, ''), '(空欄)') AS tantou,
+          COALESCE(NULLIF(seihin_name, ''), '(空欄)') AS seihin_name,
+          COALESCE(seisan_su, 0) AS seisan_su,
+          COALESCE(zan_su, 0) AS zan_su,
+          COALESCE(kanryo_su, 0) AS kanryo_su,
+          COALESCE(kingaku, 0) AS kingaku,
+          COALESCE(kanren_kounyu_tanka_kingaku, 0) AS kanren_kingaku,
+          COALESCE(matched, 0) AS matched
+        FROM orders
+      `);
+      return r.rows;
+    }
+    case 'unmatched_list': {
+      const r = sqlExec(`
+        SELECT no_col, tantou, seihin_code, seihin_name, nyuko_date, tsuki,
+               seisan_su, kanryo_su, zan_su, saishin_hanbai_genka, kingaku
+        FROM orders WHERE matched=0 ORDER BY nyuko_date, seihin_name
+      `);
+      return r.rows;
+    }
+    default:
+      throw new Error('unknown query: ' + name);
+  }
+}
+function _nv(v, kind) {
+  if (v == null) return null;
+  if (typeof v === 'string' && v.trim() === '') return null;
+  if (kind === 'int') { const n = parseInt(v, 10); return Number.isFinite(n) ? n : null; }
+  if (kind === 'num') { const n = Number(v); return Number.isFinite(n) ? n : null; }
+  return String(v);
+}
+
+// ============================================================
+// 以下、UIロジック — 既存クラウド版とほぼ同じ
+// ============================================================
+
+// ---------- 共通 ----------
+function escHTML(s) { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
+function log(...a) { console.log('[app]', ...a); }
+function fmtNum(v) {
+  if (v == null || v === '' || Number.isNaN(v)) return '-';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '-';
+  return n.toLocaleString();
+}
+function setStatus(elId, kind, msg) {
+  const el = document.getElementById(elId);
+  el.className = 'status ' + kind;
+  el.textContent = msg;
+}
+function hideStatus(elId) {
+  const el = document.getElementById(elId);
+  el.className = 'status';
+  el.textContent = '';
+}
+function setProgress(barId, wrapId, pct) {
+  const wrap = document.getElementById(wrapId); wrap.classList.add('show');
+  document.getElementById(barId).style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+function hideProgress(wrapId) { document.getElementById(wrapId).classList.remove('show'); }
+function renderSteps(elId, steps, activeIdx, errorMsg) {
+  const el = document.getElementById(elId);
+  el.innerHTML = steps.map((s, i) => {
+    let cls = '';
+    if (errorMsg && i === activeIdx) cls = 'err';
+    else if (i < activeIdx) cls = 'done';
+    else if (i === activeIdx) cls = 'active';
+    return `<li class="${cls}">${escHTML(s)}${errorMsg && i === activeIdx ? ' - ' + escHTML(errorMsg) : ''}</li>`;
+  }).join('');
+}
+
+// ---------- 日付/数値ヘルパ ----------
+function toDateStr(v) {
+  if (v == null || v === '') return '';
+  if (v instanceof Date && !isNaN(v.getTime())) {
+    const y = v.getFullYear();
+    const m = String(v.getMonth() + 1).padStart(2, '0');
+    const d = String(v.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+  const s = String(v).trim();
+  if (/^\d{8}$/.test(s)) return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  return '';
+}
+function toMonth(dateStr) {
+  if (!dateStr) return '';
+  const y = parseInt(dateStr.slice(0,4), 10);
+  const m = parseInt(dateStr.slice(5,7), 10);
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return '';
+  return y + '年' + m + '月';
+}
+function num(v) {
+  const s = String(v || '').trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+function intOr(v, dflt) {
+  const n = num(v);
+  return n === null ? dflt : Math.trunc(n);
+}
+
+// ---------- 受注データExcel 取込 ----------
+const BATCH_SIZE = 500;
+let csvSelectedFile = null;
+let mstSelectedFile = null;
+
+async function importCsv() {
+  if (!csvSelectedFile) return;
+  const file = csvSelectedFile;
+  const replace = document.getElementById('csvReplace').checked;
+  const steps = [
+    'Excelを読み込み', (replace ? '既存データを削除' : 'スキップ (追記モード)'),
+    'バッチINSERT', 'マスタと再結合', '完了'
+  ];
+  let cur = 0;
+  document.getElementById('csvImportBtn').disabled = true;
+  hideStatus('csvStatus');
+  setProgress('csvBar', 'csvProgress', 0);
+  renderSteps('csvSteps', steps, cur);
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    // シート名パターン: 受注データYYYYMMDD > 受注データ* > 先頭
+    let sheetName = wb.SheetNames.find(n => /^受注データ\d{8}$/.test(n));
+    if (!sheetName) sheetName = wb.SheetNames.find(n => n.startsWith('受注データ'));
+    if (!sheetName) sheetName = wb.SheetNames[0];
+    const sheet = wb.Sheets[sheetName];
+    const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (aoa.length < 2) throw new Error('データ行がありません: シート「' + sheetName + '」');
+
+    // ヘッダ行スキップ、列は固定順(16列想定)
+    const dataRows = aoa.slice(1).filter(row => row.some(c => c !== '' && c !== null));
+    log('sheet:', sheetName, 'rows:', dataRows.length);
+
+    cur++; renderSteps('csvSteps', steps, cur);
+    if (replace) {
+      await q('truncate_orders');
+    }
+
+    cur++; renderSteps('csvSteps', steps, cur);
+    // バッチ組立
+    const parsed = dataRows.map(row => {
+      const nyuko = toDateStr(row[4]);
+      const seisan = intOr(row[5], 0);
+      const kanryo = intOr(row[11], 0);
+      const shanka = num(row[14]);
+      const knt = num(row[15]);
+      return {
+        no_col: intOr(row[0], null),
+        tantou: String(row[1] ?? '').trim(),
+        seihin_code: String(row[2] ?? '').trim(),
+        seihin_name: String(row[3] ?? '').trim(),
+        nyuko_date: nyuko,
+        seisan_su: seisan,
+        toroku_date: toDateStr(row[6]),
+        kibou_date: toDateStr(row[7]),
+        ei_c: String(row[8] ?? '').trim(),
+        mukesaki_name: String(row[9] ?? '').trim(),
+        juchu_no: String(row[10] ?? '').trim(),
+        kanryo_su: kanryo,
+        seizo_bumon_code: String(row[12] ?? '').trim(),
+        daihyo_nyuko_basho: String(row[13] ?? '').trim(),
+        saishin_hanbai_genka: shanka,
+        kanren_kounyu_tanka: knt,
+        zan_su: seisan - kanryo,
+        tsuki: toMonth(nyuko),
+        kingaku: (shanka != null) ? seisan * shanka : null,
+        kanren_kingaku: (knt != null) ? seisan * knt : null
+      };
+    });
+    let inserted = 0;
+    for (let i = 0; i < parsed.length; i += BATCH_SIZE) {
+      const chunk = parsed.slice(i, i + BATCH_SIZE);
+      await q('insert_order_batch', { rows: chunk, source_file: file.name });
+      inserted += chunk.length;
+      setProgress('csvBar', 'csvProgress', (inserted / parsed.length) * 100);
+    }
+    cur++; renderSteps('csvSteps', steps, cur);
+    await q('rejoin_master');
+
+    cur++; renderSteps('csvSteps', steps, cur);
+    await q('log_import', {
+      target: 'orders', file_name: file.name, row_count: inserted,
+      message: `シート「${sheetName}」から ${inserted}行を取込 (${replace ? 'スナップショット' : '追記'})`
+    });
+    setStatus('csvStatus', 'ok', `受注データ ${inserted.toLocaleString()}行を取込みました。`);
+    await refreshSummary();
+    await saveDb();
+  } catch (e) {
+    console.error(e);
+    setStatus('csvStatus', 'err', 'エラー: ' + e.message);
+    renderSteps('csvSteps', steps, cur, e.message);
+  } finally {
+    document.getElementById('csvImportBtn').disabled = false;
+    setTimeout(() => hideProgress('csvProgress'), 800);
+  }
+}
+
+// ---------- マスタExcel 取込 ----------
+async function importMaster() {
+  if (!mstSelectedFile) return;
+  const file = mstSelectedFile;
+  const rejoin = document.getElementById('mstRejoin').checked;
+  const steps = ['Excelを読み込み', '既存マスタを削除', 'バッチINSERT',
+                 rejoin ? '受注データを再結合' : '(再結合スキップ)', '完了'];
+  let cur = 0;
+  document.getElementById('mstImportBtn').disabled = true;
+  hideStatus('mstStatus');
+  setProgress('mstBar', 'mstProgress', 0);
+  renderSteps('mstSteps', steps, cur);
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    // 「全型番とペットネーム」シートを使用
+    let sheetName = wb.SheetNames.find(n => n.includes('全型番'));
+    if (!sheetName) sheetName = wb.SheetNames[0];
+    const sheet = wb.Sheets[sheetName];
+    const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (aoa.length < 2) throw new Error('データ行がありません: シート「' + sheetName + '」');
+
+    // ヘッダから列位置を検出 (No, 形式, 眼糸, ペットネーム, 種別, 販売区分)
+    const header = aoa[0].map(c => String(c ?? '').trim());
+    const findCol = (kw) => header.findIndex(h => h.includes(kw));
+    const idxNo = findCol('No');
+    const idxKeishiki = header.findIndex(h => /^形式|型式|型番/.test(h) || h.includes('形式'));
+    const idxEye = findCol('眼');
+    const idxPet = findCol('ペット');
+    const idxShu = header.findIndex(h => h === '種別' || h.includes('種別'));
+    const idxHan = findCol('販売区分');
+    if (idxKeishiki < 0 && idxPet < 0) {
+      throw new Error('必要な列(形式/ペットネーム)が見つかりません');
+    }
+    const dataRows = aoa.slice(1).filter(row => row.some(c => c !== '' && c !== null));
+    const parsed = dataRows.map(row => ({
+      no_col: (idxNo >= 0) ? intOr(row[idxNo], null) : null,
+      keishiki: (idxKeishiki >= 0) ? String(row[idxKeishiki] ?? '').trim() : '',
+      eye_ito: (idxEye >= 0) ? String(row[idxEye] ?? '').trim() : '',
+      pet_name: (idxPet >= 0) ? String(row[idxPet] ?? '').trim() : '',
+      shubetsu: (idxShu >= 0) ? String(row[idxShu] ?? '').trim() : '',
+      hanbai_kubun: (idxHan >= 0) ? String(row[idxHan] ?? '').trim() : ''
+    })).filter(r => r.keishiki);
+
+    cur++; renderSteps('mstSteps', steps, cur);
+    await q('truncate_master');
+
+    cur++; renderSteps('mstSteps', steps, cur);
+    let inserted = 0;
+    for (let i = 0; i < parsed.length; i += BATCH_SIZE) {
+      const chunk = parsed.slice(i, i + BATCH_SIZE);
+      await q('insert_master_batch', { rows: chunk });
+      inserted += chunk.length;
+      setProgress('mstBar', 'mstProgress', (inserted / parsed.length) * 100);
+    }
+    cur++; renderSteps('mstSteps', steps, cur);
+    if (rejoin) await q('rejoin_master');
+
+    cur++; renderSteps('mstSteps', steps, cur);
+    await q('log_import', {
+      target: 'product_master', file_name: file.name, row_count: inserted,
+      message: `シート「${sheetName}」から ${inserted}件のマスタを登録`
+    });
+    setStatus('mstStatus', 'ok', `マスタ ${inserted.toLocaleString()}件を登録しました。`);
+    await refreshSummary();
+    await saveDb();
+  } catch (e) {
+    console.error(e);
+    setStatus('mstStatus', 'err', 'エラー: ' + e.message);
+    renderSteps('mstSteps', steps, cur, e.message);
+  } finally {
+    document.getElementById('mstImportBtn').disabled = false;
+    setTimeout(() => hideProgress('mstProgress'), 800);
+  }
+}
+
+// ---------- ドロップゾーン ----------
+function setupDrop(dropId, inputId, infoId, btnId, kind) {
+  const drop = document.getElementById(dropId);
+  const input = document.getElementById(inputId);
+  const info = document.getElementById(infoId);
+  const btn = document.getElementById(btnId);
+  drop.addEventListener('click', () => input.click());
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault(); drop.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      input.files = e.dataTransfer.files;
+      input.dispatchEvent(new Event('change'));
+    }
+  });
+  input.addEventListener('change', () => {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    if (kind === 'csv') csvSelectedFile = f; else mstSelectedFile = f;
+    info.innerHTML = '選択: <b>' + escHTML(f.name) + '</b> (' + (f.size / 1024).toFixed(1) + ' KB)';
+    btn.disabled = false;
+  });
+}
+
+// ---------- 履歴・サマリ ----------
+function relTime(iso) {
+  if (!iso) return '';
+  const t = new Date(iso.replace(' ', 'T') + 'Z').getTime();
+  if (!Number.isFinite(t)) return '';
+  const diff = (Date.now() - t) / 1000;
+  if (diff < 60) return Math.round(diff) + '秒前';
+  if (diff < 3600) return Math.round(diff / 60) + '分前';
+  if (diff < 86400) return Math.round(diff / 3600) + '時間前';
+  return Math.round(diff / 86400) + '日前';
+}
+async function refreshSummary() {
+  const s = await q('status_summary');
+  document.getElementById('kpiOrders').textContent = fmtNum(s.orders_count);
+  document.getElementById('kpiOrdersSrc').textContent = s.orders_source_file || '-';
+  document.getElementById('kpiMaster').textContent = fmtNum(s.master_count);
+  document.getElementById('kpiUnmatched').textContent = fmtNum(s.unmatched_count);
+  document.getElementById('kpiLast').textContent = s.orders_last_import ? s.orders_last_import.slice(0, 16) : '-';
+  document.getElementById('kpiLastRel').textContent = s.orders_last_import ? relTime(s.orders_last_import) : '-';
+
+  const logs = await q('recent_logs');
+  const html = logs.length === 0
+    ? '<div class="empty" style="padding:20px">まだ取込履歴はありません。</div>'
+    : '<table style="width:100%"><thead><tr><th>日時</th><th>対象</th><th>ファイル</th><th>行数</th><th>メッセージ</th></tr></thead><tbody>'
+      + logs.map(r =>
+        `<tr><td>${escHTML((r.imported_at||'').slice(0,16))}</td>`
+        + `<td>${escHTML(r.target)}</td>`
+        + `<td>${escHTML(r.file_name||'')}</td>`
+        + `<td>${fmtNum(r.row_count)}</td>`
+        + `<td>${escHTML(r.message||'')}</td></tr>`
+      ).join('')
+      + '</tbody></table>';
+  document.getElementById('logArea').innerHTML = html;
+}
+
+/* =========================================================
+   ピボット集計
+   ========================================================= */
+const FIELD_LABELS = {
+  ei_c: '営C', shubetsu: '種別', hanbai_kubun: '販売区分',
+  mukesaki_name: '向先名', juchu_no: '受注NO', tsuki: '月',
+  pet_name: 'ペットネーム', tantou: '担当', seihin_name: '製品名'
+};
+const VALUE_FIELDS = {
+  seisan_su: '生産数', zan_su: '未完了残数', kanryo_su: '完了数量',
+  kingaku: '金額', kanren_kingaku: '関連購入単価金額'
+};
+const AGG_LABELS = { sum: '合計', count: '件数', avg: '平均', max: '最大', min: '最小' };
+
+// カテゴリ系フィルタ(マルチセレクト)
+const CATEGORY_FILTERS = ['ei_c','shubetsu','hanbai_kubun','mukesaki_name','juchu_no','tantou','pet_name','seihin_name'];
+// 月フィルタ(範囲指定)
+const MONTH_FILTER = 'tsuki';
+// 数値フィルタ(範囲指定)
+const NUMERIC_FILTERS = {
+  seisan_su: '生産数', kingaku: '金額', kanren_kingaku: '関連購入単価金額',
+  kanryo_su: '完了数量', zan_su: '未完了残数'
+};
+// フィルタ表示順
+const FILTER_ORDER = [
+  'ei_c','shubetsu','hanbai_kubun','mukesaki_name','juchu_no','tantou','pet_name','seihin_name',
+  MONTH_FILTER,
+  '__matched__',
+  ...Object.keys(NUMERIC_FILTERS)
+];
+
+let ALL_ROWS = [];
+let UNMATCHED_ROWS = [];
+// FILTER_STATE 構造:
+//   カテゴリ: { kind: 'set', values: Set<string> }
+//   月:       { kind: 'month_range', from: 'YYYY年M月'|'', to: 'YYYY年M月'|'' }
+//   数値:     { kind: 'num_range', min: number|null, max: number|null }
+//   マッチ:    { kind: 'matched', value: 'all'|'matched'|'unmatched' }
+let FILTER_STATE = {};
+let FILTER_LISTS = {};
+
+async function loadAllPivot() {
+  const fvals = await q('list_filter_values');
+  FILTER_LISTS = fvals;
+  document.getElementById('kpiTotal').textContent = fmtNum(fvals.total_rows);
+  document.getElementById('pkpiMaster').textContent = fmtNum(fvals.master_rows);
+  document.getElementById('pkpiUnmatched').textContent = fmtNum(fvals.unmatched_rows);
+  ALL_ROWS = await q('pivot_data');
+  UNMATCHED_ROWS = await q('unmatched_list');
+  // マッチ状態フィルタ用の未マッチキーセット構築 (matched=0 の __row_id)
+  _UNMATCHED_KEYS = new Set();
+  for (const r of ALL_ROWS) {
+    r.__row_key = r.__row_id;
+    if (!Number(r.matched)) _UNMATCHED_KEYS.add(r.__row_key);
+  }
+  const seisanSum = ALL_ROWS.reduce((a, r) => a + Number(r.seisan_su || 0), 0);
+  const kingakuSum = ALL_ROWS.reduce((a, r) => a + Number(r.kingaku || 0), 0);
+  document.getElementById('kpiSeisan').textContent = fmtNum(seisanSum);
+  document.getElementById('kpiKingaku').textContent = '¥' + fmtNum(kingakuSum);
+  const uBadge = document.getElementById('unmatchedBadge');
+  if (UNMATCHED_ROWS.length > 0) { uBadge.style.display = ''; uBadge.textContent = UNMATCHED_ROWS.length.toLocaleString(); }
+  else uBadge.style.display = 'none';
+
+  buildFilterUI(fvals);
+  buildPivotUI();
+  renderUnmatched();
+  if (ALL_ROWS.length > 0) apply();
+  else document.getElementById('tableArea').innerHTML = '<div class="empty">受注データを取込むと集計結果が表示されます。</div>';
+}
+
+function _uniqueValues(field) {
+  // ALL_ROWS からユニークな値を抽出(カテゴリ系フィルタ用)
+  const s = new Set();
+  for (const r of ALL_ROWS) {
+    const v = r[field];
+    if (v != null && v !== '') s.add(String(v));
+  }
+  return [...s].sort(smartSort);
+}
+
+function _defaultFilterState(fld) {
+  if (fld === '__matched__') return { kind: 'matched', value: 'all' };
+  if (fld === MONTH_FILTER) return { kind: 'month_range', from: '', to: '' };
+  if (NUMERIC_FILTERS[fld]) return { kind: 'num_range', min: null, max: null };
+  return { kind: 'set', values: new Set() };
+}
+
+function _filterActiveCount(state) {
+  if (!state) return 0;
+  if (state.kind === 'set') return state.values.size;
+  if (state.kind === 'month_range') return (state.from || state.to) ? 1 : 0;
+  if (state.kind === 'num_range') return (state.min != null || state.max != null) ? 1 : 0;
+  if (state.kind === 'matched') return state.value === 'all' ? 0 : 1;
+  return 0;
+}
+
+function _filterCountLabel(state) {
+  if (!state) return '全て';
+  if (state.kind === 'set') return state.values.size === 0 ? '全て' : state.values.size + '件';
+  if (state.kind === 'month_range') {
+    if (!state.from && !state.to) return '全期間';
+    return (state.from || '~') + '〜' + (state.to || '~');
+  }
+  if (state.kind === 'num_range') {
+    if (state.min == null && state.max == null) return '全て';
+    return (state.min == null ? '' : state.min.toLocaleString()) + '〜' +
+           (state.max == null ? '' : state.max.toLocaleString());
+  }
+  if (state.kind === 'matched') {
+    return { all: '全て', matched: 'マッチのみ', unmatched: '未マッチのみ' }[state.value];
+  }
+  return '';
+}
+
+function buildFilterUI(fvals) {
+  const wrap = document.getElementById('filters');
+  wrap.innerHTML = '';
+
+  for (const fld of FILTER_ORDER) {
+    if (!FILTER_STATE[fld]) FILTER_STATE[fld] = _defaultFilterState(fld);
+    const state = FILTER_STATE[fld];
+    const div = document.createElement('div');
+    div.className = 'field';
+    const label = fld === '__matched__' ? 'マッチ状態' : FIELD_LABELS[fld] || NUMERIC_FILTERS[fld] || fld;
+
+    if (state.kind === 'set') {
+      // カテゴリ系: 検索付きマルチセレクト
+      const values = _uniqueValues(fld);
+      div.innerHTML = `
+        <div class="filter-header">
+          <label style="margin:0">${escHTML(label)}</label>
+          <span style="flex:1"></span>
+          <span class="count" id="cnt-${fld}">${escHTML(_filterCountLabel(state))}</span>
+        </div>
+        <div class="filter-actions">
+          <button type="button" data-act="all">全選択</button>
+          <button type="button" data-act="none">クリア</button>
+        </div>
+        <input type="text" class="filter-search" placeholder="検索..." id="search-${fld}">
+        <div class="filter-select-panel" id="panel-${fld}"></div>`;
+      wrap.appendChild(div);
+
+      const panel = div.querySelector('#panel-' + fld);
+      const renderList = (filter) => {
+        panel.innerHTML = '';
+        const q = (filter || '').toLowerCase();
+        values.filter(v => !q || String(v).toLowerCase().includes(q)).forEach(v => {
+          const lbl = document.createElement('label');
+          lbl.innerHTML = `<input type="checkbox" value="${escHTML(v)}" ${state.values.has(v)?'checked':''}> ${escHTML(v)}`;
+          const cb = lbl.querySelector('input');
+          cb.addEventListener('change', () => {
+            if (cb.checked) state.values.add(v); else state.values.delete(v);
+            document.getElementById('cnt-' + fld).textContent = _filterCountLabel(state);
+          });
+          panel.appendChild(lbl);
+        });
+      };
+      renderList('');
+      div.querySelector('#search-' + fld).addEventListener('input', (e) => renderList(e.target.value));
+      div.querySelectorAll('.filter-actions button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const act = btn.dataset.act;
+          if (act === 'all') values.forEach(v => state.values.add(v));
+          else state.values.clear();
+          document.getElementById('cnt-' + fld).textContent = _filterCountLabel(state);
+          renderList(div.querySelector('#search-' + fld).value);
+        });
+      });
+
+    } else if (state.kind === 'month_range') {
+      // 月範囲: from ~ to のドロップダウン
+      const months = _uniqueValues(fld).filter(v => /^(\d{4})年(\d{1,2})月$/.test(v));
+      const sortedMonths = buildMonthRange(months);
+      const options = ['<option value="">--</option>']
+        .concat(sortedMonths.map(m => `<option value="${escHTML(m)}" ${m===state.from?'selected':''}>${escHTML(m)}</option>`))
+        .join('');
+      const options2 = ['<option value="">--</option>']
+        .concat(sortedMonths.map(m => `<option value="${escHTML(m)}" ${m===state.to?'selected':''}>${escHTML(m)}</option>`))
+        .join('');
+      div.innerHTML = `
+        <div class="filter-header">
+          <label style="margin:0">${escHTML(label)}(範囲)</label>
+          <span style="flex:1"></span>
+          <span class="count" id="cnt-${fld}">${escHTML(_filterCountLabel(state))}</span>
+        </div>
+        <div class="range-inputs">
+          <select id="mfrom-${fld}">${options}</select>
+          <span class="sep">〜</span>
+          <select id="mto-${fld}">${options2}</select>
+        </div>`;
+      wrap.appendChild(div);
+      div.querySelector('#mfrom-' + fld).addEventListener('change', (e) => {
+        state.from = e.target.value;
+        document.getElementById('cnt-' + fld).textContent = _filterCountLabel(state);
+      });
+      div.querySelector('#mto-' + fld).addEventListener('change', (e) => {
+        state.to = e.target.value;
+        document.getElementById('cnt-' + fld).textContent = _filterCountLabel(state);
+      });
+
+    } else if (state.kind === 'num_range') {
+      div.innerHTML = `
+        <div class="filter-header">
+          <label style="margin:0">${escHTML(label)}(範囲)</label>
+          <span style="flex:1"></span>
+          <span class="count" id="cnt-${fld}">${escHTML(_filterCountLabel(state))}</span>
+        </div>
+        <div class="range-inputs">
+          <input type="number" step="any" placeholder="最小" id="nmin-${fld}" value="${state.min==null?'':state.min}">
+          <span class="sep">〜</span>
+          <input type="number" step="any" placeholder="最大" id="nmax-${fld}" value="${state.max==null?'':state.max}">
+        </div>`;
+      wrap.appendChild(div);
+      div.querySelector('#nmin-' + fld).addEventListener('input', (e) => {
+        state.min = e.target.value === '' ? null : Number(e.target.value);
+        document.getElementById('cnt-' + fld).textContent = _filterCountLabel(state);
+      });
+      div.querySelector('#nmax-' + fld).addEventListener('input', (e) => {
+        state.max = e.target.value === '' ? null : Number(e.target.value);
+        document.getElementById('cnt-' + fld).textContent = _filterCountLabel(state);
+      });
+
+    } else if (state.kind === 'matched') {
+      div.innerHTML = `
+        <div class="filter-header">
+          <label style="margin:0">${escHTML(label)}</label>
+          <span style="flex:1"></span>
+          <span class="count" id="cnt-${fld}">${escHTML(_filterCountLabel(state))}</span>
+        </div>
+        <select id="msel-${fld}" style="width:100%; padding:6px; font-size:12px; border:1px solid var(--c-border); border-radius:4px; background:#fff">
+          <option value="all"       ${state.value==='all'?'selected':''}>全て</option>
+          <option value="matched"   ${state.value==='matched'?'selected':''}>マスタとマッチ済のみ</option>
+          <option value="unmatched" ${state.value==='unmatched'?'selected':''}>未マッチのみ</option>
+        </select>`;
+      wrap.appendChild(div);
+      div.querySelector('#msel-' + fld).addEventListener('change', (e) => {
+        state.value = e.target.value;
+        document.getElementById('cnt-' + fld).textContent = _filterCountLabel(state);
+      });
+    }
+  }
+}
+
+// 選択状態(複数値・複数集計)
+let VAL_SELECTED = ['seisan_su'];    // デフォルト: 生産数
+let AGG_SELECTED = ['sum'];          // デフォルト: 合計
+
+function buildPivotUI() {
+  const rowSel = document.getElementById('rowField');
+  const colSel = document.getElementById('colField');
+  const valPanel = document.getElementById('valFieldPanel');
+  rowSel.innerHTML = ''; colSel.innerHTML = ''; valPanel.innerHTML = '';
+  Object.entries(FIELD_LABELS).forEach(([k, v]) => {
+    rowSel.appendChild(new Option(v, k));
+    colSel.appendChild(new Option(v, k));
+  });
+  colSel.appendChild(new Option('(なし)', '__none__'));
+  Object.entries(VALUE_FIELDS).forEach(([k, v]) => {
+    const lbl = document.createElement('label');
+    lbl.innerHTML = `<input type="checkbox" value="${escHTML(k)}" ${VAL_SELECTED.includes(k)?'checked':''}> ${escHTML(v)}`;
+    const cb = lbl.querySelector('input');
+    cb.addEventListener('change', () => {
+      if (cb.checked) { if (!VAL_SELECTED.includes(k)) VAL_SELECTED.push(k); }
+      else VAL_SELECTED = VAL_SELECTED.filter(x => x !== k);
+    });
+    valPanel.appendChild(lbl);
+  });
+  rowSel.value = 'pet_name';
+  colSel.value = 'tsuki';
+
+  // 集計チップの複数選択トグル
+  document.querySelectorAll('#aggFnPanel .agg-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const fn = chip.dataset.fn;
+      if (chip.classList.contains('on')) {
+        // 最後の1つは残す
+        if (AGG_SELECTED.length > 1) {
+          chip.classList.remove('on');
+          AGG_SELECTED = AGG_SELECTED.filter(x => x !== fn);
+        }
+      } else {
+        chip.classList.add('on');
+        if (!AGG_SELECTED.includes(fn)) AGG_SELECTED.push(fn);
+      }
+    });
+  });
+}
+
+function _monthToIdx(label) {
+  const m = /^(\d{4})年(\d{1,2})月$/.exec(label);
+  return m ? Number(m[1]) * 12 + (Number(m[2]) - 1) : null;
+}
+
+function passesFilter(r) {
+  for (const fld of FILTER_ORDER) {
+    const st = FILTER_STATE[fld];
+    if (!st) continue;
+    if (st.kind === 'set') {
+      if (st.values.size > 0 && !st.values.has(String(r[fld] ?? ''))) return false;
+    } else if (st.kind === 'month_range') {
+      if (!st.from && !st.to) continue;
+      const idx = _monthToIdx(String(r[fld] ?? ''));
+      if (idx == null) return false;
+      const fi = st.from ? _monthToIdx(st.from) : -Infinity;
+      const ti = st.to   ? _monthToIdx(st.to)   :  Infinity;
+      if (idx < fi || idx > ti) return false;
+    } else if (st.kind === 'num_range') {
+      if (st.min == null && st.max == null) continue;
+      const raw = r[fld === 'kanren_kingaku' ? 'kanren_kingaku' : fld];
+      const v = raw == null ? null : Number(raw);
+      if (v == null || Number.isNaN(v)) return false;
+      if (st.min != null && v < st.min) return false;
+      if (st.max != null && v > st.max) return false;
+    } else if (st.kind === 'matched') {
+      if (st.value === 'all') continue;
+      // ALL_ROWS には matched カラムがない場合があるので UNMATCHED_ROWS を利用
+      const isUnmatched = _UNMATCHED_KEYS && _UNMATCHED_KEYS.has(r.__row_key);
+      if (st.value === 'matched'   &&  isUnmatched) return false;
+      if (st.value === 'unmatched' && !isUnmatched) return false;
+    }
+  }
+  return true;
+}
+
+let _UNMATCHED_KEYS = null;
+
+function apply() {
+  const rowFld = document.getElementById('rowField').value;
+  const colFld = document.getElementById('colField').value;
+  if (VAL_SELECTED.length === 0) { alert('値フィールドを1つ以上選択してください。'); return; }
+  if (AGG_SELECTED.length === 0) { alert('集計関数を1つ以上選択してください。'); return; }
+
+  // 複数値×複数集計の展開 → 「measure」配列を作る
+  //   measure = { valFld, aggFn, label }
+  const measures = [];
+  for (const vf of VAL_SELECTED) {
+    for (const af of AGG_SELECTED) {
+      measures.push({ valFld: vf, aggFn: af, label: VALUE_FIELDS[vf] + ' の' + AGG_LABELS[af] });
+    }
+  }
+
+  const filtered = ALL_ROWS.filter(passesFilter);
+  document.getElementById('infoText').textContent =
+    '対象: ' + filtered.length.toLocaleString() + ' 行 / 全体: ' + ALL_ROWS.length.toLocaleString() + ' 行';
+
+  const badge = document.getElementById('titleBadge');
+  badge.style.display = '';
+  const measureTxt = measures.length === 1
+    ? measures[0].label
+    : `${VAL_SELECTED.length}種 × ${AGG_SELECTED.length}集計 = ${measures.length}指標`;
+  badge.textContent = FIELD_LABELS[rowFld] + ' × ' +
+    (colFld === '__none__' ? '(集計のみ)' : FIELD_LABELS[colFld]) +
+    ' • ' + measureTxt;
+
+  const useCol = colFld !== '__none__';
+  // セル: measure ごとの集計を独立して保持
+  //   cellStore[valFld][rowKey ⨯ colKey] = { sum, count, max, min }
+  const cellStore = {};
+  const rowStore  = {};   // 行合計
+  const colStore  = {};   // 列合計
+  const grandStore = {};  // 総計
+  for (const vf of VAL_SELECTED) {
+    cellStore[vf] = new Map();
+    rowStore[vf]  = new Map();
+    colStore[vf]  = new Map();
+    grandStore[vf] = { sum:0, count:0, max:-Infinity, min:Infinity };
+  }
+  const rowsSet = new Set(); const colsSet = new Set();
+
+  const bump = (agg, v) => {
+    agg.sum += v; agg.count += 1;
+    if (v > agg.max) agg.max = v;
+    if (v < agg.min) agg.min = v;
+  };
+
+  for (const r of filtered) {
+    const rv = String(r[rowFld]);
+    const cv = useCol ? String(r[colFld]) : '合計';
+    rowsSet.add(rv); colsSet.add(cv);
+    const key = rv + '\u0001' + cv;
+    for (const vf of VAL_SELECTED) {
+      const v = Number(r[vf]) || 0;
+      let cell = cellStore[vf].get(key);
+      if (!cell) { cell = {sum:0,count:0,max:-Infinity,min:Infinity}; cellStore[vf].set(key, cell); }
+      bump(cell, v);
+      let rowT = rowStore[vf].get(rv);
+      if (!rowT) { rowT = {sum:0,count:0,max:-Infinity,min:Infinity}; rowStore[vf].set(rv, rowT); }
+      bump(rowT, v);
+      let colT = colStore[vf].get(cv);
+      if (!colT) { colT = {sum:0,count:0,max:-Infinity,min:Infinity}; colStore[vf].set(cv, colT); }
+      bump(colT, v);
+      bump(grandStore[vf], v);
+    }
+  }
+
+  function aggOf(cell, fn) {
+    if (!cell) return null;
+    if (fn === 'sum') return cell.sum;
+    if (fn === 'count') return cell.count;
+    if (fn === 'avg') return cell.count ? cell.sum / cell.count : null;
+    if (fn === 'max') return cell.max === -Infinity ? null : cell.max;
+    if (fn === 'min') return cell.min === Infinity ? null : cell.min;
+    return cell.sum;
+  }
+
+  const sortedRows = (rowFld === 'tsuki')
+    ? buildMonthRange([...rowsSet]) : [...rowsSet].sort(smartSort);
+  const sortedCols = useCol
+    ? (colFld === 'tsuki' ? buildMonthRange([...colsSet]) : [...colsSet].sort(smartSort))
+    : ['合計'];
+
+  const colIsMonth = (colFld === 'tsuki') && useCol;
+  const rowIsMonth = (rowFld === 'tsuki');
+
+  const fmt = (v, aggFn, isMonthCell) => {
+    if (v === null || v === undefined || Number.isNaN(v)) return isMonthCell ? '0' : '';
+    if (v === 0 && aggFn !== 'count' && !isMonthCell) return '';
+    if (aggFn === 'avg') return (Math.round(v * 100) / 100).toLocaleString();
+    return Math.round(v).toLocaleString();
+  };
+
+  // ヘッダ: 単一 measure なら従来通り1段。複数 measure なら2段(列カテゴリ×集計)
+  const multi = measures.length > 1;
+  let html = '<div class="table-scroll"><table><thead>';
+  if (multi) {
+    // 1段目: 列カテゴリ(colspan = measure数)
+    html += '<tr><th rowspan="2">' + escHTML(FIELD_LABELS[rowFld]) + '</th>';
+    sortedCols.forEach(c => {
+      html += `<th class="grouped-top" colspan="${measures.length}">${escHTML(c)}</th>`;
+    });
+    html += `<th class="grouped-top total-col" colspan="${measures.length}">総計</th></tr>`;
+    // 2段目: measure
+    html += '<tr>';
+    sortedCols.forEach(() => {
+      measures.forEach(m => html += `<th class="grouped-sub">${escHTML(m.label)}</th>`);
+    });
+    measures.forEach(m => html += `<th class="grouped-sub total-col">${escHTML(m.label)}</th>`);
+    html += '</tr>';
+  } else {
+    html += '<tr><th>' + escHTML(FIELD_LABELS[rowFld]) + '</th>';
+    sortedCols.forEach(c => html += '<th>' + escHTML(c) + '</th>');
+    html += '<th class="total-col">総計</th></tr>';
+  }
+  html += '</thead><tbody>';
+
+  for (const rv of sortedRows) {
+    html += '<tr><th>' + escHTML(rv) + '</th>';
+    for (const cv of sortedCols) {
+      const key = rv + '\u0001' + cv;
+      for (const m of measures) {
+        const cell = cellStore[m.valFld].get(key);
+        const v = aggOf(cell, m.aggFn);
+        const isMonthCell = (colIsMonth || rowIsMonth) && (v == null);
+        html += '<td>' + escHTML(fmt(v, m.aggFn, isMonthCell)) + '</td>';
+      }
+    }
+    // 行合計(measure毎)
+    for (const m of measures) {
+      const rowT = rowStore[m.valFld].get(rv);
+      const v = aggOf(rowT, m.aggFn);
+      html += '<td class="total-col">' + escHTML(fmt(v, m.aggFn, rowIsMonth)) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '<tr class="total-row"><th>総計</th>';
+  for (const cv of sortedCols) {
+    for (const m of measures) {
+      const colT = colStore[m.valFld].get(cv);
+      const v = aggOf(colT, m.aggFn);
+      html += '<td>' + escHTML(fmt(v, m.aggFn, colIsMonth)) + '</td>';
+    }
+  }
+  for (const m of measures) {
+    const v = aggOf(grandStore[m.valFld], m.aggFn);
+    html += '<td class="total-col">' + escHTML(fmt(v, m.aggFn, false)) + '</td>';
+  }
+  html += '</tr></tbody></table></div>';
+
+  if (sortedRows.length === 0) {
+    html = '<div class="empty">該当データがありません。フィルタ条件を見直してください。</div>';
+  }
+  document.getElementById('tableArea').innerHTML = html;
+
+  window.__lastPivot = {
+    rowFld, colFld, measures,
+    sortedRows, sortedCols,
+    cellStore, rowStore, colStore, grandStore,
+    aggOf, useCol, colIsMonth, rowIsMonth
+  };
+}
+
+function buildMonthRange(labels) {
+  const parsed = []; const extras = [];
+  for (const l of labels) {
+    const m = /^(\d{4})年(\d{1,2})月$/.exec(l);
+    if (m) parsed.push({ y: Number(m[1]), m: Number(m[2]) });
+    else extras.push(l);
+  }
+  if (parsed.length === 0) return labels.slice().sort(smartSort);
+  const toIdx = (y, m) => y * 12 + (m - 1);
+  const fromIdx = (i) => ({ y: Math.floor(i / 12), m: (i % 12) + 1 });
+  let minIdx = Infinity, maxIdx = -Infinity;
+  for (const p of parsed) {
+    const i = toIdx(p.y, p.m);
+    if (i < minIdx) minIdx = i; if (i > maxIdx) maxIdx = i;
+  }
+  const result = [];
+  for (let i = minIdx; i <= maxIdx; i++) {
+    const { y, m } = fromIdx(i);
+    result.push(y + '年' + m + '月');
+  }
+  if (extras.length) result.push(...extras.sort(smartSort));
+  return result;
+}
+function parseMonthLabel(s) {
+  const m = /^(\d{4})年(\d{1,2})月$/.exec(s);
+  return m ? { y: Number(m[1]), m: Number(m[2]) } : null;
+}
+function smartSort(a, b) {
+  const ya = /^(\d{4})年(\d{1,2})月$/.exec(a), yb = /^(\d{4})年(\d{1,2})月$/.exec(b);
+  if (ya && yb) {
+    const dy = Number(ya[1]) - Number(yb[1]);
+    if (dy !== 0) return dy;
+    return Number(ya[2]) - Number(yb[2]);
+  }
+  const ma = /^(\d{1,2})月$/.exec(a), mb = /^(\d{1,2})月$/.exec(b);
+  if (ma && mb) return Number(ma[1]) - Number(mb[1]);
+  const na = Number(a), nb = Number(b);
+  if (!Number.isNaN(na) && !Number.isNaN(nb) && a !== '' && b !== '') return na - nb;
+  return String(a).localeCompare(String(b), 'ja');
+}
+
+function renderUnmatched() {
+  const area = document.getElementById('unmatchedTableArea');
+  if (UNMATCHED_ROWS.length === 0) {
+    area.innerHTML = '<div class="empty">未マッチ製品はありません。すべての受注データがマスタに登録されています。</div>';
+    return;
+  }
+  const cols = [
+    ['no_col', 'No.'], ['tantou', '担当'], ['seihin_code', '製品コード'],
+    ['seihin_name', '製品名'], ['nyuko_date', '入庫日'], ['tsuki', '月'],
+    ['seisan_su', '生産数'], ['kanryo_su', '完了数量'], ['zan_su', '未完了残数'],
+    ['saishin_hanbai_genka', '最新販売原価'], ['kingaku', '金額']
+  ];
+  let html = '<div class="table-scroll"><table><thead><tr>';
+  cols.forEach(c => html += '<th>' + escHTML(c[1]) + '</th>');
+  html += '</tr></thead><tbody>';
+  UNMATCHED_ROWS.forEach(r => {
+    html += '<tr>';
+    cols.forEach(c => {
+      const v = r[c[0]];
+      const isNum = ['seisan_su','kanryo_su','zan_su','saishin_hanbai_genka','kingaku'].includes(c[0]);
+      html += '<td>' + escHTML(isNum && v != null ? Number(v).toLocaleString() : (v || '')) + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  area.innerHTML = html;
+}
+
+function exportExcel() {
+  const p = window.__lastPivot;
+  if (!p) { alert('先に集計を実行してください。'); return; }
+  const { rowFld, colFld, measures, sortedRows, sortedCols,
+          cellStore, rowStore, colStore, grandStore, aggOf,
+          useCol, colIsMonth, rowIsMonth } = p;
+  const multi = measures.length > 1;
+  const M = measures.length;
+
+  const outVal = (v, isMonthCell) => {
+    if (v == null || Number.isNaN(v)) return isMonthCell ? 0 : null;
+    return Number(v);
+  };
+  const monthLabelToDate = (label) => {
+    const p2 = parseMonthLabel(label);
+    return p2 ? new Date(p2.y, p2.m - 1, 1) : null;
+  };
+  const numFmtFor = (aggFn) => aggFn === 'avg' ? '#,##0.00' : '#,##0';
+
+  // ---- スタイル定義 (SheetJS Community版で使える書式) ----
+  const BORDER_THIN = { style: 'thin', color: { rgb: 'B0B0B0' } };
+  const ALL_BORDERS = { top: BORDER_THIN, bottom: BORDER_THIN, left: BORDER_THIN, right: BORDER_THIN };
+  const STYLE_META_LABEL = { font: { bold: true, sz: 11 }, alignment: { vertical: 'center' } };
+  const STYLE_META_VAL   = { font: { sz: 11 }, alignment: { vertical: 'center', wrapText: true } };
+  const STYLE_HEADER_TOP = {
+    font: { bold: true, color: { rgb: '1E3A5F' } },
+    fill: { patternType: 'solid', fgColor: { rgb: 'DCE6F1' } },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: ALL_BORDERS
+  };
+  const STYLE_HEADER_SUB = {
+    font: { bold: true, sz: 10, color: { rgb: '334155' } },
+    fill: { patternType: 'solid', fgColor: { rgb: 'EDF3FA' } },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: ALL_BORDERS
+  };
+  const STYLE_ROW_HEAD = {
+    font: { bold: true },
+    fill: { patternType: 'solid', fgColor: { rgb: 'F8FAFC' } },
+    border: ALL_BORDERS
+  };
+  const STYLE_DATA = { border: ALL_BORDERS, alignment: { horizontal: 'right' } };
+  const STYLE_DATA_TOTAL_COL = {
+    font: { bold: true },
+    fill: { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } },
+    border: ALL_BORDERS,
+    alignment: { horizontal: 'right' }
+  };
+  const STYLE_TOTAL_ROW = {
+    font: { bold: true },
+    fill: { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } },
+    border: ALL_BORDERS,
+    alignment: { horizontal: 'right' }
+  };
+  const STYLE_TOTAL_ROW_HEAD = {
+    font: { bold: true },
+    fill: { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } },
+    border: ALL_BORDERS
+  };
+  const STYLE_GRAND = {
+    font: { bold: true, color: { rgb: 'FFFFFF' } },
+    fill: { patternType: 'solid', fgColor: { rgb: '4A6FA5' } },
+    border: ALL_BORDERS,
+    alignment: { horizontal: 'right' }
+  };
+  const STYLE_MONTH_HEAD = {
+    font: { bold: true, color: { rgb: '1E3A5F' } },
+    fill: { patternType: 'solid', fgColor: { rgb: 'DCE6F1' } },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: ALL_BORDERS,
+    numFmt: 'yyyy"年"m"月"'
+  };
+  const STYLE_MONTH_ROW = {
+    font: { bold: true },
+    fill: { patternType: 'solid', fgColor: { rgb: 'F8FAFC' } },
+    border: ALL_BORDERS,
+    numFmt: 'yyyy"年"m"月"'
+  };
+
+  // ---- メタ情報行 ----
+  const meta = [];
+  meta.push(['集計対象', measures.map(m => m.label).join(' / ')]);
+  meta.push(['行', FIELD_LABELS[rowFld]]);
+  meta.push(['列', colFld === '__none__' ? '(なし)' : FIELD_LABELS[colFld]]);
+  FILTER_ORDER.forEach(fld => {
+    const st = FILTER_STATE[fld]; if (!st) return;
+    if (_filterActiveCount(st) === 0) return;
+    const label = fld === '__matched__' ? 'マッチ状態' : (FIELD_LABELS[fld] || NUMERIC_FILTERS[fld] || fld);
+    let val;
+    if (st.kind === 'set') val = [...st.values].join(', ');
+    else val = _filterCountLabel(st);
+    meta.push([label, val]);
+  });
+  meta.push([]);
+
+  // ---- テーブル本体を rows (aoa) に構築 ----
+  const rows = meta.slice();
+  const headerRowIndex = rows.length;                  // 1段目ヘッダの行
+  const headerRow2Index = multi ? headerRowIndex + 1 : null;
+  const dataStartIndex = multi ? headerRowIndex + 2 : headerRowIndex + 1;
+
+  if (multi) {
+    // 1段目
+    const h1 = [FIELD_LABELS[rowFld]];
+    sortedCols.forEach(c => {
+      if (colIsMonth) { const d = monthLabelToDate(c); h1.push(d || c); }
+      else h1.push(c);
+      for (let i = 1; i < M; i++) h1.push(null);  // colspan マージ用の空セル
+    });
+    h1.push('総計');
+    for (let i = 1; i < M; i++) h1.push(null);
+    rows.push(h1);
+    // 2段目
+    const h2 = [null];
+    sortedCols.forEach(() => measures.forEach(m => h2.push(m.label)));
+    measures.forEach(m => h2.push(m.label));
+    rows.push(h2);
+  } else {
+    const h = [FIELD_LABELS[rowFld]];
+    sortedCols.forEach(c => {
+      if (colIsMonth) { const d = monthLabelToDate(c); h.push(d || c); }
+      else h.push(c);
+    });
+    h.push('総計');
+    rows.push(h);
+  }
+
+  for (const rv of sortedRows) {
+    const rowArr = [];
+    if (rowIsMonth) { const d = monthLabelToDate(rv); rowArr.push(d || rv); }
+    else rowArr.push(rv);
+    for (const cv of sortedCols) {
+      const key = rv + '\u0001' + cv;
+      for (const m of measures) {
+        const v = aggOf(cellStore[m.valFld].get(key), m.aggFn);
+        const isMonthCell = (colIsMonth || rowIsMonth) && (v == null);
+        rowArr.push(outVal(v, isMonthCell));
+      }
+    }
+    for (const m of measures) {
+      const v = aggOf(rowStore[m.valFld].get(rv), m.aggFn);
+      rowArr.push(outVal(v, rowIsMonth));
+    }
+    rows.push(rowArr);
+  }
+  const totalRow = ['総計'];
+  for (const cv of sortedCols) {
+    for (const m of measures) {
+      const v = aggOf(colStore[m.valFld].get(cv), m.aggFn);
+      totalRow.push(outVal(v, colIsMonth));
+    }
+  }
+  for (const m of measures) {
+    const v = aggOf(grandStore[m.valFld], m.aggFn);
+    totalRow.push(outVal(v, false));
+  }
+  rows.push(totalRow);
+  const totalRowIndex = rows.length - 1;
+  const nCols = 1 + sortedCols.length * M + M;
+
+  // ---- worksheet 化 ----
+  const ws = XLSX.utils.aoa_to_sheet(rows, { cellDates: true });
+
+  // ---- メタ情報の書式(左列ラベルは太字) ----
+  for (let ri = 0; ri < meta.length; ri++) {
+    if (!meta[ri] || meta[ri].length === 0) continue;
+    const a1 = XLSX.utils.encode_cell({ r: ri, c: 0 });
+    if (ws[a1]) ws[a1].s = STYLE_META_LABEL;
+    const a2 = XLSX.utils.encode_cell({ r: ri, c: 1 });
+    if (ws[a2]) ws[a2].s = STYLE_META_VAL;
+  }
+
+  // ---- ヘッダの書式・月Date化・マージ ----
+  const merges = ws['!merges'] || [];
+  if (multi) {
+    // 1段目: 各列カテゴリで M列マージ、総計も同様。行方向にも rowspan=2 相当
+    // 行ヘッダセル(A列)は2行マージ
+    merges.push({ s: { r: headerRowIndex, c: 0 }, e: { r: headerRow2Index, c: 0 } });
+    for (let ci = 0; ci < sortedCols.length; ci++) {
+      const c0 = 1 + ci * M;
+      merges.push({ s: { r: headerRowIndex, c: c0 }, e: { r: headerRowIndex, c: c0 + M - 1 } });
+    }
+    // 総計マージ
+    const gc0 = 1 + sortedCols.length * M;
+    merges.push({ s: { r: headerRowIndex, c: gc0 }, e: { r: headerRowIndex, c: gc0 + M - 1 } });
+
+    // 1段目セル書式
+    for (let c = 0; c < nCols; c++) {
+      const a = XLSX.utils.encode_cell({ r: headerRowIndex, c });
+      if (ws[a]) {
+        if (colIsMonth && c >= 1 && c < 1 + sortedCols.length * M && (c - 1) % M === 0) {
+          if (ws[a].v instanceof Date) { ws[a].t = 'd'; ws[a].s = STYLE_MONTH_HEAD; }
+          else ws[a].s = STYLE_HEADER_TOP;
+        } else {
+          ws[a].s = STYLE_HEADER_TOP;
+        }
+      }
+    }
+    // 2段目セル書式
+    for (let c = 0; c < nCols; c++) {
+      const a = XLSX.utils.encode_cell({ r: headerRow2Index, c });
+      if (ws[a]) ws[a].s = STYLE_HEADER_SUB;
+    }
+  } else {
+    // 単一の場合
+    for (let c = 0; c < nCols; c++) {
+      const a = XLSX.utils.encode_cell({ r: headerRowIndex, c });
+      if (!ws[a]) continue;
+      if (colIsMonth && c >= 1 && c <= sortedCols.length) {
+        if (ws[a].v instanceof Date) { ws[a].t = 'd'; ws[a].s = STYLE_MONTH_HEAD; }
+        else ws[a].s = STYLE_HEADER_TOP;
+      } else {
+        ws[a].s = STYLE_HEADER_TOP;
+      }
+    }
+  }
+  ws['!merges'] = merges;
+
+  // ---- データ行の書式(行ヘッダ、データ、行合計) ----
+  for (let ri = 0; ri < sortedRows.length; ri++) {
+    const R = dataStartIndex + ri;
+    // 行ヘッダ
+    const aH = XLSX.utils.encode_cell({ r: R, c: 0 });
+    if (ws[aH]) {
+      if (rowIsMonth && ws[aH].v instanceof Date) { ws[aH].t = 'd'; ws[aH].s = STYLE_MONTH_ROW; }
+      else ws[aH].s = STYLE_ROW_HEAD;
+    }
+    // データ + 行合計
+    for (let cc = 1; cc < nCols; cc++) {
+      const a = XLSX.utils.encode_cell({ r: R, c: cc });
+      if (!ws[a]) continue;
+      const isTotalCol = cc >= 1 + sortedCols.length * M;
+      // measure index を推定
+      const mIdx = isTotalCol ? (cc - (1 + sortedCols.length * M)) : ((cc - 1) % M);
+      const aggFn = measures[mIdx].aggFn;
+      const style = isTotalCol
+        ? Object.assign({}, STYLE_DATA_TOTAL_COL, { numFmt: numFmtFor(aggFn) })
+        : Object.assign({}, STYLE_DATA, { numFmt: numFmtFor(aggFn) });
+      ws[a].s = style;
+      if (typeof ws[a].v === 'number') ws[a].z = numFmtFor(aggFn);
+    }
+  }
+
+  // ---- 総計行の書式 ----
+  for (let cc = 0; cc < nCols; cc++) {
+    const a = XLSX.utils.encode_cell({ r: totalRowIndex, c: cc });
+    if (!ws[a]) continue;
+    if (cc === 0) { ws[a].s = STYLE_TOTAL_ROW_HEAD; continue; }
+    const isTotalCol = cc >= 1 + sortedCols.length * M;
+    const mIdx = isTotalCol ? (cc - (1 + sortedCols.length * M)) : ((cc - 1) % M);
+    const aggFn = measures[mIdx].aggFn;
+    const base = isTotalCol ? STYLE_GRAND : STYLE_TOTAL_ROW;
+    ws[a].s = Object.assign({}, base, { numFmt: numFmtFor(aggFn) });
+    if (typeof ws[a].v === 'number') ws[a].z = numFmtFor(aggFn);
+  }
+
+  // 列幅
+  const colWidths = [{ wch: rowIsMonth ? 14 : 24 }];
+  for (let i = 0; i < sortedCols.length; i++) {
+    for (let j = 0; j < M; j++) colWidths.push({ wch: colIsMonth ? 12 : 12 });
+  }
+  for (let j = 0; j < M; j++) colWidths.push({ wch: 12 });
+  ws['!cols'] = colWidths;
+
+  // 行高(ヘッダ2段の時は少し高く)
+  const rowHeights = [];
+  ws['!rows'] = rowHeights;
+  if (multi) {
+    rowHeights[headerRowIndex] = { hpt: 22 };
+    rowHeights[headerRow2Index] = { hpt: 18 };
+  } else {
+    rowHeights[headerRowIndex] = { hpt: 22 };
+  }
+
+  // フリーズ枠(ヘッダ下+A列)
+  ws['!freeze'] = { xSplit: 1, ySplit: dataStartIndex };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ピボット');
+
+  // ---- マスタ未マッチシート ----
+  if (UNMATCHED_ROWS.length > 0) {
+    const uHeader = ['No.','担当','製品コード','製品名','入庫日','月','生産数','完了数量','未完了残数','最新販売原価','金額'];
+    const uRows = [uHeader];
+    UNMATCHED_ROWS.forEach(r => uRows.push([r.no_col, r.tantou, r.seihin_code, r.seihin_name,
+      r.nyuko_date, r.tsuki, r.seisan_su, r.kanryo_su, r.zan_su, r.saishin_hanbai_genka, r.kingaku]));
+    const uWs = XLSX.utils.aoa_to_sheet(uRows);
+    uWs['!cols'] = [{wch:6},{wch:10},{wch:12},{wch:28},{wch:12},{wch:8},{wch:10},{wch:10},{wch:12},{wch:12},{wch:14}];
+    // ヘッダ書式
+    for (let c = 0; c < uHeader.length; c++) {
+      const a = XLSX.utils.encode_cell({ r: 0, c });
+      if (uWs[a]) uWs[a].s = STYLE_HEADER_TOP;
+    }
+    // データ罫線
+    for (let r = 1; r < uRows.length; r++) {
+      for (let c = 0; c < uHeader.length; c++) {
+        const a = XLSX.utils.encode_cell({ r, c });
+        if (uWs[a]) uWs[a].s = STYLE_DATA;
+      }
+    }
+    uWs['!freeze'] = { xSplit: 0, ySplit: 1 };
+    XLSX.utils.book_append_sheet(wb, uWs, 'マスタ未マッチ');
+  }
+
+  const now = new Date();
+  const stamp = now.getFullYear().toString() +
+                String(now.getMonth()+1).padStart(2,'0') +
+                String(now.getDate()).padStart(2,'0') + '_' +
+                String(now.getHours()).padStart(2,'0') +
+                String(now.getMinutes()).padStart(2,'0');
+  // cellStyles を有効にして書き出し
+  XLSX.writeFile(wb, '工程計画ピボット_' + stamp + '.xlsx', { cellStyles: true });
+}
+
+function exportUnmatchedCsv() {
+  if (UNMATCHED_ROWS.length === 0) return;
+  const uHeader = ['No.','担当','製品コード','製品名','入庫日','月','生産数','完了数量','未完了残数','最新販売原価','金額'];
+  const uRows = [uHeader];
+  UNMATCHED_ROWS.forEach(r => uRows.push([r.no_col, r.tantou, r.seihin_code, r.seihin_name,
+    r.nyuko_date, r.tsuki, r.seisan_su, r.kanryo_su, r.zan_su, r.saishin_hanbai_genka, r.kingaku]));
+  const ws = XLSX.utils.aoa_to_sheet(uRows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'マスタ未マッチ');
+  XLSX.writeFile(wb, 'マスタ未マッチ.xlsx');
+}
+
+/* =========================================================
+   DB管理
+   ========================================================= */
+async function resetDb() {
+  if (!confirm('本当に受注データもマスタも全て削除しますか?')) return;
+  sqlRun('DELETE FROM orders');
+  sqlRun('DELETE FROM product_master');
+  sqlRun('DELETE FROM import_log');
+  sqlRun("DELETE FROM sqlite_sequence WHERE name IN ('orders','product_master','import_log')");
+  await saveDb();
+  await refreshSummary();
+  alert('全データを削除しました。');
+}
+function exportSqliteFile() {
+  const data = DB.export();
+  const blob = new Blob([data], { type: 'application/x-sqlite3' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  const stamp = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  a.href = url;
+  a.download = '受注データ集計DB_' + stamp + '.sqlite';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function importSqliteFile(file) {
+  if (!confirm('現在のデータを、選択したDBファイルの内容で置き換えます。よろしいですか?')) return;
+  const buf = await file.arrayBuffer();
+  DB = new SQL.Database(new Uint8Array(buf));
+  await saveDb();
+  await refreshSummary();
+  alert('DBファイルを読み込みました。');
+}
+
+/* =========================================================
+   タブ切替 & 初期化
+   ========================================================= */
+function initTabs() {
+  document.querySelectorAll('.main-tab').forEach(t => {
+    t.addEventListener('click', async () => {
+      document.querySelectorAll('.main-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      const target = t.dataset.page;
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + target).classList.add('active');
+      if (target === 'pivot') {
+        try { await loadAllPivot(); } catch (e) { console.error(e); }
+      }
+    });
+  });
+  document.querySelectorAll('.sub-tabs .tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.sub-tabs .tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      const target = t.dataset.tab;
+      document.getElementById('pivotTab').classList.toggle('hidden', target !== 'pivot');
+      document.getElementById('unmatchedTab').classList.toggle('hidden', target !== 'unmatched');
+    });
+  });
+}
+
+async function init() {
+  try {
+    setBootMsg('SQL.js を読み込んでいます...');
+    SQL = await initSqlJs({
+      locateFile: (f) => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/' + f
+    });
+    setBootMsg('データベースを復元しています...');
+    const saved = await idbGet(DB_KEY);
+    if (saved) {
+      DB = new SQL.Database(new Uint8Array(saved));
+      log('restored from IndexedDB:', saved.byteLength, 'bytes');
+    } else {
+      DB = new SQL.Database();
+      log('new empty database');
+    }
+    DB.exec(SCHEMA_SQL);
+    setDbStatus('saved', '準備完了');
+    updateStorageInfo();
+
+    setupDrop('csvDrop', 'csvFile', 'csvInfo', 'csvImportBtn', 'csv');
+    setupDrop('mstDrop', 'mstFile', 'mstInfo', 'mstImportBtn', 'mst');
+    document.getElementById('csvImportBtn').addEventListener('click', importCsv);
+    document.getElementById('mstImportBtn').addEventListener('click', importMaster);
+
+    document.getElementById('applyBtn').addEventListener('click', apply);
+    document.getElementById('exportBtn').addEventListener('click', exportExcel);
+    document.getElementById('unmatchedExportBtn').addEventListener('click', exportUnmatchedCsv);
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      FILTER_ORDER.forEach(fld => { FILTER_STATE[fld] = _defaultFilterState(fld); });
+      buildFilterUI(FILTER_LISTS);
+      apply();
+    });
+
+    document.getElementById('btnExportDb').addEventListener('click', exportSqliteFile);
+    document.getElementById('btnImportDb').addEventListener('click', () => document.getElementById('importDbFile').click());
+    document.getElementById('importDbFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) importSqliteFile(f);
+    });
+    document.getElementById('btnResetDb').addEventListener('click', resetDb);
+
+    initTabs();
+    await refreshSummary();
+    hideBoot();
+    log('init done');
+  } catch (e) {
+    console.error(e);
+    setBootMsg('初期化エラー: ' + e.message);
+    setDbStatus('error', '初期化エラー');
+  }
+}
+
+// 起動
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(init, 0);
+} else {
+  document.addEventListener('DOMContentLoaded', init);
+}
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
