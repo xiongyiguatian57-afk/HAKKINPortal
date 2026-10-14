@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <?!= include('Style'); ?>
+  <style>
+    /* ログイン画面 */
+    #login-overlay {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    #login-box {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px 36px;
+      box-shadow: var(--shadow); width: 340px; max-width: 90vw;
+    }
+    #login-box h2 { margin: 0 0 8px; font-size: 18px; }
+    #login-box .subtitle { color: var(--text-muted); font-size: 12px; margin-bottom: 22px; }
+    #login-box input {
+      width: 100%; height: 40px; padding: 0 12px;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg); color: var(--text); font: inherit; font-family: var(--mono);
+      margin-bottom: 12px; box-sizing: border-box;
+    }
+    #login-box button { width: 100%; }
+    #login-error { color: var(--accent); font-size: 12px; min-height: 16px; margin-top: 6px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <?!= include('Core'); ?>
+</head>
+<body>
+  <!-- ログイン画面 -->
+  <div id="login-overlay">
+    <div id="login-box">
+      <h2>工程計画検索</h2>
+      <div class="subtitle">閲覧パスワードを入力してください</div>
+      <input id="login-pw" type="password" placeholder="パスワード" autofocus>
+      <button class="primary" id="login-btn" style="height:40px;">ログイン</button>
+      <div id="login-error"></div>
+    </div>
+  </div>
+
+  <!-- 本体UI -->
+  <div class="wrap" id="app" style="display:none">
+    <header>
+      <div>
+        <h1>工程計画検索</h1>
+        <div class="hint">型番・ペットネーム・受注Noで絞り込み</div>
+      </div>
+      <div class="stats" id="stats"></div>
+    </header>
+
+    <div id="freshness" class="freshness"></div>
+    <div id="error" style="display:none"></div>
+
+    <div class="search-card">
+      <div class="field-grid">
+        <div class="field">
+          <label for="model_kw">型番</label>
+          <input id="model_kw" type="text" placeholder="部分一致(例: EYE22B, 800040)">
+        </div>
+        <div class="field">
+          <label for="pet_kw">ペットネーム</label>
+          <select id="pet_kw"><option value="">(すべて)</option></select>
+        </div>
+        <div class="field">
+          <label for="orderno_kw">受注No</label>
+          <input id="orderno_kw" type="text" placeholder="部分一致">
+        </div>
+        <button class="primary" id="btn-search">検索</button>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-head">
+        <div class="result-head-left">
+          <h2>検索結果</h2>
+          <span class="count-badge" id="count-badge"></span>
+        </div>
+        <div class="result-actions">
+          <button class="export-btn" id="btn-export-csv"><span class="export-icon">↓</span>CSV</button>
+          <button class="export-btn" id="btn-export-xlsx"><span class="export-icon">↓</span>Excel</button>
+          <button class="export-blue" id="btn-export-formatted" style="height:30px; padding:0 14px; font-size:var(--type-caption);">工程データExcel出力</button>
+        </div>
+      </div>
+      <div id="loading">読み込み中...</div>
+      <div class="table-scroll" id="table-container" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th>型番</th><th>ペットネーム</th><th>種別</th><th>販売区分</th>
+              <th>EYE/ITO</th><th class="num">数量</th><th>納期回答日</th><th>受注No</th>
+            </tr>
+          </thead>
+          <tbody id="result-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+    // ========= ログイン処理 =========
+    var TOKEN_KEY = 'kotei_viewer_token_v1';
+    function tryLogin(pw) {
+      var errEl = document.getElementById('login-error');
+      errEl.textContent = '';
+      var btn = document.getElementById('login-btn');
+      btn.disabled = true; btn.textContent = '認証中...';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          btn.disabled = false; btn.textContent = 'ログイン';
+          if (!res.ok) { errEl.textContent = res.error || 'ログインに失敗しました'; return; }
+          try { localStorage.setItem(TOKEN_KEY, res.token); } catch (e) {}
+          document.getElementById('login-overlay').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+          initApp(res.token);
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false; btn.textContent = 'ログイン';
+          errEl.textContent = 'サーバーエラー: ' + (err && err.message ? err.message : err);
+        })
+        .checkPassword(pw);
+    }
+    document.getElementById('login-btn').addEventListener('click', function () {
+      tryLogin(document.getElementById('login-pw').value);
+    });
+    document.getElementById('login-pw').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') tryLogin(document.getElementById('login-pw').value);
+    });
+    // 既存トークンがあれば自動ログイン試行
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem(TOKEN_KEY); } catch (e) {}
+      if (!saved) return;
+      // トークン有効性を loadData で兼ねてチェック(APIコール1回)
+      document.getElementById('login-error').textContent = '';
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      initApp(saved);
+    })();
+
+    // ========= 本体 =========
+    function toDateStr(v) { if (!v) return ''; var s = String(v); if (/^\d{8}$/.test(s)) return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8); return s; }
+    function escapeHtml(s) { return (s == null ? '' : String(s)).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    function fmtNum(v) { return v == null || v === '' ? '' : String(v); }
+
+    function renderStats() {
+      var s = KP.getStats();
+      document.getElementById('stats').innerHTML =
+        '<span>受注 <b>' + s.orders.toLocaleString() + '</b> 件</span>' +
+        '<span>型番マスタ <b>' + s.petname.toLocaleString() + '</b> 件</span>';
+    }
+    function renderFreshness() {
+      var meta = KP.getFreshness();
+      var el = document.getElementById('freshness');
+      if (!meta.length) { el.style.display = 'none'; return; }
+      var labels = { orders: '受注データ', petname: '型番マスタ' };
+      var now = new Date();
+      var parts = meta.map(function (m, idx) {
+        var label = labels[m.key] || m.key;
+        var flm = m.file_last_modified ? new Date(m.file_last_modified) : null;
+        var flmStr = flm ? flm.toLocaleString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+        var age = '';
+        if (flm) { var dd = Math.floor((now - flm) / 86400000); age = dd === 0 ? '本日' : dd === 1 ? '1日前' : (dd + '日前'); }
+        var stale = flm && (now - flm) / 86400000 >= 7;
+        return '<div class="fr-item"><span class="fr-label">' + label + '</span><span class="fr-value">' + escapeHtml(flmStr) + '</span><span class="fr-age ' + (stale ? 'stale' : '') + '">' + age + '</span><span class="fr-file">' + escapeHtml(m.file_name || '') + '</span></div>' + (idx < meta.length - 1 ? '<span class="fr-sep"></span>' : '');
+      });
+      el.innerHTML = parts.join('');
+    }
+    function renderPetNames() {
+      var sel = document.getElementById('pet_kw');
+      while (sel.options.length > 1) sel.remove(1);
+      KP.getPetNames().forEach(function (n) {
+        var opt = document.createElement('option'); opt.value = n; opt.textContent = n; sel.appendChild(opt);
+      });
+    }
+    var lastResults = { rows: [], total: 0 };
+    function runSearch() {
+      var res = KP.search({
+        modelKw: document.getElementById('model_kw').value,
+        petKw: document.getElementById('pet_kw').value,
+        orderNoKw: document.getElementById('orderno_kw').value
+      });
+      lastResults = res;
+      renderTable(res.rows);
+      document.getElementById('count-badge').textContent = res.total.toLocaleString() + ' 件' + (res.rows.length < res.total ? ' (先頭 ' + res.rows.length + ' 件を表示)' : '');
+    }
+    function renderTable(rows) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('table-container').style.display = 'block';
+      var tbody = document.getElementById('result-body');
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">該当データがありません</td></tr>'; return; }
+      tbody.innerHTML = rows.map(function (r) {
+        return '<tr>' +
+          '<td class="mono">' + escapeHtml(r.model_code) + '</td>' +
+          '<td>' + escapeHtml(r.pet_name) + '</td>' +
+          '<td>' + escapeHtml(r.category) + '</td>' +
+          '<td>' + (r.sales_class ? '<span class="pill">' + escapeHtml(r.sales_class) + '</span>' : '') + '</td>' +
+          '<td>' + (r.eye_ito ? '<span class="pill accent">' + escapeHtml(r.eye_ito) + '</span>' : '') + '</td>' +
+          '<td class="num">' + fmtNum(r.quantity) + '</td>' +
+          '<td class="mono">' + escapeHtml(toDateStr(r.order_date)) + '</td>' +
+          '<td class="mono">' + escapeHtml(r.order_no) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    // エクスポート
+    function buildFileName(ext) {
+      var now = new Date();
+      var ts = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '_' + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+      var filters = [];
+      var m = document.getElementById('model_kw').value.trim(); if (m) filters.push('型番=' + m);
+      var p = document.getElementById('pet_kw').value.trim(); if (p) filters.push('pet=' + p);
+      var o = document.getElementById('orderno_kw').value.trim(); if (o) filters.push('受注=' + o);
+      return '工程計画_' + ts + (filters.length ? '_' + filters.join('_') : '') + '.' + ext;
+    }
+    function exportCSV() {
+      var headers = ['型番','ペットネーム','種別','販売区分','EYE/ITO','数量','納期回答日','受注No'];
+      var esc = function (v) { var s = v==null?'':String(v); return /[",\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+      var lines = [headers.map(esc).join(',')];
+      lastResults.rows.forEach(function (r) {
+        lines.push([r.model_code, r.pet_name, r.category, r.sales_class, r.eye_ito, r.quantity, toDateStr(r.order_date), r.order_no].map(esc).join(','));
+      });
+      var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = buildFileName('csv');
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+    function exportXLSX() {
+      var headers = ['型番','ペットネーム','種別','販売区分','EYE/ITO','数量','納期回答日','受注No'];
+      var aoa = [headers].concat(lastResults.rows.map(function (r) { return [r.model_code, r.pet_name, r.category, r.sales_class, r.eye_ito, r.quantity, toDateStr(r.order_date), r.order_no]; }));
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [{wch:22},{wch:30},{wch:14},{wch:10},{wch:10},{wch:8},{wch:12},{wch:14}];
+      var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '検索結果');
+      XLSX.writeFile(wb, buildFileName('xlsx'));
+    }
+
+    // 工程データExcel出力(整形済18列)
+    var CLEAN_HEADERS = ['ＮＯ','担当','製品コード','製品名','入庫日','生産数','登録日','希望日','営Ｃ','向先名','受注ＮＯ','完了数','製造部門コード','代表入庫場所','最新販売原価','関連購入単価','','EYE/ITO'];
+    function lastDigit(v) { if (v == null) return null; var s = String(v).replace(/[\s\u3000]/g,''); if (s==='') return null; var m = s.match(/(\d)$/); return m ? m[1] : null; }
+    function toNumIfNumeric(v) { if (v == null || v === '') return v; if (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v)) return Number(v); return v; }
+    function exportFormatted() {
+      var btn = document.getElementById('btn-export-formatted');
+      var orig = btn.textContent; btn.disabled = true; btn.textContent = '出力中...';
+      try {
+        var orders = KP.getOrdersAll();
+        if (!orders.length) { alert('出力対象データがありません。'); return; }
+        var dataRows = orders.map(function (row) {
+          var base = [row.no,row.company_code,row.product_code,row.model_code,row.order_date,row.quantity,row.production_date,row.delivery_answer_date,row.delivery_code,row.delivery_location,row.order_no,row.flag,row.col13,row.col14,row.latest_price,row.related_price].map(toNumIfNumeric);
+          var tail = lastDigit(base[12]);
+          var eyeIto = tail==='1'?'EYE':tail==='0'?'ITO':'';
+          if (eyeIto==='ITO') base[8] = 2050;
+          base.push(''); base.push(eyeIto);
+          return base;
+        });
+        var aoa = [CLEAN_HEADERS].concat(dataRows);
+        var ws = XLSX.utils.aoa_to_sheet(aoa);
+        var range = XLSX.utils.decode_range(ws['!ref']);
+        var nCols = range.e.c + 1, nRows = range.e.r + 1;
+        for (var c = 0; c < nCols; c++) {
+          var addr = XLSX.utils.encode_cell({r:0,c:c});
+          if (!ws[addr]) ws[addr] = {t:'s',v:''};
+          ws[addr].s = { font:{bold:true}, alignment:{horizontal:'center',vertical:'center'}, fill:{patternType:'solid',fgColor:{rgb:'ADD8E6'}}, border:{top:{style:'thin',color:{rgb:'999999'}},bottom:{style:'thin',color:{rgb:'999999'}},left:{style:'thin',color:{rgb:'999999'}},right:{style:'thin',color:{rgb:'999999'}}} };
+        }
+        var cols = [];
+        for (var cc = 0; cc < nCols; cc++) {
+          var max = 4;
+          for (var rr = 0; rr < nRows; rr++) {
+            var v = aoa[rr] ? aoa[rr][cc] : '';
+            if (v == null) continue;
+            var w = 0;
+            var s = String(v);
+            for (var i2 = 0; i2 < s.length; i2++) w += (s.charCodeAt(i2) > 255 ? 2 : 1);
+            if (w > max) max = w;
+          }
+          cols.push({wch: Math.min(max + 2, 40)});
+        }
+        ws['!cols'] = cols;
+        ws['!freeze'] = { xSplit:0, ySplit:1 };
+        ws['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:nRows-1,c:nCols-1}}) };
+        var wb2 = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb2, ws, '受注データ');
+        var baseName = '工程データ';
+        var meta = KP.getFreshness().find(function(m){return m.key === 'orders';});
+        if (meta && meta.file_name) baseName = meta.file_name;
+        XLSX.writeFile(wb2, baseName.replace(/\.(csv|xls|xlsx)$/i,'') + '_整形済.xlsx', {bookType:'xlsx', cellStyles:true});
+      } catch (e) { console.error(e); alert('出力エラー: ' + e.message); }
+      finally { btn.disabled = false; btn.textContent = orig; }
+    }
+
+    // 初期化(ログイン後に呼ばれる)
+    function initApp(token) {
+      // イベントバインド
+      document.getElementById('btn-search').addEventListener('click', runSearch);
+      document.getElementById('pet_kw').addEventListener('change', runSearch);
+      document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
+      document.getElementById('btn-export-xlsx').addEventListener('click', exportXLSX);
+      document.getElementById('btn-export-formatted').addEventListener('click', exportFormatted);
+      document.getElementById('model_kw').addEventListener('keydown', function (e) { if (e.key === 'Enter') runSearch(); });
+      document.getElementById('orderno_kw').addEventListener('keydown', function (e) { if (e.key === 'Enter') runSearch(); });
+      // データ読み込み
+      KP.loadData(token).then(function () {
+        renderStats(); renderFreshness(); renderPetNames(); runSearch();
+      }).catch(function (e) {
+        // トークン失効時: ログイン画面を再表示
+        console.error(e);
+        if ((e.message || '').indexOf('unauthorized') !== -1) {
+          try { localStorage.removeItem(TOKEN_KEY); } catch (ee) {}
+          document.getElementById('login-overlay').style.display = 'flex';
+          document.getElementById('app').style.display = 'none';
+          document.getElementById('login-error').textContent = 'セッションが切れました。再ログインしてください。';
+        } else {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('error').textContent = 'データ読み込みエラー: ' + e.message;
+          document.getElementById('error').style.display = 'block';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
