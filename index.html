@@ -169,29 +169,13 @@
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 12px;
   }
-  section.group[data-cat="prod"] .grid {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.78fr) !important;
-    grid-template-rows: 1fr;
-    align-items: stretch;
-  }
-  section.group[data-cat="prod"] .grid > .tile,
-  section.group[data-cat="prod"] .grid > .docs-launcher {
-    min-width: 0;
-  }
-  @media (max-width: 980px) {
-    section.group[data-cat="prod"] .grid { grid-template-columns: 1fr 1fr !important; grid-template-rows: auto; }
-    section.group[data-cat="prod"] .grid > .docs-launcher { grid-column: span 2; }
-  }
   @media (max-width: 720px) {
     header.top { padding: 8px 14px; gap: 10px; height: 48px; }
     .search { width: 160px; }
     .hero { padding: 14px 14px 6px; }
     .hero h2, .hero p { white-space: normal; }
     main { padding: 2px 14px 8px; }
-    .grid,
-    section.group[data-cat="prod"] .grid { grid-template-columns: 1fr !important; }
-    section.group[data-cat="prod"] .grid > .docs-launcher { grid-column: span 1; }
+    .grid { grid-template-columns: 1fr !important; }
   }
 
   /* ---------- Tile base ---------- */
@@ -510,12 +494,12 @@
 <section class="hero">
   <span class="eyebrow"><span class="dot"></span>2026 Edition · Ito Electric Co., Ltd.</span>
   <h2><span class="hl-navy" style="color:#1e3a8a !important;-webkit-text-fill-color:#1e3a8a !important;background:none !important;">製販連携を、ひとつのポータルから。</span></h2>
-  <p><span class="hl-navy" style="color:#1e3a8a !important;-webkit-text-fill-color:#1e3a8a !important;background:none !important;">受注から生産、出荷まで。営業・製造・在庫横断の業務システムへ、ここで一発でアクセスできます。</span></p>
+  <p><span class="hl-navy" style="color:#1e3a8a !important;-webkit-text-fill-color:#1e3a8a !important;background:none !important;">受注から生産、出荷まで。営業・製造・在庫を横断する各業務システムへ、ここからアクセスできます。</span></p>
 </section>
 
 <div class="banner">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 V21 M5 8 L12 3 L19 8"/></svg>
-  <span>本ポータルは社内ネットワーク用の業務入口です。各業務は社内の担当部門が運用しています。</span>
+  <span>本ポータルは社内ネットワーク上の業務システムの入口です。各業務システムは、社内の担当部門が運用しています。</span>
 </div>
 
 <main>
@@ -533,7 +517,7 @@
         <span class="ring"></span>
         <div class="body">
           <a class="tile-stretch" target="_blank" rel="noopener"
-             aria-label="件名情報登録・管理を開く"
+             aria-label="件名情報登録・管理システムを開く"
              href="./1_kenmeijouhou/index.html"></a>
           <div class="icon-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -544,8 +528,8 @@
               <path d="M10 9 L10.7 9.7 L12.1 8.3" stroke-width="1.4"/>
             </svg>
           </div>
-          <h4 class="title">件名情報登録・管理</h4>
-          <p class="desc">件名情報（顧客引き合い情報）と紐づく製品明細<br>（ペットネーム・数量・手配状況）を登録・管理し、状況を集計・可視化するシステムです。<br><span class="hl-red">営業員の方は、必ず、件名情報の追加更新があった場合に入力してください。</span><br><span class="hl-red">※毎月 20 日に最新版に更新をお願いします。</span></p>
+          <h4 class="title">件名情報登録・管理システム</h4>
+          <p class="desc">件名情報（顧客引き合い情報）と紐づく製品明細<br>（ペットネーム・数量・手配状況）を登録・管理し、状況を集計・可視化するシステムです。<br><span class="hl-red">営業員の方は、件名情報の追加・更新があった場合は必ず入力してください。</span><br><span class="hl-red">※毎月 20 日に最新の情報へ更新をお願いします。</span></p>
           <div class="meta">
             <span class="go">業務を開く
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
@@ -579,7 +563,7 @@
             </span>
           </a>
           <h4 class="title">工程計画検索</h4>
-          <p class="desc">ホストでは見る事が出来ない数ヶ月先も含んだ全工程計画を簡易的に検索できるます。<br><span class="hl-red">但しリアルタムではないので、いつの情報かが、画面上部にバナーとして表示されます。</span></p>
+          <p class="desc">ホストでは見ることができない、数ヶ月先までの工程計画を簡易的に検索できます。<br><span class="hl-red">但し、リアルタイムではないため、情報がいつの時点のものかが、画面上部のバナーとして表示されます。</span></p>
           <div class="meta">
             <span class="go">業務を開く
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
@@ -587,6 +571,11 @@
             <span>Sales</span>
           </div>
         </div>
+        <a class="tile-doc" target="_blank" rel="noopener"
+           href="./2_kouteikennsaku/presentation.html">
+          概要説明
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+        </a>
       </div>
     </div>
   </section>
@@ -612,7 +601,7 @@
             </svg>
           </div>
           <h4 class="title">製品在庫検索・集計</h4>
-          <p class="desc">製品在庫をペットネーム別に確認出来ます。<br>(<strong>実残、フリー、引当別</strong>)<br>毎週月曜日更新(<strong>予定</strong>)です。</p>
+          <p class="desc">製品在庫をペットネーム別に確認できます。<br>（<strong>実残、フリー、引当別</strong>）<br>毎週月曜日更新（<strong>予定</strong>）です。</p>
           <div class="meta">
             <span class="go">業務を開く
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
@@ -635,7 +624,7 @@
             </svg>
           </div>
           <h4 class="title">在庫・生産計画と件名需要：勝ち負け表</h4>
-          <p class="desc">製品在庫とこれからのを生産計画(<strong>立案済</strong>)のペットネーム別の需要・供給比較です。(<strong>勝ち負け表</strong>)</p>
+          <p class="desc">製品在庫と、これからの生産計画（<strong>立案済</strong>）のペットネーム別需要・供給比較です。（<strong>勝ち負け表</strong>）</p>
           <div class="meta">
             <span class="go">業務を開く
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
@@ -652,7 +641,7 @@
     <div class="group-head">
       <span class="tag group-tag">DEPT.03</span>
       <h3>製造系業務</h3>
-      <span class="count">2 業務＋関連資料</span>
+      <span class="count">2 業務</span>
     </div>
     <div class="grid">
 
@@ -668,8 +657,8 @@
               <rect x="16" y="14" width="3" height="5" rx="1" fill="rgba(191,219,254,.30)"/>
             </svg>
           </div>
-          <h4 class="title">工程計画 ( 受注データ ) 集計</h4>
-          <p class="desc">工程化されている情報(<strong>受注データ</strong>)を元に、様々な切り口で集計が出来ます。</p>
+          <h4 class="title">工程計画（受注データ）集計</h4>
+          <p class="desc">工程化されている情報（<strong>受注データ</strong>）を元に、様々な切り口で集計ができます。</p>
           <div class="meta">
             <span class="go">業務を開く
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
@@ -691,34 +680,13 @@
             </svg>
           </div>
           <h4 class="title">生産計画【案】自動立案</h4>
-          <p class="desc">①需要：件名情報(＋アルファ)<br>②在庫状況<br>③立案済工程計画を加味して、今度生産計画数量【案】を自動で立案します。<br>※あくまでも参考で、最終的には人間系で、追加計画は立案・決定します。</p>
+          <p class="desc">①需要：件名情報（＋アルファ）<br>②在庫状況<br>③立案済工程計画を加味して、指定した期間の生産計画数量【案】を自動で立案します。<br>※あくまで参考であり、最終的には人間系で追加計画を立案・決定します。</p>
           <div class="meta">
             <span class="go">業務を開く
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
             </span>
             <span>Production</span>
           </div>
-        </div>
-      </a>
-
-      <a class="docs-launcher"
-         href="https://iwasaki365-my.sharepoint.com/:b:/g/personal/ogawa-takumi_eye_co_jp/IQAbGscFu2xTTL6nNZhsI45EAaGdmMEEFpTnccogcmnWWFU?e=oOxzOe"
-         target="_blank" rel="noopener"
-         data-keywords="運用マニュアル ドキュメント 操作手順 マニュアル">
-        <div class="dl-inner">
-          <span class="dl-eyebrow">関連資料</span>
-          <div class="dl-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-              <path d="M7 3 H15 L19 7 V21 H7 Z" stroke-linejoin="round"/>
-              <path d="M15 3 V7 H19"/>
-              <path d="M9 13 H17 M9 17 H15 M9 11 H13"/>
-            </svg>
-          </div>
-          <h4 class="dl-title">運用マニュアル</h4>
-          <p class="dl-sub">生産計画【案】自動立案業務の<br>操作手順・運用ガイド</p>
-          <span class="dl-go">資料を開く
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
-          </span>
         </div>
       </a>
     </div>
