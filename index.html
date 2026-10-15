@@ -272,6 +272,28 @@
   .tile .icon-link:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.55); outline-offset: 3px; }
   .tile-stretch:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.55); outline-offset: 2px; }
 
+  /* 概要説明 pill button (top-right, follows the 関連資料 badge) */
+  .tile .tile-doc {
+    position: absolute; top: 12px; right: 12px; z-index: 5;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 9999px;
+    background: rgba(96, 165, 250, 0.18);
+    border: 1px solid rgba(37, 99, 235, 0.40);
+    color: var(--accent-2);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-decoration: none; line-height: 1.4;
+    transition: background .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+  }
+  .tile .tile-doc svg { width: 10px; height: 10px; }
+  .tile .tile-doc:hover {
+    background: var(--accent-2);
+    border-color: var(--accent-2);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px -6px rgba(96, 165, 250, 0.85);
+  }
+  .tile .tile-doc:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.55); outline-offset: 2px; }
+
   .tile:hover {
     transform: translateY(-4px) scale(1.012);
     background: var(--glass-strong);
@@ -507,10 +529,12 @@
     </div>
     <div class="grid">
 
-      <a class="tile" href="./1_kenmeijouhou/index.html" target="_blank" rel="noopener"
-         data-keywords="件名 顧客 引き合い ペットネーム 数量 手配 集計 可視化 営業">
+      <div class="tile" data-keywords="件名 顧客 引き合い ペットネーム 数量 手配 集計 可視化 営業">
         <span class="ring"></span>
         <div class="body">
+          <a class="tile-stretch" target="_blank" rel="noopener"
+             aria-label="件名情報登録・管理を開く"
+             href="./1_kenmeijouhou/index.html"></a>
           <div class="icon-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <path d="M7 3 H15 L19 7 V21 H7 Z" stroke-linejoin="round"/>
@@ -529,7 +553,12 @@
             <span>Sales</span>
           </div>
         </div>
-      </a>
+        <a class="tile-doc" target="_blank" rel="noopener"
+           href="./1_kenmeijouhou/presentation.html">
+          概要説明
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+        </a>
+      </div>
 
       <div class="tile" data-keywords="工程計画 検索 全工程 簡易 バナー ホスト">
         <span class="ring"></span>
