@@ -175,7 +175,7 @@
     grid-template-rows: 1fr;
     align-items: stretch;
   }
-  section.group[data-cat="prod"] .grid > a.tile,
+  section.group[data-cat="prod"] .grid > .tile,
   section.group[data-cat="prod"] .grid > .docs-launcher {
     min-width: 0;
   }
@@ -195,7 +195,7 @@
   }
 
   /* ---------- Tile base ---------- */
-  a.tile {
+  .tile {
     position: relative;
     display: flex; flex-direction: column;
     text-decoration: none;
@@ -213,7 +213,7 @@
       background .35s cubic-bezier(.2,.8,.2,1),
       box-shadow .42s cubic-bezier(.2,.8,.2,1);
   }
-  a.tile::before {
+  .tile::before {
     content: "";
     position: absolute; inset: 0;
     border-radius: inherit;
@@ -224,7 +224,7 @@
     transition: opacity .5s cubic-bezier(.2,.8,.2,1);
     pointer-events: none; z-index: 1;
   }
-  a.tile::after {
+  .tile::after {
     content: "";
     position: absolute; top: 0; left: -75%;
     width: 55%; height: 100%;
@@ -238,7 +238,7 @@
     transition: transform .9s cubic-bezier(.2,.8,.2,1);
     pointer-events: none; z-index: 2;
   }
-  a.tile .ring {
+  .tile .ring {
     position: absolute; inset: -1px;
     border-radius: inherit;
     padding: 1.5px;
@@ -254,27 +254,43 @@
     transition: opacity .35s ease;
     pointer-events: none; z-index: 3;
   }
-  a.tile .body { position: relative; z-index: 4; display: flex; flex-direction: column; flex: 1; }
+  .tile .body { position: relative; z-index: 4; display: flex; flex-direction: column; flex: 1; }
 
-  a.tile:hover {
+  /* whole-tile link overlay + separately clickable icon link */
+  .tile-stretch {
+    position: absolute; inset: -14px -16px -12px;
+    border-radius: 14px; z-index: 1;
+  }
+  .tile .icon-link {
+    position: relative; z-index: 2;
+    align-self: flex-start;
+    width: fit-content;
+    display: inline-flex;
+    text-decoration: none; color: inherit;
+    border-radius: 11px;
+  }
+  .tile .icon-link:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.55); outline-offset: 3px; }
+  .tile-stretch:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.55); outline-offset: 2px; }
+
+  .tile:hover {
     transform: translateY(-4px) scale(1.012);
     background: var(--glass-strong);
     border-color: rgba(37, 99, 235, 0.40);
     box-shadow: var(--shadow-2);
   }
-  a.tile:hover::before { opacity: 1; }
-  a.tile:hover::after { transform: translateX(360%) skewX(-15deg); }
-  a.tile:hover .ring { opacity: 1; }
-  a.tile:hover .icon-wrap {
+  .tile:hover::before { opacity: 1; }
+  .tile:hover::after { transform: translateX(360%) skewX(-15deg); }
+  .tile:hover .ring { opacity: 1; }
+  .tile:hover .icon-wrap {
     transform: translateY(-1px) rotate(-4deg) scale(1.06);
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #ffffff;
     box-shadow: 0 8px 18px -8px rgba(96, 165, 250, 0.85);
   }
-  a.tile:hover .go svg { transform: translate(2px, -2px); }
-  a.tile:hover .title { color: var(--accent-2); }
+  .tile:hover .go svg { transform: translate(2px, -2px); }
+  .tile:hover .title { color: var(--accent-2); }
 
-  a.tile .icon-wrap {
+  .tile .icon-wrap {
     width: 40px; height: 40px; border-radius: 11px;
     display: grid; place-items: center;
     background: linear-gradient(135deg, #eff6ff 0%, #bfdbfe 100%);
@@ -283,17 +299,17 @@
     color: var(--accent-2);
     transition: transform .42s cubic-bezier(.2,.8,.2,1), background .35s ease, color .35s ease, box-shadow .42s cubic-bezier(.2,.8,.2,1);
   }
-  a.tile .icon-wrap svg { width: 24px; height: 24px; transition: transform .42s cubic-bezier(.2,.8,.2,1); }
+  .tile .icon-wrap svg { width: 24px; height: 24px; transition: transform .42s cubic-bezier(.2,.8,.2,1); }
 
-  a.tile .title {
+  .tile .title {
     font-size: 14.5px; font-weight: 700; margin: 0 0 4px;
     color: var(--ink-0); letter-spacing: 0.01em;
     transition: color .35s ease;
   }
-  a.tile .desc {
+  .tile .desc {
     font-size: 11.5px; line-height: 1.55; color: var(--ink-1); margin: 0;
   }
-  a.tile .desc .hl-red {
+  .tile .desc .hl-red {
     color: var(--hl-red) !important;
     font-weight: 700;
     /* override hero gradient text-fill on h2/subtitle */
@@ -307,17 +323,17 @@
     -webkit-text-fill-color: var(--hl-navy) !important;
     background: none !important;
   }
-  a.tile .meta {
+  .tile .meta {
     display: flex; align-items: center; justify-content: space-between;
     margin-top: 10px;
     font-size: 10.5px; color: var(--ink-2); font-weight: 600;
   }
-  a.tile .go {
+  .tile .go {
     display: inline-flex; align-items: center; gap: 5px;
     color: var(--accent-2);
   }
-  a.tile .go svg { width: 11px; height: 11px; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
-  a.tile.hidden { display: none; }
+  .tile .go svg { width: 11px; height: 11px; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+  .tile.hidden { display: none; }
 
   /* ---------- Documentation launcher (運用マニュアル) ---------- */
   a.docs-launcher {
@@ -440,8 +456,8 @@
   .empty { display: none; text-align: center; padding: 40px 0; color: var(--ink-2); font-size: 13px; }
   .empty.show { display: block; }
   @media (prefers-reduced-motion: reduce) {
-    a.tile::after, a.tile::before { transition: none; }
-    a.tile:hover::after { transform: translateX(0) skewX(-15deg); }
+    .tile::after, .tile::before { transition: none; }
+    .tile:hover::after { transform: translateX(0) skewX(-15deg); }
   }
 </style>
 </head>
@@ -515,18 +531,24 @@
         </div>
       </a>
 
-      <a class="tile" href="./2_kouteikennsaku/index.html" target="_blank" rel="noopener"
-         data-keywords="工程計画 検索 全工程 簡易 バナー ホスト">
+      <div class="tile" data-keywords="工程計画 検索 全工程 簡易 バナー ホスト">
         <span class="ring"></span>
         <div class="body">
-          <div class="icon-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-              <rect x="3" y="5" width="18" height="16" rx="2"/>
-              <path d="M3 10 H21 M8 3 V7 M16 3 V7"/>
-              <circle cx="15" cy="14" r="3.2" stroke-linejoin="round"/>
-              <path d="M17.4 16.4 L20 19"/>
-            </svg>
-          </div>
+          <a class="tile-stretch" target="_blank" rel="noopener"
+             aria-label="工程計画検索を開く"
+             href="https://script.google.com/macros/s/AKfycbxZpcdI5m68K3TJTXGxbP6YyOv9heee1pAK6VUYaJsEukEAprkpX1JNDhBf0ZhHRLgmag/exec"></a>
+          <a class="icon-link" target="_blank" rel="noopener"
+             title="工程計画検索（管理）を開く"
+             href="https://script.google.com/macros/s/AKfycbxZpcdI5m68K3TJTXGxbP6YyOv9heee1pAK6VUYaJsEukEAprkpX1JNDhBf0ZhHRLgmag/exec?admin=1">
+            <span class="icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <rect x="3" y="5" width="18" height="16" rx="2"/>
+                <path d="M3 10 H21 M8 3 V7 M16 3 V7"/>
+                <circle cx="15" cy="14" r="3.2" stroke-linejoin="round"/>
+                <path d="M17.4 16.4 L20 19"/>
+              </svg>
+            </span>
+          </a>
           <h4 class="title">工程計画検索</h4>
           <p class="desc">ホストでは見る事が出来ない数ヶ月先も含んだ全工程計画を簡易的に検索できるます。<br><span class="hl-red">但しリアルタムではないので、いつの情報かが、画面上部にバナーとして表示されます。</span></p>
           <div class="meta">
@@ -536,7 +558,7 @@
             <span>Sales</span>
           </div>
         </div>
-      </a>
+      </div>
     </div>
   </section>
 
@@ -688,7 +710,7 @@
 </footer>
 
 <script>
-  document.querySelectorAll('a.tile, a.docs-launcher').forEach(t => {
+  document.querySelectorAll('.tile, a.docs-launcher').forEach(t => {
     t.addEventListener('mousemove', (e) => {
       const r = t.getBoundingClientRect();
       t.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
@@ -701,7 +723,7 @@
   function apply() {
     const term = (q.value || '').trim().toLowerCase();
     let total = 0;
-    document.querySelectorAll('a.tile').forEach(t => {
+    document.querySelectorAll('.tile').forEach(t => {
       const hay = (t.innerText + ' ' + (t.dataset.keywords || '')).toLowerCase();
       const m = !term || hay.includes(term); t.classList.toggle('hidden', !m); if (m) total++;
     });
@@ -710,7 +732,7 @@
       s.style.display = (!term || hay.includes(term)) ? '' : 'none';
     });
     groups.forEach(g => {
-      const any = g.querySelector('a.tile:not(.hidden), a.docs-launcher:not([style*="none"])');
+      const any = g.querySelector('.tile:not(.hidden), a.docs-launcher:not([style*="none"])');
       g.style.display = any ? '' : 'none';
     });
     empty.classList.toggle('show', total === 0);
