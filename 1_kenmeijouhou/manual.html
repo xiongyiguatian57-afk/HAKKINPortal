@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>件名情報 登録・管理システム v7 ― 用途説明・操作マニュアル</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+<style>
+  :root{
+    --accent:#1a56db; --accent2:#3b82f6; --ok:#15803d; --okbg:#eafaf0;
+    --warn:#b45309; --warnbg:#fff6e8; --err:#b91c1c; --errbg:#fdecec;
+    --bg:#f0f4fb; --card:#ffffff; --line:#d7e0ee; --txt:#1f2937; --sub:#6b7280;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:"Noto Sans JP",sans-serif;font-size:15px;line-height:1.7}
+  a{color:var(--accent)}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px 80px}
+
+  /* ---- ヘッダー・目次サイドのレイアウト ---- */
+  .top-hero{background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);color:#fff;padding:54px 20px 64px;text-align:center}
+  .top-hero .badge{display:inline-block;background:rgba(255,255,255,0.18);padding:6px 18px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:18px;letter-spacing:.05em}
+  .top-hero h1{font-size:30px;margin:0 0 10px;font-weight:900}
+  .top-hero p{font-size:15px;opacity:.92;margin:0;max-width:640px;margin:0 auto}
+  .top-hero .icon{font-size:40px;margin-bottom:14px;opacity:.9}
+
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 26px;margin:-36px auto 40px;max-width:1000px;box-shadow:0 6px 20px rgba(30,60,120,.08)}
+  nav.toc h2{font-size:15px;margin:0 0 12px;color:var(--accent)}
+  nav.toc ol{columns:2;gap:24px;margin:0;padding-left:20px;font-size:13.5px}
+  nav.toc li{margin-bottom:6px}
+  nav.toc a{text-decoration:none;color:var(--txt);font-weight:500}
+  nav.toc a:hover{color:var(--accent)}
+
+  section{margin:56px 0}
+  section h2{font-size:22px;color:var(--accent);border-bottom:3px solid var(--accent2);padding-bottom:10px;margin-bottom:22px;display:flex;align-items:center;gap:10px}
+  section h2 .n{background:var(--accent);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  section h3{font-size:16px;color:var(--txt);margin:26px 0 10px;display:flex;align-items:center;gap:8px}
+  section h3 i{color:var(--accent2)}
+  section p{font-size:14.5px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 24px;box-shadow:0 2px 8px rgba(30,60,120,.05);margin:16px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media (max-width:760px){.grid2,.grid3{grid-template-columns:1fr}nav.toc ol{columns:1}}
+
+  .tab-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+  .tab-card i{font-size:24px;color:var(--accent2);display:block;margin-bottom:8px}
+  .tab-card .ti{font-weight:700;font-size:13.5px;margin-bottom:4px}
+  .tab-card .de{font-size:11.5px;color:var(--sub)}
+
+  .shot{border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 14px rgba(30,60,120,.1);width:100%;display:block;margin:14px 0}
+  figure{margin:20px 0}
+  figcaption{font-size:12.5px;color:var(--sub);text-align:center;margin-top:6px}
+
+  .flow{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:22px 0}
+  .flow .box{background:var(--card);border:2px solid var(--accent2);border-radius:12px;padding:14px 18px;text-align:center;font-size:13px;font-weight:700;min-width:130px}
+  .flow .box.srv{border-color:var(--ok);color:var(--ok)}
+  .flow .arrow{font-size:20px;color:var(--sub)}
+
+  .step{display:flex;gap:16px;align-items:flex-start;margin:16px 0}
+  .step .num{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px}
+  .step .body{font-size:14px;padding-top:4px}
+  .step .body b{color:var(--accent)}
+
+  table.simple{width:100%;border-collapse:collapse;font-size:13.5px;margin:14px 0}
+  table.simple th{background:var(--accent);color:#fff;padding:10px 12px;text-align:left}
+  table.simple td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.simple tr:nth-child(even){background:#f7faff}
+
+  .note-box{background:var(--warnbg);border-left:5px solid var(--warn);padding:12px 18px;border-radius:6px;margin:16px 0}
+  .note-box p{margin:0;font-size:13.5px;color:#78350f}
+  .ok-box{background:var(--okbg);border-left:5px solid var(--ok);padding:12px 18px;border-radius:6px;margin:16px 0}
+  .ok-box p{margin:0;font-size:13.5px;color:#14532d}
+  .err-box{background:var(--errbg);border-left:5px solid var(--err);padding:12px 18px;border-radius:6px;margin:16px 0}
+  .err-box p{margin:0;font-size:13.5px;color:#7f1d1d}
+
+  .pill{display:inline-block;background:#eef3fd;color:var(--accent);border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;margin:2px 4px 2px 0}
+  .pill.ok{background:var(--okbg);color:var(--ok)}
+  .pill.warn{background:var(--warnbg);color:var(--warn)}
+
+  .usecase{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:18px 0}
+  .usecase h4{margin:0 0 4px;color:var(--accent);font-size:15px;display:flex;align-items:center;gap:8px}
+  .usecase .scene{font-size:12.5px;color:var(--sub);margin-bottom:14px}
+
+  .back-top{position:fixed;right:24px;bottom:24px;background:var(--accent);color:#fff;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.2);font-size:18px;opacity:.85}
+  .back-top:hover{opacity:1}
+
+  footer{text-align:center;color:var(--sub);font-size:12.5px;padding:30px 0;border-top:1px solid var(--line);margin-top:60px}
+  code{background:#eef3fd;padding:1px 6px;border-radius:4px;font-size:.92em}
+</style>
+</head>
+<body>
+
+<header class="top-hero">
+  <div class="icon"><i class="fa-solid fa-clipboard-list"></i></div>
+  <div class="badge">伊東電機販売社 様</div>
+  <h1>件名情報 登録・管理システム v7</h1>
+  <p>用途説明・操作マニュアル ― はじめて使う方のための完全ガイド</p>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <h2><i class="fa-solid fa-list"></i> 目次</h2>
+  <ol>
+    <li><a href="#sec1">このシステムの用途</a></li>
+    <li><a href="#sec2">全体の画面構成（5つのタブ）</a></li>
+    <li><a href="#sec3">① 件名一覧・登録/修正の使い方</a></li>
+    <li><a href="#sec4">② 需要集計一覧表の使い方</a></li>
+    <li><a href="#sec5">③ 分析ダッシュボードの使い方</a></li>
+    <li><a href="#sec6">④ サーバー連携設定（複数人共有）</a></li>
+    <li><a href="#sec7">⑤ メンテナンス（管理者機能）</a></li>
+    <li><a href="#sec8">データの流れ・保存の仕組み</a></li>
+    <li><a href="#sec9">よくある使い方シーン別ガイド</a></li>
+    <li><a href="#sec10">困ったときは（Q&A）</a></li>
+  </ol>
+</nav>
+
+  <!-- 1. 用途説明 -->
+  <section id="sec1">
+    <h2><span class="n">1</span>このシステムの用途</h2>
+    <p>
+      本システムは、伊東電機販売社様における<b>営業案件（＝「件名」）の登録・管理</b>と、
+      そこに紐づく<b>製品明細（ペットネーム・数量・手配状況）の管理</b>を行うための業務支援ツールです。
+      これまでExcel等で個別に管理していた情報を一元化し、需要の集計や受注状況の可視化を
+      自動化することを目的としています。
+    </p>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-bullseye"></i> できること</h3>
+        <ul>
+          <li>件名（案件）情報と製品明細の登録・編集・検索</li>
+          <li>ペットネーム×納入予定月での需要数量の自動集計</li>
+          <li>受注確度・手配状況・納期遅延のグラフ可視化</li>
+          <li>Excel向けCSV・JSONでのデータ書き出し</li>
+          <li>（オプション）複数人・複数端末でのデータ共有</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-circle-check"></i> 向いている使い方</h3>
+        <ul>
+          <li>営業担当ごとに案件の進捗・受注確率を管理したい</li>
+          <li>月ごとの納品予定数量を集計し在庫・発注計画に使いたい</li>
+          <li>納期遅延しそうな案件をひと目で把握したい</li>
+          <li>サーバー構築なしで、ブラウザだけで使いたい</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note-box">
+      <p><i class="fa-solid fa-triangle-exclamation"></i> 本システムは「静的Webアプリ」です。サーバー不要・インストール不要でブラウザのみで動作しますが、標準の状態ではデータは<b>そのブラウザの中だけ</b>に保存されます（詳しくは第8章）。</p>
+    </div>
+  </section>
+
+  <!-- 2. 画面構成 -->
+  <section id="sec2">
+    <h2><span class="n">2</span>全体の画面構成（5つのタブ）</h2>
+    <p>画面上部に5つのタブが並んでおり、クリックして切り替えます。</p>
+    <div class="grid3" style="grid-template-columns:repeat(5,1fr)">
+      <div class="tab-card"><i class="fa-solid fa-list-check"></i><div class="ti">① 件名一覧<br>登録/修正</div><div class="de">案件・明細の登録と編集</div></div>
+      <div class="tab-card"><i class="fa-solid fa-table-cells"></i><div class="ti">② 需要集計<br>一覧表</div><div class="de">ペット×月の集計表</div></div>
+      <div class="tab-card"><i class="fa-solid fa-chart-pie"></i><div class="ti">③ 分析<br>ダッシュボード</div><div class="de">グラフ・KPI</div></div>
+      <div class="tab-card"><i class="fa-solid fa-cloud-arrow-up"></i><div class="ti">④ サーバー<br>連携設定</div><div class="de">複数人共有の設定</div></div>
+      <div class="tab-card"><i class="fa-solid fa-screwdriver-wrench"></i><div class="ti">⑤ メンテ<br>ナンス</div><div class="de">マスタ編集・削除</div></div>
+    </div>
+    <div class="ok-box" style="margin-top:20px">
+      <p><i class="fa-solid fa-lightbulb"></i> ①②③は同じ検索条件（担当・納入予定月・受注確率・手配状況）で絞り込みができ、同じデータを異なる切り口で確認できます。</p>
+    </div>
+  </section>
+
+  <!-- 3. ①件名一覧 -->
+  <section id="sec3">
+    <h2><span class="n">3</span>① 件名一覧・登録/修正の使い方</h2>
+
+    <h3><i class="fa-solid fa-table"></i> 3-1. 一覧画面</h3>
+    <p>登録済みの件名が一覧表示されます。検索ボックスやドロップダウンで絞り込み、列ヘッダをクリックすると並び替えができます。</p>
+    <figure>
+      <img class="shot" src="https://www.genspark.ai/api/files/s/YD7VPZdb" alt="件名一覧画面">
+      <figcaption>図3-1：件名一覧画面（検索・絞り込み・一覧表示）</figcaption>
+    </figure>
+
+    <h3><i class="fa-solid fa-pen-to-square"></i> 3-2. 新規登録・修正フォーム</h3>
+    <p>「＋ 新規件名を登録」ボタン、または一覧の「✏ 編集」ボタンから入力フォームを開きます。</p>
+    <figure>
+      <img class="shot" src="https://www.genspark.ai/api/files/s/0IdkLERc" alt="新規登録・修正フォーム画面">
+      <figcaption>図3-2：登録・修正フォーム（① 案件情報／② 納入明細）</figcaption>
+    </figure>
+
+    <h3><i class="fa-solid fa-diagram-project"></i> 3-3. 登録の流れ</h3>
+    <div class="step"><div class="num">1</div><div class="body">「＋ 新規件名を登録」をクリックしてフォームを開く</div></div>
+    <div class="step"><div class="num">2</div><div class="body"><b>① 案件情報（親）</b>に、営業担当・納入予定月・受注確率・件名名称などを入力（<span class="pill warn">必須</span>マークのある項目は入力必須）</div></div>
+    <div class="step"><div class="num">3</div><div class="body"><b>② 納入明細（子）</b>に、ペットネーム・代表形式・数量などを1行以上入力（「＋ 明細行を追加」で複数行登録可能）</div></div>
+    <div class="step"><div class="num">4</div><div class="body">「入力チェック」で不備がないか確認し、「登録（保存）」をクリックして保存</div></div>
+    <div class="step"><div class="num">5</div><div class="body">保存後もフォーム画面に留まるため、続けて似た件名を登録する場合は入力し直す手間がありません</div></div>
+
+    <table class="simple">
+      <tr><th>機能</th><th>説明</th></tr>
+      <tr><td><b>📄 件名複製</b></td><td>既存の件名を開いて複製ボタンを押すと、内容を保持したまま別の新しい件名として登録できます。似た案件を手早く追加したいときに便利です。</td></tr>
+      <tr><td><b>CSV / JSON書き出し</b></td><td>一覧画面下部のボタンから、全件または絞り込み結果のみをCSV（Excel向け）・JSON（バックアップ用）で書き出せます。</td></tr>
+      <tr><td><b>データ取込（マージ）</b></td><td>書き出したJSONファイルを読み込み、既存データとマージ（更新日時が新しい方を優先）できます。</td></tr>
+    </table>
+    <div class="err-box">
+      <p><i class="fa-solid fa-ban"></i> 一度登録した件名は、この画面からは<b>削除できません</b>。誤登録は「受注確率」を「失注」にして管理してください（削除は⑤メンテナンスでのみ可能）。</p>
+    </div>
+  </section>
+
+  <!-- 4. ②需要集計 -->
+  <section id="sec4">
+    <h2><span class="n">4</span>② 需要集計一覧表の使い方</h2>
+    <p>登録済みの明細を「ペットネーム × 納入予定月」でクロス集計し、月ごとの需要数量を確認できます。①と同じ絞り込み条件が使えます。</p>
+    <figure>
+      <img class="shot" src="https://www.genspark.ai/api/files/s/r2KCyfl8" alt="需要集計一覧表画面">
+      <figcaption>図4-1：需要集計一覧表（ペットネーム×納入予定月のクロス集計）</figcaption>
+    </figure>
+    <h3><i class="fa-solid fa-calendar-days"></i> 月ヘッダの表示ルール</h3>
+    <p>抽出結果に含まれる納入予定月の<b>最古月〜最新月まで、歯抜けなく連続した列</b>が表示されます。データが存在しない月は「0」と表示されるため、グラフのように連続した流れで確認できます。</p>
+    <div class="ok-box"><p><i class="fa-solid fa-circle-check"></i> 例：抽出結果が2026年3月と7月しかなくても、3〜7月の5列が表示され、4〜6月は「0」として埋まります。</p></div>
+    <h3><i class="fa-solid fa-file-csv"></i> CSV出力</h3>
+    <p>「⬇ CSV出力（需要集計一覧表）」ボタンで、現在の絞り込み結果をExcel向けCSVとして書き出せます。納入予定月の列見出しは「2026/04/01」のような日付形式で出力され、Excelで開いても意図通りの表記になります。</p>
+  </section>
+
+  <!-- 5. ③分析ダッシュボード -->
+  <section id="sec5">
+    <h2><span class="n">5</span>③ 分析ダッシュボードの使い方</h2>
+    <p>KPIカードとグラフで、受注状況・納期遅延・担当別実績をひと目で確認できます。</p>
+    <figure>
+      <img class="shot" src="https://www.genspark.ai/api/files/s/Sv0XqN23" alt="分析ダッシュボード画面">
+      <figcaption>図5-1：分析ダッシュボード（KPIカード・グラフ）</figcaption>
+    </figure>
+    <div class="grid3">
+      <div class="card"><h3><i class="fa-solid fa-gauge-high"></i> KPIカード</h3><p style="font-size:13px">件名数・合計数量・受注率・納品予定月超過の未納品明細数 等、8種類の指標を表示</p></div>
+      <div class="card"><h3><i class="fa-solid fa-chart-column"></i> グラフ</h3><p style="font-size:13px">受注確度別件名数・担当別数量・手配状況別件数・納品予定月別数量推移・ペットネーム別TOP10</p></div>
+      <div class="card"><h3><i class="fa-solid fa-triangle-exclamation"></i> 要注意リスト</h3><p style="font-size:13px">納品予定月を超過している未納品の明細（受注・A・B・Cのみ対象）を一覧表示</p></div>
+    </div>
+    <h3><i class="fa-solid fa-print"></i> PDF出力</h3>
+    <p>「🖨 PDF出力（現在の絞込結果）」ボタンをクリックすると、現在の絞り込み条件のままレポートとして印刷・PDF保存ができます。印刷ダイアログで送信先に「PDFに保存」を選択してください。</p>
+  </section>
+
+  <!-- 6. ④サーバー連携 -->
+  <section id="sec6">
+    <h2><span class="n">6</span>④ サーバー連携設定（複数人での共有）</h2>
+    <p>
+      標準状態では、入力したデータは自分のブラウザの中（<code>localStorage</code>）にしか保存されず、
+      他の人のパソコンからは見えません。<b>Google Apps Script（GAS）</b>と連携することで、
+      複数人・複数端末で同じデータを共有できるようになります。
+    </p>
+    <figure>
+      <img class="shot" src="https://www.genspark.ai/api/files/s/KFZu2W3v" alt="サーバー連携設定画面">
+      <figcaption>図6-1：サーバー連携設定画面（GASウェブアプリURLの設定・同期操作）</figcaption>
+    </figure>
+
+    <h3><i class="fa-solid fa-diagram-project"></i> 仕組みのイメージ</h3>
+    <div class="flow">
+      <div class="box">Aさんのブラウザ<br>（localStorage）</div>
+      <div class="arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+      <div class="box srv"><i class="fa-brands fa-google"></i><br>GAS + Googleドライブ<br>（共有JSONファイル）</div>
+      <div class="arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+      <div class="box">Bさんのブラウザ<br>（localStorage）</div>
+    </div>
+
+    <h3><i class="fa-solid fa-list-ol"></i> 導入手順</h3>
+    <div class="step"><div class="num">1</div><div class="body">⑤メンテナンス →「サーバー連携(GAS)」から、GASデプロイ用ファイル（<code>gas/Code.gs</code>）をダウンロード</div></div>
+    <div class="step"><div class="num">2</div><div class="body">Google Apps Scriptでプロジェクトを作成し、内容を貼り付けて<b>ウェブアプリとしてデプロイ</b></div></div>
+    <div class="step"><div class="num">3</div><div class="body">発行された<b>ウェブアプリURL</b>を④の入力欄に貼り付け、「設定を保存」をクリック</div></div>
+    <div class="step"><div class="num">4</div><div class="body">「⇅ 今すぐサーバーへ送信・同期」で接続確認・初回同期を実施</div></div>
+    <div class="step"><div class="num">5</div><div class="body">他のメンバーにも同じウェブアプリURLを共有し、各自のブラウザで同じ設定を行う</div></div>
+
+    <h3><i class="fa-solid fa-rotate"></i> 同期ボタンの違い</h3>
+    <table class="simple">
+      <tr><th>ボタン</th><th>動作</th><th>使うタイミング</th></tr>
+      <tr><td>⇅ 今すぐサーバーへ送信・同期</td><td>ローカルの変更をサーバーへ送信し、サーバー側の最新内容も統合して取得（双方向）</td><td>データを登録・編集したあと</td></tr>
+      <tr><td>⬇ サーバーの内容を取得して統合</td><td>ローカルの未送信の変更は残したまま、サーバー側の内容を取り込みマージ</td><td>他の人の更新を取り込みたいとき</td></tr>
+      <tr><td>🗑⬇ ローカルを全消去してサーバーから取得</td><td>ローカルを完全に消去し、サーバーの最新データで上書き</td><td>ローカルの状態がおかしくなったとき</td></tr>
+    </table>
+    <div class="note-box">
+      <p><i class="fa-solid fa-circle-info"></i> 複数人がほぼ同時刻に同期しても、約4秒後に自動で再確認する「二段階同期」の仕組みにより、他の人の変更の取りこぼしを防いでいます。</p>
+    </div>
+  </section>
+
+  <!-- 7. ⑤メンテナンス -->
+  <section id="sec7">
+    <h2><span class="n">7</span>⑤ メンテナンス（管理者機能）</h2>
+    <p>管理者パスワードで保護された特別な画面です。件名の削除やマスタ項目の編集など、重要な操作はここでのみ行えます。</p>
+    <figure>
+      <img class="shot" src="https://www.genspark.ai/api/files/s/RIWL0XVm" alt="メンテナンス認証画面">
+      <figcaption>図7-1：メンテナンス認証画面（パスワード入力）</figcaption>
+    </figure>
+    <table class="simple">
+      <tr><th>サブタブ</th><th>内容</th></tr>
+      <tr><td>ドロップダウン項目メンテ</td><td>受注確率・手配状況・担当・ペットネーム対比表などの選択肢を追加・編集・削除</td></tr>
+      <tr><td>件名データ管理</td><td>件名情報の一覧・修正・<b>削除</b>（削除はここでのみ可能）、全案件削除</td></tr>
+      <tr><td>管理者パスワード設定</td><td>パスワードの変更（半角英数字6〜12文字）</td></tr>
+      <tr><td>サーバー連携(GAS)</td><td>④と同じ内容の設定・同期操作</td></tr>
+    </table>
+    <div class="err-box">
+      <p><i class="fa-solid fa-circle-exclamation"></i> このパスワード保護は「誤操作防止」のための簡易的なものです。ブラウザの中で完結する静的サイトのため、本当の意味でのセキュリティ（なりすまし防止等）は提供できません。重要な情報を守る目的での利用は避けてください。</p>
+    </div>
+  </section>
+
+  <!-- 8. データの流れ -->
+  <section id="sec8">
+    <h2><span class="n">8</span>データの流れ・保存の仕組み</h2>
+    <h3><i class="fa-solid fa-hard-drive"></i> 通常モード（サーバー連携なし）</h3>
+    <div class="flow">
+      <div class="box"><i class="fa-solid fa-desktop"></i><br>ブラウザ操作</div>
+      <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
+      <div class="box"><i class="fa-solid fa-hard-drive"></i><br>localStorage<br>（このブラウザの中だけ）</div>
+    </div>
+    <div class="note-box">
+      <p><i class="fa-solid fa-triangle-exclamation"></i> localStorageは「ブラウザ＋端末ごと」に独立しています。ブラウザのキャッシュ削除やシークレットモードの利用で消える場合があるため、定期的にJSON書き出しでバックアップすることをおすすめします。</p>
+    </div>
+    <h3><i class="fa-solid fa-cloud"></i> サーバー連携モード（GAS利用時）</h3>
+    <p>④の設定を行うと、上記に加えてGoogleドライブ上の共有JSONファイルともデータをやり取りするようになります（第6章参照）。</p>
+  </section>
+
+  <!-- 9. ユースケース -->
+  <section id="sec9">
+    <h2><span class="n">9</span>よくある使い方シーン別ガイド</h2>
+
+    <div class="usecase">
+      <h4><i class="fa-solid fa-user"></i> シーン1：営業担当が新しい案件を登録したい</h4>
+      <div class="scene">1人で使う・サーバー連携なしでもOK</div>
+      <p>① タブ →「＋ 新規件名を登録」→ 案件情報・明細を入力 →「登録（保存）」。似た案件が続く場合は「📄 件名複製」で手間を省けます。</p>
+    </div>
+
+    <div class="usecase">
+      <h4><i class="fa-solid fa-users"></i> シーン2：複数の営業担当で同じデータを共有したい</h4>
+      <div class="scene">チームで使う・サーバー連携が必要</div>
+      <p>④サーバー連携設定でGASのウェブアプリURLを全員のブラウザに設定 → 登録・編集のたびに「⇅ 今すぐサーバーへ送信・同期」を押す習慣をつける。</p>
+    </div>
+
+    <div class="usecase">
+      <h4><i class="fa-solid fa-chart-line"></i> シーン3：来月の納品数量を把握し発注計画に使いたい</h4>
+      <div class="scene">需要集計の活用</div>
+      <p>② 需要集計一覧表で納入予定月を絞り込み、ペットネームごとの数量を確認。必要であればCSV出力してExcelで加工。</p>
+    </div>
+
+    <div class="usecase">
+      <h4><i class="fa-solid fa-triangle-exclamation"></i> シーン4：納期遅延しそうな案件をすぐ確認したい</h4>
+      <div class="scene">分析ダッシュボードの活用</div>
+      <p>③ 分析ダッシュボードの「▲ 要注意：納品予定月を超過している未納品の明細」を確認。必要であればPDF出力して会議資料に。</p>
+    </div>
+
+    <div class="usecase">
+      <h4><i class="fa-solid fa-trash"></i> シーン5：誤って登録した件名を削除したい</h4>
+      <div class="scene">管理者のみ対応可能</div>
+      <p>⑤ メンテナンス → 管理者パスワードでログイン →「件名データ管理」から該当の件名を削除。</p>
+    </div>
+  </section>
+
+  <!-- 10. Q&A -->
+  <section id="sec10">
+    <h2><span class="n">10</span>困ったときは（Q&amp;A）</h2>
+    <table class="simple">
+      <tr><th>症状</th><th>よくある原因</th><th>対処</th></tr>
+      <tr>
+        <td>④の「設定を保存」ボタンを押しても<br>何も起きない</td>
+        <td>公開先に <code>js/gas-sync.js</code> が<br>配置されていない（404）</td>
+        <td>同じフォルダ構成（<code>js/</code>・<code>data/</code>を含む）で<br>必要ファイルを漏れなくアップロード</td>
+      </tr>
+      <tr>
+        <td>ファイルをダブルクリックして<br>直接開くと機能が不安定</td>
+        <td><code>file://</code>形式はブラウザの<br>セキュリティ制限を受けやすい</td>
+        <td>簡易Webサーバー（<code>http://</code>）や<br>公開済みURLを利用する</td>
+      </tr>
+      <tr>
+        <td>同期したのに他の人の<br>削除が反映されない</td>
+        <td>ほぼ同時刻の同期によるタイミングのズレ</td>
+        <td>約4秒後の自動再確認（二段階同期）を待つ。<br>必要であれば再度同期操作を行う</td>
+      </tr>
+      <tr>
+        <td>登録した件名を削除したい</td>
+        <td>①の画面からは削除不可（仕様）</td>
+        <td>⑤メンテナンス→「件名データ管理」から削除</td>
+      </tr>
+      <tr>
+        <td>データが消えてしまった</td>
+        <td>ブラウザのキャッシュ削除・<br>別端末/別ブラウザでアクセス</td>
+        <td>JSON書き出しで定期バックアップを推奨。<br>サーバー連携していれば②操作で復元できる場合あり</td>
+      </tr>
+    </table>
+  </section>
+
+</div>
+
+<footer>
+  <p>件名情報 登録・管理システム v7 ― 用途説明・操作マニュアル<br>ご不明点があれば開発担当までお気軽にお問い合わせください。</p>
+</footer>
+
+<a href="#" class="back-top" title="トップへ戻る"><i class="fa-solid fa-arrow-up"></i></a>
+
+</body>
+</html>

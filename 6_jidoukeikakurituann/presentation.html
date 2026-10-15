@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白金ブランド 生産計画【案】自動立案 — 概要プレゼン</title>
+<style>
+  :root {
+    --primary: #0f4c81;
+    --primary-dark: #0a3660;
+    --accent: #e8a93c;
+    --accent-dark: #c48816;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --text: #1f2937;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --good: #16a34a;
+    --warn: #ea580c;
+    --bad: #dc2626;
+    --info: #0284c7;
+    --purple: #7c3aed;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0; }
+
+  /* ===== Hero ===== */
+  .hero {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 70%, #06243f 100%);
+    color: #fff;
+    padding: 56px 48px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; top: -40px; right: -40px;
+    width: 320px; height: 320px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,169,60,0.25) 0%, transparent 70%);
+  }
+  .hero h1 {
+    font-size: 36px; margin: 0 0 8px; letter-spacing: 0.02em;
+    position: relative; z-index: 1;
+  }
+  .hero .subtitle {
+    font-size: 18px; opacity: 0.9; margin: 0 0 24px;
+    position: relative; z-index: 1;
+  }
+  .hero .meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    font-size: 13px; opacity: 0.85;
+    position: relative; z-index: 1;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 16px;
+  }
+  .hero .meta b { color: var(--accent); font-weight: 600; }
+
+  /* ===== Sections ===== */
+  section {
+    padding: 48px 48px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  section:nth-of-type(even) { background: var(--bg); }
+  h2 {
+    font-size: 24px; margin: 0 0 8px;
+    color: var(--primary); display: flex; align-items: center; gap: 12px;
+  }
+  h2 .num {
+    display: inline-flex; width: 36px; height: 36px;
+    background: var(--primary); color: #fff; border-radius: 50%;
+    align-items: center; justify-content: center; font-size: 16px; font-weight: 700;
+  }
+  h2 .en {
+    font-size: 13px; color: var(--text-muted);
+    font-weight: 400; margin-left: 8px;
+  }
+  .lead {
+    font-size: 15px; color: var(--text-muted);
+    margin: 0 0 24px; padding-left: 48px;
+  }
+  h3 {
+    font-size: 17px; margin: 24px 0 12px;
+    color: var(--primary-dark); border-left: 4px solid var(--accent);
+    padding-left: 12px;
+  }
+
+  /* ===== Cards ===== */
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 820px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .hero, section { padding: 32px 20px; }
+    .lead { padding-left: 0; }
+  }
+  .card {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .card.highlight { border-left: 4px solid var(--accent); }
+  .card.good { border-left: 4px solid var(--good); }
+  .card.bad { border-left: 4px solid var(--bad); }
+  .card.info { border-left: 4px solid var(--info); }
+  .card h4 {
+    margin: 0 0 8px; font-size: 15px; color: var(--primary-dark);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card .icon {
+    display: inline-flex; width: 28px; height: 28px;
+    background: var(--primary); color: #fff; border-radius: 6px;
+    align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+  }
+  .card.good .icon { background: var(--good); }
+  .card.bad .icon { background: var(--bad); }
+  .card.info .icon { background: var(--info); }
+  .card p { margin: 0; font-size: 14px; color: var(--text); }
+
+  /* ===== KPI tiles ===== */
+  .kpi {
+    background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; text-align: center;
+  }
+  .kpi .label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .kpi .value { font-size: 28px; font-weight: 700; color: var(--primary); line-height: 1.1; }
+  .kpi .unit { font-size: 13px; color: var(--text-muted); margin-left: 4px; }
+
+  /* ===== Tables ===== */
+  table {
+    width: 100%; border-collapse: collapse;
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; font-size: 14px; margin: 12px 0;
+  }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th {
+    background: var(--primary); color: #fff; font-weight: 600; font-size: 13px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.center { text-align: center; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge.good { background: #dcfce7; color: var(--good); }
+  .badge.warn { background: #fed7aa; color: var(--warn); }
+  .badge.bad { background: #fecaca; color: var(--bad); }
+  .badge.info { background: #e0f2fe; color: var(--info); }
+
+  /* ===== SVG flow styling ===== */
+  .svg-wrap {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; margin: 16px 0; overflow-x: auto;
+  }
+  svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+  /* ===== Steps ===== */
+  .steps { display: grid; gap: 12px; }
+  .step {
+    display: grid; grid-template-columns: 56px 1fr; gap: 16px;
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .step .no {
+    width: 48px; height: 48px; background: var(--primary); color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+  }
+  .step .body h4 { margin: 0 0 4px; color: var(--primary-dark); font-size: 15px; }
+  .step .body p { margin: 0; font-size: 14px; color: var(--text); }
+  .step .body .tag {
+    display: inline-block; margin-top: 6px; padding: 2px 8px;
+    background: #f1f5f9; color: var(--text-muted);
+    font-size: 11px; border-radius: 4px;
+  }
+
+  /* ===== Terminology ===== */
+  dl.terms { margin: 0; }
+  dl.terms > div {
+    display: grid; grid-template-columns: 180px 1fr; gap: 16px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    background: #fff;
+  }
+  dl.terms > div:first-child { border-top: 1px solid var(--border); border-radius: 8px 8px 0 0; }
+  dl.terms > div:last-child { border-radius: 0 0 8px 8px; }
+  dl.terms dt { font-weight: 700; color: var(--primary-dark); margin: 0; }
+  dl.terms dd { margin: 0; font-size: 14px; color: var(--text); }
+
+  /* ===== Callout ===== */
+  .callout {
+    background: #fff7ed; border-left: 4px solid var(--accent);
+    padding: 14px 18px; border-radius: 6px; margin: 16px 0;
+    font-size: 14px;
+  }
+  .callout.info { background: #eff6ff; border-color: var(--info); }
+  .callout.good { background: #f0fdf4; border-color: var(--good); }
+  .callout b { color: var(--primary-dark); }
+
+  /* ===== Footer ===== */
+  footer {
+    background: var(--primary-dark); color: #cbd5e1;
+    padding: 32px 48px; font-size: 13px;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+  }
+  footer b { color: #fff; }
+
+  /* ===== Toc ===== */
+  .toc {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 24px; margin: 24px 48px 0;
+  }
+  .toc h3 { margin: 0 0 10px; border-left: none; padding: 0; color: var(--primary); font-size: 15px; }
+  .toc ol { margin: 0; padding-left: 24px; columns: 2; column-gap: 24px; font-size: 14px; }
+  .toc li { margin-bottom: 4px; }
+  .toc a { color: var(--primary); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  @media (max-width: 600px) { .toc ol { columns: 1; } .toc { margin: 20px; } }
+
+  /* print */
+  @media print {
+    body { background: #fff; }
+    section { break-inside: avoid; }
+    .hero { break-after: page; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ========== HERO ========== -->
+<header class="hero">
+  <h1>白金ブランド 生産計画【案】自動立案</h1>
+  <p class="subtitle">Excel「勝ち負け表」を取り込み、不足を計算し、追加生産計画を自動で引く仕組み</p>
+  <div class="meta">
+    <div>対象品名: <b>35品</b></div>
+    <div>計画期間: <b>2027-01 〜 2027-03</b></div>
+    <div>月間生産能力: 目標 <b>2,000台</b> / 上限 <b>2,500台</b></div>
+    <div>リードタイム: <b>3ヶ月</b></div>
+    <div>資料日付: <b>2026-10-15</b></div>
+  </div>
+</header>
+
+<!-- ========== TOC ========== -->
+<nav class="toc">
+  <h3>目次</h3>
+  <ol>
+    <li><a href="#s1">本資料の目的と全体像</a></li>
+    <li><a href="#s2">用語ミニ辞典</a></li>
+    <li><a href="#s3">業務上の課題と解決アプローチ</a></li>
+    <li><a href="#s4">システム全体像(フロー図)</a></li>
+    <li><a href="#s5">業務フロー(8ステップ)</a></li>
+    <li><a href="#s6">入出力データの構造</a></li>
+    <li><a href="#s7">自動立案アルゴリズム</a></li>
+    <li><a href="#s8">制約条件(現在の設定)</a></li>
+    <li><a href="#s9">現状データのスナップショット</a></li>
+    <li><a href="#s10">画面構成</a></li>
+    <li><a href="#s11">2バージョンの運用方針</a></li>
+    <li><a href="#s12">まとめ</a></li>
+  </ol>
+</nav>
+
+<!-- ========== 1. 目的 ========== -->
+<section id="s1">
+  <h2><span class="num">1</span>本資料の目的と全体像<span class="en">PURPOSE</span></h2>
+  <p class="lead">
+    白金ブランドの生産管理担当者が、顧客からの<b>需要</b>と工場の<b>既存供給(手配済)</b>を照らし合わせ、
+    不足が生じる品名に対して<b>追加の生産計画</b>を立てる業務を、Excelファイル1本から<b>自動で</b>行う仕組みを提供します。
+  </p>
+
+  <div class="grid grid-3">
+    <div class="card highlight">
+      <h4><span class="icon">!</span>解決したい課題</h4>
+      <p>品名ごと月ごとに需要と供給を手計算で突き合わせていた作業を自動化。35品×複数月の累計手配過不足を一瞬で算出。</p>
+    </div>
+    <div class="card good">
+      <h4><span class="icon">◎</span>自動化のゴール</h4>
+      <p>マイナス(欠品)が出ない水準まで、ロットサイズ・月間能力・リードタイムを守りつつ追加生産計画を自動立案。</p>
+    </div>
+    <div class="card info">
+      <h4><span class="icon">i</span>最終アウトプット</h4>
+      <p>勝ち負け表ダッシュボード画面と、7シート構成のExcelファイル(需要/供給/追加生産/勝ち負け表/サマリー/月別能力/制約)。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 2. 用語 ========== -->
+<section id="s2">
+  <h2><span class="num">2</span>用語ミニ辞典<span class="en">GLOSSARY</span></h2>
+  <p class="lead">はじめて見る方向けに、本資料で頻繁に登場する用語をまとめます。</p>
+
+  <dl class="terms">
+    <div><dt>ペットネーム</dt><dd>白金ブランドの<b>品名(商品名)</b>の呼び方。例:「安全増ヴォーノ Hf32高出力×2」など。本システムでは35品を管理。</dd></div>
+    <div><dt>勝ち負け表</dt><dd>品名×月のマトリクスで、<b>需要と供給の累計差(=手配過不足)</b>を一覧化した表。マイナスが「負け(欠品リスク)」、プラスが「勝ち(余剰)」。</dd></div>
+    <div><dt>需要</dt><dd>顧客からの<b>未出荷の受注</b>(月別)。「2026-11月に ○○品 を40台」という形で入ってくる。</dd></div>
+    <div><dt>既存供給</dt><dd>工場に<b>既に手配済み</b>の生産(月別)。「2026-10月に ○○品 を62台生産予定」。</dd></div>
+    <div><dt>在庫</dt><dd>現時点(資料基準日)で倉庫にある数量。将来月の需給計算の起点になる。</dd></div>
+    <div><dt>追加供給(生産計画)</dt><dd>需要に対して既存供給+在庫では足りない分を補うために、本システムが<b>追加で引く生産計画</b>。これが本システムの主要なアウトプット。</dd></div>
+    <div><dt>累計手配過不足</dt><dd>月末時点の<b>(累計供給+在庫) − 累計需要</b>。マイナスなら将来の欠品を意味する。</dd></div>
+    <div><dt>リードタイム</dt><dd>生産指示を出してから製品が出荷可能になるまでの期間。白金では<b>3ヶ月</b>。これより先の月にしか追加生産を割り付けられない。</dd></div>
+    <div><dt>ロットサイズ</dt><dd>生産の最小単位。白金では<b>10台単位</b>。追加生産量は常に10の倍数になる。</dd></div>
+    <div><dt>月間生産能力</dt><dd>工場1ヶ月に生産できる最大数量。目標 <b>2,000台</b>、絶対上限 <b>2,500台</b>。</dd></div>
+    <div><dt>充足率</dt><dd>需要に対して (供給+在庫+追加生産) が何%満たすか。目標は <b>100%</b>。</dd></div>
+  </dl>
+</section>
+
+<!-- ========== 3. 課題と解決 ========== -->
+<section id="s3">
+  <h2><span class="num">3</span>業務上の課題と解決アプローチ<span class="en">PROBLEM & SOLUTION</span></h2>
+  <p class="lead">これまでの手運用で起きていた問題と、本システムが提供する解決策を対比します。</p>
+
+  <div class="grid grid-2">
+    <div class="card bad">
+      <h4><span class="icon">×</span>これまでの課題</h4>
+      <ul style="margin:8px 0 0; padding-left: 20px; font-size: 14px;">
+        <li>35品×複数月の累計を手計算で追跡していた</li>
+        <li>月間能力・ロット・リードタイムを頭の中で守る必要があった</li>
+        <li>どの月に何台を割り振るか属人的判断になっていた</li>
+        <li>欠品リスクが顕在化するまで気づけなかった</li>
+        <li>Excelシートが人によってフォーマット違い</li>
+      </ul>
+    </div>
+    <div class="card good">
+      <h4><span class="icon">○</span>本システムの解決策</h4>
+      <ul style="margin:8px 0 0; padding-left: 20px; font-size: 14px;">
+        <li>Excel1本をドラッグ&ドロップで取込、自動パース</li>
+        <li>需給バランスを月別・累計で自動計算</li>
+        <li>8項目の制約条件をチェックして最適配分</li>
+        <li>欠品品名を赤色で視覚化、充足率も自動算出</li>
+        <li>結果を7シートのExcelとして一括出力</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 4. システム全体像 ========== -->
+<section id="s4">
+  <h2><span class="num">4</span>システム全体像(フロー図)<span class="en">OVERVIEW DIAGRAM</span></h2>
+  <p class="lead">Excelから取り込み、計算し、画面とExcelで結果を出すまでの全体の流れです。</p>
+
+  <div class="svg-wrap">
+    <svg viewBox="0 0 1100 420" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0f4c81"/>
+        </marker>
+        <linearGradient id="gExcel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#15803d"/>
+        </linearGradient>
+        <linearGradient id="gSystem" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0f4c81"/><stop offset="100%" stop-color="#0a3660"/>
+        </linearGradient>
+        <linearGradient id="gOut" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#e8a93c"/><stop offset="100%" stop-color="#c48816"/>
+        </linearGradient>
+      </defs>
+
+      <!-- INPUT -->
+      <rect x="30" y="130" width="200" height="150" rx="10" fill="url(#gExcel)"/>
+      <text x="130" y="165" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">INPUT</text>
+      <text x="130" y="195" text-anchor="middle" fill="#fff" font-size="14">Excel ファイル</text>
+      <text x="130" y="215" text-anchor="middle" fill="#fff" font-size="12">「ペットネーム別</text>
+      <text x="130" y="230" text-anchor="middle" fill="#fff" font-size="12">勝ち負け表.xlsx」</text>
+      <text x="130" y="258" text-anchor="middle" fill="#fff" font-size="11" opacity="0.9">需要 / 供給 / 在庫</text>
+
+      <!-- SYSTEM -->
+      <rect x="330" y="60" width="440" height="300" rx="12" fill="url(#gSystem)"/>
+      <text x="550" y="90" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">本システム</text>
+
+      <!-- sub-boxes -->
+      <rect x="360" y="110" width="170" height="60" rx="6" fill="rgba(255,255,255,0.15)" stroke="#fff" stroke-width="1"/>
+      <text x="445" y="135" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">① パース</text>
+      <text x="445" y="155" text-anchor="middle" fill="#fff" font-size="11">シート構造を解析</text>
+
+      <rect x="570" y="110" width="170" height="60" rx="6" fill="rgba(255,255,255,0.15)" stroke="#fff" stroke-width="1"/>
+      <text x="655" y="135" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">② 需給計算</text>
+      <text x="655" y="155" text-anchor="middle" fill="#fff" font-size="11">累計差を算出</text>
+
+      <rect x="360" y="190" width="170" height="60" rx="6" fill="rgba(232,169,60,0.3)" stroke="#e8a93c" stroke-width="1.5"/>
+      <text x="445" y="215" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">③ 自動立案</text>
+      <text x="445" y="235" text-anchor="middle" fill="#fff" font-size="11">Pass1 + Pass2</text>
+
+      <rect x="570" y="190" width="170" height="60" rx="6" fill="rgba(255,255,255,0.15)" stroke="#fff" stroke-width="1"/>
+      <text x="655" y="215" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">④ 制約チェック</text>
+      <text x="655" y="235" text-anchor="middle" fill="#fff" font-size="11">能力・ロット・LT</text>
+
+      <rect x="360" y="270" width="380" height="60" rx="6" fill="rgba(255,255,255,0.15)" stroke="#fff" stroke-width="1"/>
+      <text x="550" y="295" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">⑤ ストレージ保存</text>
+      <text x="550" y="315" text-anchor="middle" fill="#fff" font-size="11">クラウドDB または ブラウザlocalStorage</text>
+
+      <!-- OUTPUT -->
+      <rect x="870" y="60" width="200" height="140" rx="10" fill="url(#gOut)"/>
+      <text x="970" y="90" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">OUTPUT 1</text>
+      <text x="970" y="115" text-anchor="middle" fill="#fff" font-size="13">勝ち負け表</text>
+      <text x="970" y="135" text-anchor="middle" fill="#fff" font-size="13">ダッシュボード</text>
+      <text x="970" y="162" text-anchor="middle" fill="#fff" font-size="11" opacity="0.9">KPI・表・グラフ</text>
+      <text x="970" y="180" text-anchor="middle" fill="#fff" font-size="11" opacity="0.9">(ブラウザ画面)</text>
+
+      <rect x="870" y="220" width="200" height="140" rx="10" fill="url(#gOut)"/>
+      <text x="970" y="250" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">OUTPUT 2</text>
+      <text x="970" y="275" text-anchor="middle" fill="#fff" font-size="13">7シートExcel</text>
+      <text x="970" y="295" text-anchor="middle" fill="#fff" font-size="13">(配布用)</text>
+      <text x="970" y="322" text-anchor="middle" fill="#fff" font-size="11" opacity="0.9">条件付き書式付き</text>
+      <text x="970" y="340" text-anchor="middle" fill="#fff" font-size="11" opacity="0.9">マイナス赤色化</text>
+
+      <!-- Arrows -->
+      <line x1="230" y1="205" x2="325" y2="205" stroke="#0f4c81" stroke-width="2.5" marker-end="url(#arrow)"/>
+      <line x1="775" y1="130" x2="865" y2="130" stroke="#0f4c81" stroke-width="2.5" marker-end="url(#arrow)"/>
+      <line x1="775" y1="290" x2="865" y2="290" stroke="#0f4c81" stroke-width="2.5" marker-end="url(#arrow)"/>
+    </svg>
+  </div>
+
+  <div class="callout info">
+    <b>ポイント:</b> ユーザーが行う操作は「Excelをドロップ → 自動立案ボタン → 結果を確認 → Excelダウンロード」の4ステップのみ。
+  </div>
+</section>
+
+<!-- ========== 5. 業務フロー ========== -->
+<section id="s5">
+  <h2><span class="num">5</span>業務フロー(8ステップ)<span class="en">WORKFLOW</span></h2>
+  <p class="lead">自動立案ボタンを押すと、以下の8フェーズが順番に走り、画面上に進捗バーで表示されます。</p>
+
+  <div class="steps">
+    <div class="step"><div class="no">1</div><div class="body">
+      <h4>Excel ファイル読み込み</h4>
+      <p>ドラッグ&ドロップまたはファイル選択で .xlsx を取り込みます。ブラウザ内で解析するため、サーバー送信はありません。</p>
+      <span class="tag">XLSX.read()</span>
+    </div></div>
+    <div class="step"><div class="no">2</div><div class="body">
+      <h4>シート構造の解析</h4>
+      <p>「需要」「供給」シートからヘッダ行(月名)、ペットネーム列、在庫列を自動検出します。</p>
+      <span class="tag">parseWorkbook()</span>
+    </div></div>
+    <div class="step"><div class="no">3</div><div class="body">
+      <h4>データ正規化</h4>
+      <p>月はYYYY-MM-DD形式に、ペットネームは全角統一、数値はInteger変換。空セル・ゼロは除外。</p>
+      <span class="tag">toMonthISO() / toInt()</span>
+    </div></div>
+    <div class="step"><div class="no">4</div><div class="body">
+      <h4>品名の分類</h4>
+      <p>全35品を一律「現行品 / 生産可能 / 数量フレキシブル」として扱います(2026-08-25 ポリシー)。</p>
+      <span class="tag">classifyPet()</span>
+    </div></div>
+    <div class="step"><div class="no">5</div><div class="body">
+      <h4>需給バランス計算</h4>
+      <p>品名×月で (累計供給+在庫) − 累計需要 を算出。マイナス月を「不足月」として洗い出します。</p>
+      <span class="tag">cumBalance()</span>
+    </div></div>
+    <div class="step"><div class="no">6</div><div class="body">
+      <h4>Pass1 — 不足解消ループ</h4>
+      <p>不足量の大きい品名から順に、月間能力の範囲内で追加生産を割り付けます。マイナスがゼロになるまで。</p>
+      <span class="tag">planProduction() Phase1</span>
+    </div></div>
+    <div class="step"><div class="no">7</div><div class="body">
+      <h4>Pass2 — 平準化ループ</h4>
+      <p>月間能力の目標値(2,000台)に向けて、未使用の能力を使い切るように配分を平準化します。</p>
+      <span class="tag">planProduction() Phase2</span>
+    </div></div>
+    <div class="step"><div class="no">8</div><div class="body">
+      <h4>保存 → 画面表示 → Excel出力</h4>
+      <p>結果をストレージに保存し、ダッシュボードが更新。「Excel出力」ボタンで7シート構成のファイルがダウンロードされます。</p>
+      <span class="tag">DB.insert_plan() / exportExcel()</span>
+    </div></div>
+  </div>
+</section>
+
+<!-- ========== 6. 入出力データ ========== -->
+<section id="s6">
+  <h2><span class="num">6</span>入出力データの構造<span class="en">DATA SCHEMA</span></h2>
+  <p class="lead">本システムで扱う主なテーブルと、その役割を示します。</p>
+
+  <h3>入力テーブル</h3>
+  <table>
+    <thead><tr><th>テーブル</th><th>内容</th><th>主なカラム</th><th>現在件数</th></tr></thead>
+    <tbody>
+      <tr><td><b>pet_names</b></td><td>品名マスタ</td><td>name, category, is_producible</td><td class="num">35</td></tr>
+      <tr><td><b>inventory</b></td><td>現在庫(資料基準日時点)</td><td>pet_name, stock</td><td class="num">30</td></tr>
+      <tr><td><b>demand</b></td><td>月別需要(未出荷分)</td><td>pet_name, month, qty</td><td class="num">77</td></tr>
+      <tr><td><b>supply</b></td><td>月別既存供給(手配済)</td><td>pet_name, month, qty</td><td class="num">67</td></tr>
+      <tr><td><b>planning_constraints</b></td><td>生産制約条件</td><td>key, value, description</td><td class="num">8</td></tr>
+    </tbody>
+  </table>
+
+  <h3>出力テーブル / ビュー</h3>
+  <table>
+    <thead><tr><th>テーブル</th><th>内容</th><th>生成元</th><th>現在件数</th></tr></thead>
+    <tbody>
+      <tr><td><b>production_plan</b></td><td>追加生産計画(本システムの主要アウトプット)</td><td>Pass1 + Pass2 の結果</td><td class="num">5</td></tr>
+      <tr><td><b>v_cum_balance</b></td><td>品名×月の累計手配過不足ビュー</td><td>demand + supply + plan 集計</td><td class="num">—</td></tr>
+      <tr><td><b>upload_history</b></td><td>Excel取込履歴</td><td>取込ごとに1行追加</td><td class="num">—</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Excel出力(7シート構成)</h3>
+  <div class="grid grid-4">
+    <div class="card"><h4>① 需要</h4><p>取込元の月別需要</p></div>
+    <div class="card"><h4>② 供給</h4><p>取込元の月別既存供給</p></div>
+    <div class="card"><h4>③ 追加供給(生産計画)</h4><p>本システムが引いた追加計画</p></div>
+    <div class="card"><h4>④ 勝ち負け表</h4><p>品名×月の累計差(赤/黒)</p></div>
+    <div class="card"><h4>⑤ 品目別サマリー</h4><p>品名ごとの需要/供給/計画/充足率</p></div>
+    <div class="card"><h4>⑥ 月別生産能力</h4><p>月別の計画量と能力消化率</p></div>
+    <div class="card"><h4>⑦ 制約条件</h4><p>自動立案時に使った8項目</p></div>
+    <div class="card highlight"><h4>仕様</h4><p>マイナス値は赤色、カンマ無し数値表示、条件付き書式付き</p></div>
+  </div>
+</section>
+
+<!-- ========== 7. アルゴリズム ========== -->
+<section id="s7">
+  <h2><span class="num">7</span>自動立案アルゴリズム<span class="en">ALGORITHM</span></h2>
+  <p class="lead">本システムの中核。2段階(Pass1/Pass2)で追加生産計画を引きます。</p>
+
+  <div class="svg-wrap">
+    <svg viewBox="0 0 1100 480" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+        </marker>
+      </defs>
+
+      <!-- Start -->
+      <ellipse cx="550" cy="40" rx="110" ry="26" fill="#0f4c81"/>
+      <text x="550" y="46" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">自動立案 開始</text>
+
+      <!-- Prep -->
+      <rect x="400" y="90" width="300" height="56" rx="8" fill="#eff6ff" stroke="#0284c7" stroke-width="1.5"/>
+      <text x="550" y="112" text-anchor="middle" fill="#0a3660" font-size="13" font-weight="700">準備</text>
+      <text x="550" y="130" text-anchor="middle" fill="#0a3660" font-size="12">対象品名を列挙 / 計画月を列挙 / 月別能力枠を初期化</text>
+
+      <!-- Pass1 -->
+      <rect x="80" y="180" width="440" height="200" rx="10" fill="#fff7ed" stroke="#e8a93c" stroke-width="2"/>
+      <text x="300" y="208" text-anchor="middle" fill="#c48816" font-size="15" font-weight="700">Pass1: 不足解消ループ</text>
+      <text x="300" y="232" text-anchor="middle" fill="#1f2937" font-size="12">① 累計手配過不足を全品名×全月で計算</text>
+      <text x="300" y="252" text-anchor="middle" fill="#1f2937" font-size="12">② 最大マイナス額が大きい品名を選ぶ</text>
+      <text x="300" y="272" text-anchor="middle" fill="#1f2937" font-size="12">③ 最も早い不足月に、不足量分を割り付け</text>
+      <text x="300" y="292" text-anchor="middle" fill="#1f2937" font-size="12">   (ロット10単位切上げ、月間能力/LT枠内)</text>
+      <text x="300" y="312" text-anchor="middle" fill="#1f2937" font-size="12">④ 月末累計を再計算</text>
+      <text x="300" y="332" text-anchor="middle" fill="#1f2937" font-size="12">⑤ マイナスが残っている間 ①〜④を繰り返す</text>
+      <text x="300" y="358" text-anchor="middle" fill="#c48816" font-size="12" font-weight="700">→ 不足ゼロを目指す</text>
+
+      <!-- Pass2 -->
+      <rect x="580" y="180" width="440" height="200" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+      <text x="800" y="208" text-anchor="middle" fill="#15803d" font-size="15" font-weight="700">Pass2: 平準化ループ</text>
+      <text x="800" y="232" text-anchor="middle" fill="#1f2937" font-size="12">① 月間能力の目標値(2000台)まで余裕を確認</text>
+      <text x="800" y="252" text-anchor="middle" fill="#1f2937" font-size="12">② 月間使用量の少ない月を選ぶ</text>
+      <text x="800" y="272" text-anchor="middle" fill="#1f2937" font-size="12">③ 需要がある品名から10単位で追加割付</text>
+      <text x="800" y="292" text-anchor="middle" fill="#1f2937" font-size="12">④ 月使用量を再計算して繰り返し</text>
+      <text x="800" y="312" text-anchor="middle" fill="#1f2937" font-size="12">⑤ 全月が目標に達するか</text>
+      <text x="800" y="332" text-anchor="middle" fill="#1f2937" font-size="12">   追加先がなくなれば終了</text>
+      <text x="800" y="358" text-anchor="middle" fill="#15803d" font-size="12" font-weight="700">→ 月ごとの生産負荷を均等化</text>
+
+      <!-- Flow arrows -->
+      <line x1="550" y1="66" x2="550" y2="87" stroke="#64748b" stroke-width="2" marker-end="url(#arrow2)"/>
+      <line x1="470" y1="148" x2="300" y2="177" stroke="#64748b" stroke-width="2" marker-end="url(#arrow2)"/>
+      <line x1="520" y1="280" x2="577" y2="280" stroke="#64748b" stroke-width="2" marker-end="url(#arrow2)"/>
+
+      <!-- End -->
+      <ellipse cx="550" cy="430" rx="150" ry="26" fill="#16a34a"/>
+      <text x="550" y="436" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">追加生産計画を確定・保存</text>
+      <line x1="300" y1="382" x2="430" y2="412" stroke="#64748b" stroke-width="2" marker-end="url(#arrow2)"/>
+      <line x1="800" y1="382" x2="670" y2="412" stroke="#64748b" stroke-width="2" marker-end="url(#arrow2)"/>
+    </svg>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card highlight">
+      <h4><span class="icon">1</span>Pass1 の狙い</h4>
+      <p><b>欠品(マイナス)を発生させない</b>こと。不足額が大きい品名から優先的に、最も早い不足月に割り付けます。</p>
+    </div>
+    <div class="card good">
+      <h4><span class="icon">2</span>Pass2 の狙い</h4>
+      <p><b>工場の生産負荷を月ごとに平準化</b>すること。目標月間能力2,000台まで余裕のある月から埋めていきます。</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>重要:</b> 両Passとも「ロット10台単位」「月間能力上限2,500台」「リードタイム3ヶ月(2027-01以降)」を常にチェック。これらの制約を破る割付は行いません。
+  </div>
+</section>
+
+<!-- ========== 8. 制約条件 ========== -->
+<section id="s8">
+  <h2><span class="num">8</span>制約条件(現在の設定)<span class="en">CONSTRAINTS</span></h2>
+  <p class="lead">自動立案は以下の8つの条件を全て守って計画を引きます。画面上で変更可能です。</p>
+
+  <table>
+    <thead><tr><th>項目</th><th>現在値</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td><b>plan_start_month</b></td><td class="num">2027-01-01</td><td>追加生産の割付開始月(リードタイム制約の下限)</td></tr>
+      <tr><td><b>plan_end_month</b></td><td class="num">2027-03-31</td><td>計画対象の最終月</td></tr>
+      <tr><td><b>lead_time_months</b></td><td class="num">3 ヶ月</td><td>生産指示から出荷可能までの期間</td></tr>
+      <tr><td><b>monthly_capacity_target</b></td><td class="num">2,000 台/月</td><td>月間生産目標(Pass2 の到達目標)</td></tr>
+      <tr><td><b>monthly_capacity_max</b></td><td class="num">2,500 台/月</td><td>月間生産の絶対上限(超えて割付不可)</td></tr>
+      <tr><td><b>lot_size</b></td><td class="num">10 台</td><td>最小ロット(すべての割付量は10の倍数)</td></tr>
+      <tr><td><b>target_fulfillment_pct</b></td><td class="num">100 %</td><td>目標充足率(需要を何%満たすか)</td></tr>
+      <tr><td><b>priority_policy</b></td><td><span class="badge info">level_load</span></td><td>平準化型(早期均等平準化)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== 9. 現状スナップショット ========== -->
+<section id="s9">
+  <h2><span class="num">9</span>現状データのスナップショット<span class="en">CURRENT SNAPSHOT</span></h2>
+  <p class="lead">本資料時点でワークスペースに格納されているデータの状況です。</p>
+
+  <div class="grid grid-4">
+    <div class="kpi"><div class="label">管理品名数</div><div class="value">35<span class="unit">品</span></div></div>
+    <div class="kpi"><div class="label">需要レコード</div><div class="value">77<span class="unit">件</span></div></div>
+    <div class="kpi"><div class="label">既存供給レコード</div><div class="value">67<span class="unit">件</span></div></div>
+    <div class="kpi"><div class="label">追加生産計画</div><div class="value">5<span class="unit">件</span></div></div>
+  </div>
+
+  <h3>総計(全品名合計)</h3>
+  <div class="grid grid-3">
+    <div class="kpi" style="border-color: var(--bad);">
+      <div class="label">需要総数</div>
+      <div class="value" style="color: var(--bad);">8,456<span class="unit">台</span></div>
+    </div>
+    <div class="kpi" style="border-color: var(--info);">
+      <div class="label">既存供給 + 在庫</div>
+      <div class="value" style="color: var(--info);">9,838<span class="unit">台</span></div>
+    </div>
+    <div class="kpi" style="border-color: var(--accent);">
+      <div class="label">追加生産計画</div>
+      <div class="value" style="color: var(--accent-dark);">1,460<span class="unit">台</span></div>
+    </div>
+  </div>
+
+  <h3>自動立案結果の内訳(2027-01 〜 2027-03)</h3>
+  <table>
+    <thead><tr><th>品名</th><th>月</th><th class="num" style="text-align:right;">追加生産台数</th></tr></thead>
+    <tbody>
+      <tr><td>〔島田向〕安全増ヴォーノ Hf32高出力×2</td><td class="center">2027-01</td><td class="num">810</td></tr>
+      <tr><td>〔島田向〕安全増ヴォーノ Hf32高出力×2</td><td class="center">2027-02</td><td class="num">210</td></tr>
+      <tr><td>防爆直管LED器具 Hf32高出力×2</td><td class="center">2027-01</td><td class="num">30</td></tr>
+      <tr><td>防爆直管LED器具 Hf32高出力×2</td><td class="center">2027-02</td><td class="num">400</td></tr>
+      <tr><td>防爆直管LED器具 Hf32高出力×2</td><td class="center">2027-03</td><td class="num">10</td></tr>
+      <tr style="background: #fff7ed; font-weight: 700;"><td colspan="2">合計</td><td class="num">1,460</td></tr>
+    </tbody>
+  </table>
+
+  <h3>月別生産負荷</h3>
+  <div class="svg-wrap">
+    <svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg">
+      <!-- Y-axis -->
+      <line x1="80" y1="20" x2="80" y2="200" stroke="#94a3b8" stroke-width="1"/>
+      <line x1="80" y1="200" x2="760" y2="200" stroke="#94a3b8" stroke-width="1"/>
+
+      <!-- Capacity max 2500 line -->
+      <line x1="80" y1="40" x2="760" y2="40" stroke="#dc2626" stroke-width="1" stroke-dasharray="4 4"/>
+      <text x="765" y="44" fill="#dc2626" font-size="11">上限 2,500</text>
+
+      <!-- Capacity target 2000 line -->
+      <line x1="80" y1="72" x2="760" y2="72" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 4"/>
+      <text x="765" y="76" fill="#16a34a" font-size="11">目標 2,000</text>
+
+      <!-- Y labels -->
+      <text x="75" y="44" text-anchor="end" fill="#64748b" font-size="10">2500</text>
+      <text x="75" y="76" text-anchor="end" fill="#64748b" font-size="10">2000</text>
+      <text x="75" y="124" text-anchor="end" fill="#64748b" font-size="10">1000</text>
+      <text x="75" y="204" text-anchor="end" fill="#64748b" font-size="10">0</text>
+      <line x1="78" y1="124" x2="82" y2="124" stroke="#94a3b8"/>
+
+      <!-- Bars: 2027-01: 840 / 2027-02: 610 / 2027-03: 10 -->
+      <!-- scale: 2500 = 160px (200-40); 1台 = 160/2500 = 0.064px -->
+      <!-- 840*0.064 = 53.76; 610*0.064=39.04; 10*0.064=0.64 -->
+      <rect x="180" y="146.24" width="100" height="53.76" fill="#e8a93c" rx="4"/>
+      <text x="230" y="140" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="700">840</text>
+      <text x="230" y="220" text-anchor="middle" fill="#1f2937" font-size="12">2027-01</text>
+
+      <rect x="340" y="160.96" width="100" height="39.04" fill="#e8a93c" rx="4"/>
+      <text x="390" y="155" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="700">610</text>
+      <text x="390" y="220" text-anchor="middle" fill="#1f2937" font-size="12">2027-02</text>
+
+      <rect x="500" y="199.36" width="100" height="0.64" fill="#e8a93c" rx="4"/>
+      <text x="550" y="193" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="700">10</text>
+      <text x="550" y="220" text-anchor="middle" fill="#1f2937" font-size="12">2027-03</text>
+
+      <text x="420" y="18" text-anchor="middle" fill="#0f4c81" font-size="13" font-weight="700">月別 追加生産台数(台)</text>
+    </svg>
+  </div>
+
+  <div class="callout good">
+    <b>検証結果:</b> 全3ヶ月とも月間能力目標(2,000台)および上限(2,500台)の範囲内。制約条件を遵守した計画になっています。
+  </div>
+</section>
+
+<!-- ========== 10. 画面構成 ========== -->
+<section id="s10">
+  <h2><span class="num">10</span>画面構成<span class="en">UI</span></h2>
+  <p class="lead">本システムは2つの主要タブで構成されています。</p>
+
+  <div class="grid grid-2">
+    <div class="card highlight">
+      <h4><span class="icon">A</span>Excel アップロード & 自動立案 タブ</h4>
+      <p style="margin-bottom: 8px;">勝ち負け表Excelをドロップし、ワンクリックで自動立案を走らせる画面。</p>
+      <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+        <li>ファイルドロップゾーン</li>
+        <li>8フェーズ進捗パネル</li>
+        <li>取込履歴テーブル</li>
+        <li>Excel/CSV 出力ボタン</li>
+      </ul>
+    </div>
+    <div class="card info">
+      <h4><span class="icon">B</span>勝ち負け表 ダッシュボード タブ</h4>
+      <p style="margin-bottom: 8px;">立案後の結果を視覚的に確認する画面。3つのサブタブを持ちます。</p>
+      <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+        <li>サマリー: 品名×月の勝ち負け表(赤/黒)</li>
+        <li>能力: 月別能力消化率グラフ</li>
+        <li>制約: 制約条件の確認・編集</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 11. 2バージョン運用 ========== -->
+<section id="s11">
+  <h2><span class="num">11</span>2バージョンの運用方針<span class="en">OPERATION</span></h2>
+  <p class="lead">同じ機能を2つの形で提供し、用途に応じて使い分けます。</p>
+
+  <table>
+    <thead><tr><th>項目</th><th>クラウドDB版</th><th>スタンドアローン版</th></tr></thead>
+    <tbody>
+      <tr><td><b>形態</b></td><td>Genspark ワークスペース上のインタラクティブビュー2つ</td><td>単一HTMLファイル1本</td></tr>
+      <tr><td><b>データ保存先</b></td><td>クラウドDB(PostgreSQL)</td><td>ブラウザ localStorage</td></tr>
+      <tr><td><b>利用方法</b></td><td>Genspark 画面から開く</td><td>HTMLをブラウザで開くだけ</td></tr>
+      <tr><td><b>オフライン対応</b></td><td><span class="badge bad">不可</span></td><td><span class="badge good">可能(初回のみCDN接続)</span></td></tr>
+      <tr><td><b>複数人共有</b></td><td><span class="badge good">リアルタイム共有可</span></td><td>JSONファイルを手渡しで共有</td></tr>
+      <tr><td><b>データ容量</b></td><td>実質無制限</td><td>約5MB(ブラウザ依存)</td></tr>
+      <tr><td><b>推奨用途</b></td><td>通常業務・チーム利用</td><td>出張先・バックアップ・配布用</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout info">
+    <b>仕様同期:</b> 両バージョンは同じアルゴリズム・UI・出力結果を持ちます。差分は保存先のみ(DB vs localStorage)。改修は両方に同一適用されます。
+  </div>
+</section>
+
+<!-- ========== 12. まとめ ========== -->
+<section id="s12">
+  <h2><span class="num">12</span>まとめ<span class="en">SUMMARY</span></h2>
+
+  <div class="grid grid-3">
+    <div class="card good">
+      <h4><span class="icon">✓</span>自動化</h4>
+      <p>Excel1本から35品×複数月の需給バランス計算と追加生産計画の立案を自動実行。</p>
+    </div>
+    <div class="card good">
+      <h4><span class="icon">✓</span>制約遵守</h4>
+      <p>月間能力・ロット・リードタイムなど8つの制約条件を全て守って計画を引きます。</p>
+    </div>
+    <div class="card good">
+      <h4><span class="icon">✓</span>可視化</h4>
+      <p>勝ち負け表ダッシュボードで欠品リスクを一目で確認。Excel出力で配布も容易。</p>
+    </div>
+  </div>
+
+  <h3>導入効果の目安</h3>
+  <table>
+    <thead><tr><th>観点</th><th>Before(手運用)</th><th>After(本システム)</th></tr></thead>
+    <tbody>
+      <tr><td>計画立案所要時間</td><td>数時間〜半日</td><td class="center"><span class="badge good">数秒</span></td></tr>
+      <tr><td>計算ミスのリスク</td><td>高(属人的)</td><td class="center"><span class="badge good">無(自動)</span></td></tr>
+      <tr><td>制約条件の変更対応</td><td>再計算が重い</td><td class="center"><span class="badge good">即座に反映</span></td></tr>
+      <tr><td>欠品リスクの可視化</td><td>手作業で確認</td><td class="center"><span class="badge good">赤色で自動表示</span></td></tr>
+      <tr><td>結果の配布</td><td>Excelを手作業で整形</td><td class="center"><span class="badge good">7シート自動出力</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top: 24px;">
+    <b>次のアクション:</b> 業務担当者はまずスタンドアローン版HTMLを開き、サンプルExcelで動作確認。その後、通常業務ではクラウドDB版を使い、月次締めごとに追加生産計画を立案します。
+  </div>
+</section>
+
+<footer>
+  <div>
+    <b>白金ブランド 生産計画【案】自動立案</b> — 概要プレゼン資料<br>
+    資料作成日: 2026-10-15(木) / 版数: v1.0
+  </div>
+  <div style="text-align: right;">
+    <b>ワークスペース:</b> 白金ブランド生産計画立案<br>
+    <b>対象品名数:</b> 35品 / <b>計画期間:</b> 2027-01 〜 2027-03
+  </div>
+</footer>
+
+</div>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白金ブランド 勝ち負け表 ― 操作マニュアル</title>
+<style>
+:root{
+  --ink:#1a1a1a; --ink-soft:#4a4a4a; --muted:#6b7280;
+  --bg:#f7f7f3; --paper:#ffffff; --line:#e5e3dc; --line-soft:#f0eee6;
+  --accent:#1e40af; --accent-soft:#dbeafe; --accent-dark:#1e3a8a;
+  --demand:#d97706; --demand-soft:#fef3c7;
+  --supply:#059669; --supply-soft:#d1fae5;
+  --stock:#7c3aed;  --stock-soft:#ede9fe;
+  --danger:#dc2626; --danger-soft:#fee2e2;
+  --warn:#f59e0b; --warn-soft:#fef9c3;
+  --info:#0ea5e9; --info-soft:#e0f2fe;
+  --radius:10px; --shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  line-height:1.75; font-size:15px}
+
+/* ===== layout ===== */
+.wrap{max-width:1180px; margin:0 auto; padding:0 0 80px 0}
+.cover{
+  background:linear-gradient(135deg,#065f46 0%, #047857 50%, #10b981 100%);
+  color:#fff; padding:70px 48px 60px 48px; margin-bottom:0; position:relative; overflow:hidden;
+}
+.cover::before{
+  content:""; position:absolute; left:-80px; bottom:-80px; width:400px; height:400px;
+  background:radial-gradient(circle, rgba(255,255,255,.1), transparent 70%); border-radius:50%;
+}
+.cover-inner{max-width:1080px; margin:0 auto; position:relative; z-index:1}
+.cover .badge{display:inline-block; padding:6px 14px; border-radius:999px;
+  background:rgba(255,255,255,.2); font-size:12px; letter-spacing:.15em; margin-bottom:16px}
+.cover h1{font-size:38px; font-weight:700; margin:0 0 12px 0; line-height:1.3}
+.cover .sub{font-size:16px; opacity:.95; max-width:720px}
+.cover .ver{margin-top:24px; font-size:12px; opacity:.85; letter-spacing:.08em}
+
+/* ===== TOC ===== */
+.doc-body{max-width:1080px; margin:0 auto; padding:40px 32px}
+.toc{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+  padding:24px 28px; box-shadow:var(--shadow); margin-bottom:48px}
+.toc h2{margin:0 0 12px 0; font-size:15px; color:var(--ink-soft); letter-spacing:.12em}
+.toc ol{margin:0; padding-left:0; list-style:none; counter-reset:toc; display:grid;
+  grid-template-columns:1fr; gap:4px}
+.toc ol>li{counter-increment:toc; padding:5px 0; border-bottom:1px dashed var(--line-soft)}
+.toc ol>li::before{content:"CHAPTER " counter(toc,decimal-leading-zero);
+  display:inline-block; width:120px; font-size:11px; color:var(--accent); font-weight:700; letter-spacing:.1em}
+.toc a{color:var(--ink); text-decoration:none}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+.toc ol ol{display:block; margin-top:4px; padding-left:120px; grid-template-columns:none}
+.toc ol ol li{counter-increment:none; border:none; padding:2px 0; font-size:13px; color:var(--ink-soft)}
+.toc ol ol li::before{content:"・"; width:auto; color:var(--muted); font-weight:400}
+
+/* ===== section ===== */
+section.chapter{margin-bottom:64px; scroll-margin-top:24px}
+.chap-h{display:flex; align-items:baseline; gap:16px; margin:0 0 20px 0; padding:0 0 14px 0;
+  border-bottom:3px solid var(--accent)}
+.chap-h .num{font-weight:700; font-size:13px; color:var(--accent); letter-spacing:.15em}
+.chap-h h2{margin:0; font-size:28px; font-weight:700}
+h3{font-size:19px; margin:32px 0 12px 0; padding:8px 14px; background:var(--accent-soft);
+  color:var(--accent-dark); border-radius:6px}
+h4{font-size:16px; margin:22px 0 10px 0; display:flex; align-items:center; gap:8px}
+h4::before{content:""; width:4px; height:16px; background:var(--accent); border-radius:2px}
+p{margin:0 0 12px 0}
+ul,ol{margin:0 0 12px 0}
+
+/* ===== blocks ===== */
+.card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px 24px; box-shadow:var(--shadow); margin:14px 0}
+.callout{border-left:5px solid var(--accent); background:var(--accent-soft);
+  padding:12px 18px; border-radius:0 8px 8px 0; margin:14px 0}
+.callout.tip   {border-left-color:var(--info);   background:var(--info-soft)}
+.callout.warn  {border-left-color:var(--warn);   background:var(--warn-soft)}
+.callout.ok    {border-left-color:var(--supply); background:var(--supply-soft)}
+.callout.danger{border-left-color:var(--danger); background:var(--danger-soft)}
+.callout b{display:block; margin-bottom:3px}
+
+.pill{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; line-height:1.6}
+.pill.demand{background:var(--demand-soft); color:var(--demand)}
+.pill.supply{background:var(--supply-soft); color:var(--supply)}
+.pill.stock{background:var(--stock-soft); color:var(--stock)}
+.pill.danger{background:var(--danger-soft); color:var(--danger)}
+.pill.accent{background:var(--accent-soft); color:var(--accent)}
+.pill.mute{background:#eee; color:var(--ink-soft)}
+
+code,.code{font-family:"SF Mono","Consolas",ui-monospace,monospace; font-size:13px;
+  background:#f1efe8; padding:1px 7px; border-radius:4px}
+
+table{width:100%; border-collapse:collapse; font-size:14px; margin:14px 0;
+  background:var(--paper); border-radius:8px; overflow:hidden; box-shadow:var(--shadow)}
+th,td{padding:10px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+th{background:#faf9f5; font-weight:600; color:var(--ink-soft); font-size:13px}
+td.num{text-align:right; font-variant-numeric:tabular-nums}
+td.center{text-align:center}
+tr:last-child td{border-bottom:none}
+
+/* ===== mock screen ===== */
+.mock{background:var(--paper); border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,.06), 0 10px 30px rgba(0,0,0,.08);
+  overflow:hidden; margin:18px 0 8px 0}
+.mock-head{background:#f0efea; padding:8px 14px; display:flex; align-items:center; gap:8px;
+  border-bottom:1px solid var(--line); font-size:12px; color:var(--muted)}
+.mock-head .dot{width:11px; height:11px; border-radius:50%}
+.mock-head .dot.r{background:#ff5f57} .mock-head .dot.y{background:#febc2e} .mock-head .dot.g{background:#28c840}
+.mock-head .url{margin-left:14px; background:#fff; padding:3px 12px; border-radius:4px; color:var(--ink-soft); font-size:11px}
+.mock-caption{font-size:12px; color:var(--muted); margin:0 0 24px 0; padding-left:6px;
+  border-left:3px solid var(--line); padding-left:12px}
+
+svg.diagram{display:block; width:100%; height:auto; margin:0}
+
+/* steps */
+.steps{counter-reset:s; display:grid; gap:16px; margin:16px 0}
+.step{counter-increment:s; display:flex; gap:16px; background:var(--paper);
+  border:1px solid var(--line); padding:16px 20px; border-radius:var(--radius); box-shadow:var(--shadow)}
+.step .num-badge{flex:0 0 44px; height:44px; border-radius:50%; background:var(--accent); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:700; font-size:17px}
+.step::before{content:"STEP " counter(s); position:absolute}
+.step h4{margin:0 0 6px 0}
+.step .body{flex:1}
+.step .body p{margin:0; color:var(--ink-soft); font-size:14px}
+
+/* chip tabs for the mock pages */
+.mock-tabs{display:flex; gap:4px; padding:12px 14px 0 14px; background:#f7f6f1; border-bottom:1px solid var(--line)}
+.mock-tabs .t{padding:7px 14px; background:#fff; border:1px solid var(--line); border-bottom:none;
+  border-radius:6px 6px 0 0; font-size:12px; color:var(--ink-soft)}
+.mock-tabs .t.active{background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600}
+
+footer{max-width:1080px; margin:60px auto 0 auto; padding:24px 32px; border-top:1px solid var(--line);
+  color:var(--muted); font-size:12px; text-align:center}
+
+.index-tag{display:inline-block; font-size:11px; color:var(--muted); letter-spacing:.1em; margin-bottom:4px}
+
+@media (max-width:720px){
+  .cover h1{font-size:26px}
+  .doc-body{padding:28px 20px}
+  .mock-head .url{display:none}
+}
+@media print{
+  body{background:#fff}
+  .mock{break-inside:avoid}
+  section.chapter{break-inside:avoid-page}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<div class="cover">
+  <div class="cover-inner">
+    <span class="badge">USER MANUAL</span>
+    <h1>白金ブランド 勝ち負け表<br>操作マニュアル</h1>
+    <div class="sub">
+      需要・供給・在庫のExcelをアップロードして、過不足を自動計算・可視化するまでの
+      具体的な操作手順を、画面イメージ付きで順を追ってご説明します。
+    </div>
+    <div class="ver">対象バージョン：AgentDB版 v7 ／ デスクトップ単独HTML版（在庫過不足ダッシュボード入り）／ 2026-10-15</div>
+  </div>
+</div>
+
+<div class="doc-body">
+
+<nav class="toc">
+  <h2>目次</h2>
+  <ol>
+    <li><a href="#c1">はじめに（このマニュアルの読み方）</a>
+      <ol><li>対象読者と前提</li><li>画面と用語の対応</li></ol>
+    </li>
+    <li><a href="#c2">起動方法（2つのパターン）</a>
+      <ol><li>AgentDB版を開く</li><li>デスクトップ単独HTML版を開く</li></ol>
+    </li>
+    <li><a href="#c3">画面全体の見方</a>
+      <ol><li>共通ヘッダとタブ</li><li>4つの画面の役割</li></ol>
+    </li>
+    <li><a href="#c4">データアップロード画面の使い方</a>
+      <ol><li>ファイルを取り込む</li><li>履歴の有効/無効・削除</li></ol>
+    </li>
+    <li><a href="#c5">勝ち負け表画面の使い方</a>
+      <ol><li>期間指定とフィルタ</li><li>Excel出力</li></ol>
+    </li>
+    <li><a href="#c6">在庫過不足ダッシュボードの使い方</a>
+      <ol><li>KPIの読み方</li><li>チャートとTOP不足</li></ol>
+    </li>
+    <li><a href="#c7">バックアップ（デスクトップ版のみ）</a></li>
+    <li><a href="#c8">典型的な業務シナリオ</a>
+      <ol><li>月初の需給チェック</li><li>間違ったファイルの差し替え</li></ol>
+    </li>
+    <li><a href="#c9">トラブルシューティング</a></li>
+    <li><a href="#c10">用語集</a></li>
+  </ol>
+</nav>
+
+<!-- ────────── Chapter 1 ────────── -->
+<section id="c1" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 01</span><h2>はじめに（このマニュアルの読み方）</h2></div>
+
+  <h3>対象読者と前提</h3>
+  <p>このマニュアルは、生産計画・販売計画・資材担当など、白金ブランドの需給管理に関わる方を対象としています。
+     ExcelとWebブラウザが使えれば、特別な技術知識は不要です。</p>
+
+  <table>
+    <thead><tr><th>必要なもの</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td>ブラウザ</td><td>Microsoft Edge ／ Google Chrome（推奨）</td></tr>
+      <tr><td>データ</td><td>需要・供給・在庫のExcel/CSVファイル</td></tr>
+      <tr><td>画面サイズ</td><td>幅1200px以上を推奨（ノートPC標準で十分）</td></tr>
+    </tbody>
+  </table>
+
+  <h3>画面と用語の対応</h3>
+  <table>
+    <thead><tr><th>マニュアル表記</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill demand">需要</span></td><td>販売計画チームが示す「売れる見通し」の数量</td></tr>
+      <tr><td><span class="pill supply">供給</span></td><td>生産チームが示す「作れる・調達できる」数量</td></tr>
+      <tr><td><span class="pill stock">在庫</span></td><td>月初時点で既に手元にある数量</td></tr>
+      <tr><td><span class="pill danger">手配過不足</span></td><td>需要累計 − (在庫 + 供給累計)。<b>マイナス</b>になるものは「不足」</td></tr>
+      <tr><td><span class="pill accent">ペットネーム</span></td><td>品名／品番の呼び名。表記ゆれはシステム側で自動吸収</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <b>ヒント</b>
+    「とにかく使い始めたい」場合は、<b>Chapter 02</b> → <b>Chapter 04</b> → <b>Chapter 05</b> の順に読めば一通り動かせます。
+  </div>
+</section>
+
+<!-- ────────── Chapter 2 ────────── -->
+<section id="c2" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 02</span><h2>起動方法（2つのパターン）</h2></div>
+
+  <p>システムには2つの提供形態があります。社内で共有運用する場合は<b>AgentDB版</b>、
+     個人のPCで単独で使う場合は<b>デスクトップ単独HTML版</b>をお使いください。</p>
+
+  <h3>パターンA：AgentDB版を開く</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="num-badge">1</div>
+      <div class="body">
+        <h4>共有されたワークスペースのURLを開く</h4>
+        <p>社内で共有された「白金ブランド生産計画 勝ち負け表」ワークスペースのリンクをクリックします。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">2</div>
+      <div class="body">
+        <h4>左サイドバーから目的の画面を選ぶ</h4>
+        <p>「データアップロード」「勝ち負け表」「在庫過不足ダッシュボード」の3つの画面が並んでいます。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock">
+    <div class="mock-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">https://agentdb.example/workspace/platinum-win-loss</span></div>
+    <svg class="diagram" viewBox="0 0 1100 340" xmlns="http://www.w3.org/2000/svg">
+      <!-- sidebar -->
+      <rect x="0" y="0" width="230" height="340" fill="#1e293b"/>
+      <text x="20" y="30" font-size="12" fill="#94a3b8">WORKSPACE</text>
+      <text x="20" y="55" font-size="13" fill="#fff" font-weight="700">白金ブランド 勝ち負け表</text>
+      <text x="20" y="95" font-size="11" fill="#64748b" letter-spacing="2">INTERACTIVE VIEWS</text>
+      <rect x="12" y="110" width="206" height="34" rx="6" fill="#334155"/>
+      <text x="30" y="131" font-size="12" fill="#fff">📊 Overview</text>
+      <rect x="12" y="150" width="206" height="34" rx="6" fill="#f59e0b"/>
+      <text x="30" y="171" font-size="12" fill="#fff" font-weight="700">⬆ データアップロード</text>
+      <rect x="12" y="190" width="206" height="34" rx="6" fill="#334155"/>
+      <text x="30" y="211" font-size="12" fill="#fff">📈 勝ち負け表</text>
+      <rect x="12" y="230" width="206" height="34" rx="6" fill="#334155"/>
+      <text x="30" y="251" font-size="12" fill="#fff">📉 在庫過不足ダッシュボード</text>
+
+      <!-- main content hint -->
+      <rect x="230" y="0" width="870" height="340" fill="#f7f6f1"/>
+      <text x="665" y="80" text-anchor="middle" font-size="16" fill="#4a4a4a">
+        選択した画面がここに表示されます
+      </text>
+      <text x="665" y="110" text-anchor="middle" font-size="13" fill="#6b7280">
+        初めての場合は「データアップロード」から始めてください
+      </text>
+      <!-- big arrow -->
+      <path d="M 240,167 L 400,167" stroke="#dc2626" stroke-width="3" fill="none" marker-end="url(#arr-r)"/>
+      <defs>
+        <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+        </marker>
+      </defs>
+      <text x="420" y="162" font-size="13" fill="#dc2626" font-weight="700">まずは「データアップロード」をクリック</text>
+    </svg>
+  </div>
+  <p class="mock-caption">AgentDB版の起動後画面イメージ（左サイドバーからナビゲート）</p>
+
+  <h3>パターンB：デスクトップ単独HTML版を開く</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="num-badge">1</div>
+      <div class="body">
+        <h4><code>勝ち負け表.html</code> をPC上の任意のフォルダに保存</h4>
+        <p>社内配布された <code>勝ち負け表.html</code>（約83KB）を、ドキュメントやデスクトップに置きます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">2</div>
+      <div class="body">
+        <h4>ダブルクリックで開く</h4>
+        <p>既定のブラウザ（Edge または Chrome）で開きます。初回のみインターネット接続が必要（CDNライブラリの取得）。
+          以降はオフラインでも使えます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">3</div>
+      <div class="body">
+        <h4>画面上部の4つのタブを切り替える</h4>
+        <p>「データアップロード」「勝ち負け表」「在庫過不足ダッシュボード」「バックアップ」の4タブ構成です。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock">
+    <div class="mock-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">file:///C:/Users/you/Desktop/勝ち負け表.html</span></div>
+    <svg class="diagram" viewBox="0 0 1100 220" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="1100" height="220" fill="#f7f6f1"/>
+      <!-- header -->
+      <rect x="0" y="0" width="1100" height="60" fill="#fff" stroke="#e5e3dc"/>
+      <text x="24" y="30" font-size="16" font-weight="700" fill="#1a1a1a">白金ブランド生産計画 勝ち負け表</text>
+      <text x="24" y="48" font-size="11" fill="#6b7280">単独動作版（データはこのブラウザに保存されます）</text>
+      <rect x="920" y="18" width="160" height="26" rx="4" fill="#f0fdf4" stroke="#059669"/>
+      <text x="1000" y="35" text-anchor="middle" font-size="11" fill="#065f46">ストレージ: 1.2 MB</text>
+
+      <!-- tabs -->
+      <g>
+        <rect x="18" y="78" width="180" height="34" rx="6" fill="#1e40af"/>
+        <text x="108" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">データアップロード</text>
+        <rect x="206" y="78" width="140" height="34" rx="6" fill="#fff" stroke="#e5e3dc"/>
+        <text x="276" y="100" text-anchor="middle" font-size="12" fill="#4a4a4a">勝ち負け表</text>
+        <rect x="354" y="78" width="220" height="34" rx="6" fill="#fff" stroke="#e5e3dc"/>
+        <text x="464" y="100" text-anchor="middle" font-size="12" fill="#4a4a4a">在庫過不足ダッシュボード</text>
+        <rect x="582" y="78" width="130" height="34" rx="6" fill="#fff" stroke="#e5e3dc"/>
+        <text x="647" y="100" text-anchor="middle" font-size="12" fill="#4a4a4a">バックアップ</text>
+      </g>
+
+      <text x="550" y="165" text-anchor="middle" font-size="13" fill="#4a4a4a">
+        ↑ この4タブを切り替えて利用します
+      </text>
+      <text x="550" y="190" text-anchor="middle" font-size="11" fill="#6b7280">
+        AgentDB版と同じ機能＋ローカル保存・JSONバックアップが使えます
+      </text>
+    </svg>
+  </div>
+  <p class="mock-caption">デスクトップ単独HTML版の起動後画面イメージ（画面上部に4タブ）</p>
+
+  <div class="callout warn">
+    <b>注意：データの保存場所が違います</b>
+    AgentDB版はサーバー側にデータが保存され、同じワークスペースを見るメンバー全員で共有されます。
+    デスクトップ版はそのPCのブラウザ内に保存されるため、別PCへの移行には<b>JSONエクスポート</b>（第7章）が必要です。
+  </div>
+</section>
+
+<!-- ────────── Chapter 3 ────────── -->
+<section id="c3" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 03</span><h2>画面全体の見方</h2></div>
+
+  <h3>画面の構成要素</h3>
+  <div class="mock">
+    <div class="mock-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">勝ち負け表 - 画面要素の解説</span></div>
+    <svg class="diagram" viewBox="0 0 1100 340" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="an" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+        </marker>
+      </defs>
+      <!-- background -->
+      <rect x="0" y="0" width="1100" height="340" fill="#f7f6f1"/>
+      <!-- header -->
+      <rect x="18" y="18" width="760" height="44" rx="6" fill="#fff" stroke="#e5e3dc"/>
+      <text x="34" y="42" font-size="14" font-weight="700" fill="#1a1a1a">白金ブランド生産計画 勝ち負け表</text>
+      <text x="34" y="56" font-size="10" fill="#6b7280">単独動作版</text>
+      <!-- tabs -->
+      <rect x="18" y="78" width="760" height="40" fill="#fff" stroke="#e5e3dc"/>
+      <rect x="26" y="86" width="130" height="26" rx="4" fill="#1e40af"/>
+      <text x="91" y="103" text-anchor="middle" font-size="11" fill="#fff">データアップロード</text>
+      <rect x="162" y="86" width="100" height="26" rx="4" fill="#f3f2ed"/>
+      <text x="212" y="103" text-anchor="middle" font-size="11" fill="#4a4a4a">勝ち負け表</text>
+      <rect x="268" y="86" width="170" height="26" rx="4" fill="#f3f2ed"/>
+      <text x="353" y="103" text-anchor="middle" font-size="11" fill="#4a4a4a">在庫過不足ダッシュボード</text>
+      <rect x="444" y="86" width="100" height="26" rx="4" fill="#f3f2ed"/>
+      <text x="494" y="103" text-anchor="middle" font-size="11" fill="#4a4a4a">バックアップ</text>
+      <!-- main content area -->
+      <rect x="18" y="130" width="760" height="195" rx="6" fill="#fff" stroke="#e5e3dc"/>
+      <text x="398" y="230" text-anchor="middle" font-size="15" fill="#9ca3af">メインコンテンツエリア</text>
+
+      <!-- annotation 1 -->
+      <path d="M 790,38 Q 870,38 870,48" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#an)"/>
+      <rect x="810" y="18" width="275" height="36" rx="4" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="820" y="34" font-size="11" font-weight="700" fill="#dc2626">① ヘッダ</text>
+      <text x="820" y="48" font-size="10" fill="#7f1d1d">システム名・ストレージ情報</text>
+
+      <!-- annotation 2 -->
+      <path d="M 790,98 Q 870,98 870,110" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#an)"/>
+      <rect x="810" y="78" width="275" height="36" rx="4" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="820" y="94" font-size="11" font-weight="700" fill="#dc2626">② タブ</text>
+      <text x="820" y="108" font-size="10" fill="#7f1d1d">クリックで画面切り替え</text>
+
+      <!-- annotation 3 -->
+      <path d="M 790,220 Q 870,220 870,220" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#an)"/>
+      <rect x="810" y="200" width="275" height="36" rx="4" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="820" y="216" font-size="11" font-weight="700" fill="#dc2626">③ メインエリア</text>
+      <text x="820" y="230" font-size="10" fill="#7f1d1d">選んだタブの中身が表示される</text>
+    </svg>
+  </div>
+  <p class="mock-caption">画面構成の全体像（デスクトップ版の例、AgentDB版はタブの代わりに左サイドバー）</p>
+
+  <h3>4つの画面の役割</h3>
+  <table>
+    <thead>
+      <tr><th>画面</th><th>いつ使うか</th><th>できること</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="pill demand">データアップロード</span></td>
+        <td>月初・計画更新時</td>
+        <td>Excel/CSVを取り込む、履歴の有効/無効管理</td>
+      </tr>
+      <tr>
+        <td><span class="pill supply">勝ち負け表</span></td>
+        <td>毎日・報告時</td>
+        <td>品名×月のピボット表、期間指定、不足フィルタ、Excel出力</td>
+      </tr>
+      <tr>
+        <td><span class="pill stock">ダッシュボード</span></td>
+        <td>上司への報告・会議資料</td>
+        <td>KPI・チャート・不足TOP一覧で状況を俯瞰</td>
+      </tr>
+      <tr>
+        <td><span class="pill mute">バックアップ</span></td>
+        <td>PC移行・バックアップ時</td>
+        <td>全データのJSONエクスポート/インポート、全消去（デスクトップ版のみ）</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ────────── Chapter 4 ────────── -->
+<section id="c4" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 04</span><h2>データアップロード画面の使い方</h2></div>
+
+  <h3>画面イメージ</h3>
+  <div class="mock">
+    <div class="mock-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">データアップロード</span></div>
+    <svg class="diagram" viewBox="0 0 1100 420" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="an2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#1e40af"/>
+        </marker>
+        <pattern id="dashed" width="8" height="8" patternUnits="userSpaceOnUse">
+          <path d="M0,4 L8,4" stroke="#1e40af" stroke-width="2" stroke-dasharray="4,4"/>
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="1100" height="420" fill="#f7f6f1"/>
+      <!-- drop zone -->
+      <rect x="30" y="30" width="700" height="140" rx="10" fill="#dbeafe" stroke="#1e40af" stroke-width="2" stroke-dasharray="8,6"/>
+      <text x="380" y="80" text-anchor="middle" font-size="40" fill="#1e40af">⬆</text>
+      <text x="380" y="115" text-anchor="middle" font-size="16" font-weight="700" fill="#1e3a8a">ここに Excel/CSV ファイルをドラッグ&amp;ドロップ</text>
+      <text x="380" y="140" text-anchor="middle" font-size="12" fill="#1e40af">またはクリックしてファイル選択</text>
+      <text x="380" y="158" text-anchor="middle" font-size="11" fill="#6b7280">需要／供給／在庫を自動判定</text>
+
+      <!-- side info -->
+      <rect x="750" y="30" width="320" height="140" rx="8" fill="#fff" stroke="#e5e3dc"/>
+      <text x="770" y="55" font-size="12" font-weight="700" fill="#1a1a1a">対応ファイル形式</text>
+      <text x="770" y="80"  font-size="11" fill="#4a4a4a">• 需要ファイル (needsシート)</text>
+      <text x="770" y="98"  font-size="11" fill="#4a4a4a">• 供給ファイル (ピボットシート)</text>
+      <text x="770" y="116" font-size="11" fill="#4a4a4a">• 在庫ファイル (在庫pivotシート)</text>
+      <text x="770" y="146" font-size="10" fill="#6b7280">※ シート名・ヘッダ構造から自動判定</text>
+
+      <!-- history title -->
+      <text x="30" y="200" font-size="14" font-weight="700" fill="#1a1a1a">アップロード履歴</text>
+
+      <!-- table -->
+      <rect x="30" y="210" width="1040" height="30" fill="#faf9f5" stroke="#e5e3dc"/>
+      <text x="50"  y="230" font-size="11" font-weight="600" fill="#4a4a4a">日時</text>
+      <text x="170" y="230" font-size="11" font-weight="600" fill="#4a4a4a">種別</text>
+      <text x="260" y="230" font-size="11" font-weight="600" fill="#4a4a4a">ファイル名</text>
+      <text x="640" y="230" font-size="11" font-weight="600" fill="#4a4a4a">行数</text>
+      <text x="760" y="230" font-size="11" font-weight="600" fill="#4a4a4a">有効</text>
+      <text x="900" y="230" font-size="11" font-weight="600" fill="#4a4a4a">操作</text>
+
+      <rect x="30" y="240" width="1040" height="36" fill="#fff" stroke="#e5e3dc"/>
+      <text x="50"  y="263" font-size="11" fill="#1a1a1a">2026-10-15 09:30</text>
+      <rect x="165" y="248" width="60" height="20" rx="10" fill="#d1fae5"/>
+      <text x="195" y="262" text-anchor="middle" font-size="10" fill="#065f46" font-weight="700">供給</text>
+      <text x="260" y="263" font-size="11" fill="#1a1a1a">202610_supply_platinum.xlsx</text>
+      <text x="640" y="263" font-size="11" fill="#1a1a1a">97</text>
+      <rect x="755" y="248" width="40" height="22" rx="11" fill="#059669"/>
+      <circle cx="783" cy="259" r="8" fill="#fff"/>
+      <rect x="890" y="248" width="60" height="22" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="920" y="263" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="700">削除</text>
+
+      <rect x="30" y="276" width="1040" height="36" fill="#faf9f5" stroke="#e5e3dc"/>
+      <text x="50"  y="299" font-size="11" fill="#1a1a1a">2026-10-15 09:28</text>
+      <rect x="165" y="284" width="60" height="20" rx="10" fill="#fef3c7"/>
+      <text x="195" y="298" text-anchor="middle" font-size="10" fill="#92400e" font-weight="700">需要</text>
+      <text x="260" y="299" font-size="11" fill="#1a1a1a">202610_demand_platinum.xlsx</text>
+      <text x="640" y="299" font-size="11" fill="#1a1a1a">157</text>
+      <rect x="755" y="284" width="40" height="22" rx="11" fill="#059669"/>
+      <circle cx="783" cy="295" r="8" fill="#fff"/>
+      <rect x="890" y="284" width="60" height="22" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="920" y="299" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="700">削除</text>
+
+      <rect x="30" y="312" width="1040" height="36" fill="#fff" stroke="#e5e3dc"/>
+      <text x="50"  y="335" font-size="11" fill="#6b7280">2026-09-20 14:12</text>
+      <rect x="165" y="320" width="60" height="20" rx="10" fill="#eee"/>
+      <text x="195" y="334" text-anchor="middle" font-size="10" fill="#6b7280" font-weight="700">需要</text>
+      <text x="260" y="335" font-size="11" fill="#6b7280">202609_demand_platinum.xlsx (旧)</text>
+      <text x="640" y="335" font-size="11" fill="#6b7280">148</text>
+      <rect x="755" y="320" width="40" height="22" rx="11" fill="#d1d5db"/>
+      <circle cx="767" cy="331" r="8" fill="#fff"/>
+      <rect x="890" y="320" width="60" height="22" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="920" y="335" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="700">削除</text>
+
+      <text x="550" y="400" text-anchor="middle" font-size="11" fill="#6b7280">
+        トグルで「有効/無効」切替、削除で永久削除。無効化したものは集計対象外、履歴にのみ残る
+      </text>
+    </svg>
+  </div>
+  <p class="mock-caption">データアップロード画面（上部：ドロップゾーン ／ 下部：アップロード履歴）</p>
+
+  <h3>ファイルを取り込む</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="num-badge">1</div>
+      <div class="body">
+        <h4>画面上部のドロップゾーンにファイルをドラッグ&amp;ドロップ</h4>
+        <p>またはドロップゾーンをクリックしてファイル選択ダイアログから選択します。
+          複数ファイルを同時にドロップすることも可能です。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">2</div>
+      <div class="body">
+        <h4>種別が自動判定される</h4>
+        <p>システムがファイル内のシート名・ヘッダ構造から種別を判定します。
+          <code>needs</code> シートがあれば需要、<code>ピボット</code> シートがあれば供給、
+          <code>在庫pivot</code> シートがあれば在庫として処理されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">3</div>
+      <div class="body">
+        <h4>履歴に追加される</h4>
+        <p>取込に成功すると、画面下の履歴テーブルに新しい行が追加され、<b>有効</b>状態になります。
+          同じ種別の古いアップロードは自動的に<b>無効化</b>され、履歴にのみ残ります。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <b>補足：3種のファイル特徴</b>
+    <ul style="margin:4px 0 0 0; padding-left:20px">
+      <li><b>需要</b>：needsシート、1行目=月ヘッダ（Date型）、1列目=ペットネーム、残りは月次数量</li>
+      <li><b>供給</b>：ピボットシート。「7月」のように年なしの月でも、需要側最小月を基準に翻年判定</li>
+      <li><b>在庫</b>：在庫pivotシート。「実残」列を在庫数量として取込</li>
+    </ul>
+  </div>
+
+  <h3>履歴の有効/無効・削除</h3>
+  <table>
+    <thead><tr><th>操作</th><th>結果</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>トグル<b>オン</b>（緑）</td>
+        <td>そのアップロードを集計対象に含める</td>
+      </tr>
+      <tr>
+        <td>トグル<b>オフ</b>（グレー）</td>
+        <td>集計対象から外す。データ自体は残るので「再度オン」も可能</td>
+      </tr>
+      <tr>
+        <td><span class="pill danger">削除</span>ボタン</td>
+        <td>そのアップロードと紐づく明細行を完全に削除。元に戻せない</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <b>注意</b>
+    同じ種別の新ファイルをアップすると、過去の同種は自動で無効化されます。
+    「古い計画を参照したい」場合は、新しいアップロードを無効化し、過去を有効化することで切り替えできます。
+  </div>
+</section>
+
+<!-- ────────── Chapter 5 ────────── -->
+<section id="c5" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 05</span><h2>勝ち負け表画面の使い方</h2></div>
+
+  <h3>画面イメージ</h3>
+  <div class="mock">
+    <div class="mock-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">勝ち負け表</span></div>
+    <svg class="diagram" viewBox="0 0 1100 420" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="an3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="1100" height="420" fill="#f7f6f1"/>
+      <!-- toolbar -->
+      <rect x="20" y="20" width="1060" height="54" rx="6" fill="#fff" stroke="#e5e3dc"/>
+      <text x="36" y="40" font-size="11" fill="#6b7280">期間</text>
+      <rect x="36" y="46" width="120" height="22" rx="4" fill="#fff" stroke="#d4d2cb"/>
+      <text x="96" y="61" text-anchor="middle" font-size="11" fill="#1a1a1a">2026-09</text>
+      <text x="166" y="61" font-size="11" fill="#6b7280">〜</text>
+      <rect x="186" y="46" width="120" height="22" rx="4" fill="#fff" stroke="#d4d2cb"/>
+      <text x="246" y="61" text-anchor="middle" font-size="11" fill="#1a1a1a">2027-03</text>
+      <rect x="330" y="46" width="150" height="22" rx="4" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="405" y="61" text-anchor="middle" font-size="11" fill="#dc2626">☑ 不足のみ表示</text>
+      <rect x="920" y="42" width="150" height="30" rx="4" fill="#059669"/>
+      <text x="995" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">📥 Excel出力</text>
+
+      <!-- table header -->
+      <rect x="20" y="84" width="1060" height="30" fill="#f1efe8" stroke="#e5e3dc"/>
+      <text x="100" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">ペットネーム</text>
+      <text x="220" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">区分</text>
+      <text x="320" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">2026-09</text>
+      <text x="420" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">2026-10</text>
+      <text x="520" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">2026-11</text>
+      <text x="620" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">2026-12</text>
+      <text x="720" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">2027-01</text>
+      <text x="820" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">2027-02</text>
+      <text x="920" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">2027-03</text>
+      <text x="1020" y="104" text-anchor="middle" font-size="11" font-weight="600" fill="#4a4a4a">合計</text>
+
+      <!-- rows -->
+      <!-- PLATINUM-A -->
+      <rect x="20" y="114" width="1060" height="26" fill="#fff" stroke="#e5e3dc"/>
+      <text x="35" y="131" font-size="11" font-weight="600" fill="#1a1a1a">PLATINUM-A</text>
+      <text x="220" y="131" text-anchor="middle" font-size="11" fill="#d97706">需要</text>
+      <text x="320" y="131" text-anchor="middle" font-size="11">100</text>
+      <text x="420" y="131" text-anchor="middle" font-size="11">120</text>
+      <text x="520" y="131" text-anchor="middle" font-size="11">150</text>
+      <text x="620" y="131" text-anchor="middle" font-size="11">180</text>
+      <text x="720" y="131" text-anchor="middle" font-size="11">150</text>
+      <text x="820" y="131" text-anchor="middle" font-size="11">130</text>
+      <text x="920" y="131" text-anchor="middle" font-size="11">140</text>
+      <text x="1020" y="131" text-anchor="middle" font-size="11" font-weight="600">970</text>
+
+      <rect x="20" y="140" width="1060" height="26" fill="#f8f8f5" stroke="#e5e3dc"/>
+      <text x="220" y="157" text-anchor="middle" font-size="11" fill="#059669">供給</text>
+      <text x="320" y="157" text-anchor="middle" font-size="11">80</text>
+      <text x="420" y="157" text-anchor="middle" font-size="11">100</text>
+      <text x="520" y="157" text-anchor="middle" font-size="11">120</text>
+      <text x="620" y="157" text-anchor="middle" font-size="11">140</text>
+      <text x="720" y="157" text-anchor="middle" font-size="11">160</text>
+      <text x="820" y="157" text-anchor="middle" font-size="11">150</text>
+      <text x="920" y="157" text-anchor="middle" font-size="11">160</text>
+      <text x="1020" y="157" text-anchor="middle" font-size="11" font-weight="600">910</text>
+
+      <rect x="20" y="166" width="1060" height="26" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="220" y="183" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="700">過不足</text>
+      <text x="320" y="183" text-anchor="middle" font-size="11" fill="#dc2626">(20)</text>
+      <text x="420" y="183" text-anchor="middle" font-size="11" fill="#dc2626">(40)</text>
+      <text x="520" y="183" text-anchor="middle" font-size="11" fill="#dc2626">(70)</text>
+      <text x="620" y="183" text-anchor="middle" font-size="11" fill="#dc2626">(110)</text>
+      <text x="720" y="183" text-anchor="middle" font-size="11" fill="#dc2626">(100)</text>
+      <text x="820" y="183" text-anchor="middle" font-size="11" fill="#dc2626">(80)</text>
+      <text x="920" y="183" text-anchor="middle" font-size="11" fill="#dc2626">(60)</text>
+      <text x="1020" y="183" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626">(60)</text>
+
+      <!-- PLATINUM-B -->
+      <rect x="20" y="192" width="1060" height="26" fill="#fff"/>
+      <text x="35" y="209" font-size="11" font-weight="600" fill="#1a1a1a">PLATINUM-B</text>
+      <text x="220" y="209" text-anchor="middle" font-size="11" fill="#d97706">需要</text>
+      <text x="320" y="209" text-anchor="middle" font-size="11">50</text>
+      <text x="420" y="209" text-anchor="middle" font-size="11">60</text>
+      <text x="520" y="209" text-anchor="middle" font-size="11">60</text>
+      <text x="620" y="209" text-anchor="middle" font-size="11">70</text>
+      <text x="720" y="209" text-anchor="middle" font-size="11">80</text>
+      <text x="820" y="209" text-anchor="middle" font-size="11">90</text>
+      <text x="920" y="209" text-anchor="middle" font-size="11">80</text>
+      <text x="1020" y="209" text-anchor="middle" font-size="11" font-weight="600">490</text>
+
+      <rect x="20" y="218" width="1060" height="26" fill="#f8f8f5"/>
+      <text x="220" y="235" text-anchor="middle" font-size="11" fill="#059669">供給</text>
+      <text x="320" y="235" text-anchor="middle" font-size="11">60</text>
+      <text x="420" y="235" text-anchor="middle" font-size="11">70</text>
+      <text x="520" y="235" text-anchor="middle" font-size="11">70</text>
+      <text x="620" y="235" text-anchor="middle" font-size="11">80</text>
+      <text x="720" y="235" text-anchor="middle" font-size="11">90</text>
+      <text x="820" y="235" text-anchor="middle" font-size="11">100</text>
+      <text x="920" y="235" text-anchor="middle" font-size="11">90</text>
+      <text x="1020" y="235" text-anchor="middle" font-size="11" font-weight="600">560</text>
+
+      <rect x="20" y="244" width="1060" height="26" fill="#f0fdf4"/>
+      <text x="220" y="261" text-anchor="middle" font-size="11" fill="#059669" font-weight="700">過不足</text>
+      <text x="320" y="261" text-anchor="middle" font-size="11">0</text>
+      <text x="420" y="261" text-anchor="middle" font-size="11">0</text>
+      <text x="520" y="261" text-anchor="middle" font-size="11">0</text>
+      <text x="620" y="261" text-anchor="middle" font-size="11">0</text>
+      <text x="720" y="261" text-anchor="middle" font-size="11">0</text>
+      <text x="820" y="261" text-anchor="middle" font-size="11">0</text>
+      <text x="920" y="261" text-anchor="middle" font-size="11">0</text>
+      <text x="1020" y="261" text-anchor="middle" font-size="11" font-weight="700">0</text>
+
+      <!-- Annotations -->
+      <path d="M 100,100 Q 100,320 150,340" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#an3)"/>
+      <rect x="160" y="322" width="280" height="40" rx="4" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="170" y="340" font-size="11" font-weight="700" fill="#dc2626">① 期間指定</text>
+      <text x="170" y="355" font-size="10" fill="#7f1d1d">集計対象期間を月単位で選択</text>
+
+      <path d="M 405,70 Q 405,350 540,370" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#an3)"/>
+      <rect x="550" y="352" width="200" height="40" rx="4" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="560" y="370" font-size="11" font-weight="700" fill="#dc2626">② 不足のみ表示</text>
+      <text x="560" y="385" font-size="10" fill="#7f1d1d">不足している品目に絞り込み</text>
+
+      <path d="M 995,80 Q 1010,380 870,395" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#an3)"/>
+      <rect x="760" y="378" width="200" height="40" rx="4" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="770" y="396" font-size="11" font-weight="700" fill="#dc2626">③ Excel出力</text>
+      <text x="770" y="411" font-size="10" fill="#7f1d1d">3シート構成のExcelをDL</text>
+    </svg>
+  </div>
+  <p class="mock-caption">勝ち負け表画面（上部ツールバー＋ピボット表、赤枠=不足行、緑枠=充足行）</p>
+
+  <h3>期間指定とフィルタ</h3>
+  <table>
+    <thead><tr><th>項目</th><th>説明</th></tr></thead>
+    <tbody>
+      <tr><td><b>期間 From / To</b></td><td>集計対象の開始月と終了月を YYYY-MM で指定。初期値は取り込み済みデータの全範囲。</td></tr>
+      <tr><td><b>不足のみ表示</b></td><td>チェックすると、期末時点で不足のある品目のみに絞り込み。</td></tr>
+      <tr><td><b>左固定列</b></td><td>ペットネーム列は常に左に固定され、横スクロールしても見失わない。</td></tr>
+      <tr><td><b>合計列</b></td><td>右端に期間内の合計が表示される。</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Excel出力</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="num-badge">1</div>
+      <div class="body">
+        <h4>画面右上の「Excel出力」をクリック</h4>
+        <p>画面に表示中の期間・絞り込み条件がそのまま出力に反映されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">2</div>
+      <div class="body">
+        <h4>自動ダウンロード</h4>
+        <p>ブラウザのダウンロードフォルダに <code>勝ち負け表_YYYYMMDD.xlsx</code> として保存されます。</p>
+      </div>
+    </div>
+  </div>
+
+  <h4>出力されるExcelの3シート</h4>
+  <table>
+    <thead><tr><th>シート</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td>① 需要</td><td>品名×月の需要マトリクス（YYYY/MM ヘッダ）</td></tr>
+      <tr><td>② 供給</td><td>品名×月の供給マトリクス（YYYY/MM ヘッダ）</td></tr>
+      <tr><td>③ 勝ち負け表</td><td>需要・供給・累計・過不足を品目別にブロック表示（YYYY/MM/DD ヘッダ）</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout ok">
+    <b>書式仕様</b>
+    游ゴシック11pt／手配過不足セル=黄色塗り／品名セル=薄緑／数値書式=カンマなし／負値=赤字カッコ付き。
+    リファレンス書式に忠実な作りで、そのまま社内配布できます。
+  </div>
+</section>
+
+<!-- ────────── Chapter 6 ────────── -->
+<section id="c6" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 06</span><h2>在庫過不足ダッシュボードの使い方</h2></div>
+
+  <h3>画面イメージ</h3>
+  <div class="mock">
+    <div class="mock-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">在庫過不足ダッシュボード</span></div>
+    <svg class="diagram" viewBox="0 0 1100 480" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="1100" height="480" fill="#f7f6f1"/>
+      <!-- stamp -->
+      <text x="20" y="30" font-size="11" fill="#6b7280">最新アップロード:</text>
+      <text x="135" y="30" font-size="11" fill="#1a1a1a" font-weight="600">2026-10-15 09:30</text>
+
+      <!-- KPI grid -->
+      <g font-family="sans-serif">
+        <!-- box template -->
+        <!-- 6 KPIs -->
+        <g>
+          <rect x="20"  y="44" width="170" height="80" rx="8" fill="#fff" stroke="#e5e3dc"/>
+          <rect x="20"  y="44" width="170" height="3" fill="#1e40af"/>
+          <text x="30" y="62" font-size="10" fill="#6b7280" letter-spacing="2">対象品目</text>
+          <text x="30" y="100" font-size="28" font-weight="700" fill="#1a1a1a">22</text>
+          <text x="30" y="117" font-size="10" fill="#6b7280">ペットネーム数</text>
+        </g>
+        <g>
+          <rect x="200" y="44" width="170" height="80" rx="8" fill="#fff" stroke="#e5e3dc"/>
+          <rect x="200" y="44" width="170" height="3" fill="#dc2626"/>
+          <text x="210" y="62" font-size="10" fill="#6b7280" letter-spacing="2">不足品目</text>
+          <text x="210" y="100" font-size="28" font-weight="700" fill="#dc2626">7</text>
+          <text x="210" y="117" font-size="10" fill="#6b7280">期末時点</text>
+        </g>
+        <g>
+          <rect x="380" y="44" width="170" height="80" rx="8" fill="#fff" stroke="#e5e3dc"/>
+          <rect x="380" y="44" width="170" height="3" fill="#d97706"/>
+          <text x="390" y="62" font-size="10" fill="#6b7280" letter-spacing="2">需要 累計</text>
+          <text x="390" y="100" font-size="28" font-weight="700" fill="#d97706">12,540</text>
+          <text x="390" y="117" font-size="10" fill="#6b7280">総需要</text>
+        </g>
+        <g>
+          <rect x="560" y="44" width="170" height="80" rx="8" fill="#fff" stroke="#e5e3dc"/>
+          <rect x="560" y="44" width="170" height="3" fill="#059669"/>
+          <text x="570" y="62" font-size="10" fill="#6b7280" letter-spacing="2">供給 累計</text>
+          <text x="570" y="100" font-size="28" font-weight="700" fill="#059669">11,120</text>
+          <text x="570" y="117" font-size="10" fill="#6b7280">在庫+手配</text>
+        </g>
+        <g>
+          <rect x="740" y="44" width="170" height="80" rx="8" fill="#fff" stroke="#e5e3dc"/>
+          <rect x="740" y="44" width="170" height="3" fill="#dc2626"/>
+          <text x="750" y="62" font-size="10" fill="#6b7280" letter-spacing="2">充足率</text>
+          <text x="750" y="100" font-size="28" font-weight="700" fill="#dc2626">89%</text>
+          <text x="750" y="117" font-size="10" fill="#6b7280">供給/需要</text>
+        </g>
+        <g>
+          <rect x="920" y="44" width="160" height="80" rx="8" fill="#fff" stroke="#e5e3dc"/>
+          <rect x="920" y="44" width="160" height="3" fill="#dc2626"/>
+          <text x="930" y="62" font-size="10" fill="#6b7280" letter-spacing="2">不足数量</text>
+          <text x="930" y="100" font-size="28" font-weight="700" fill="#dc2626">1,420</text>
+          <text x="930" y="117" font-size="10" fill="#6b7280">期末累計</text>
+        </g>
+      </g>
+
+      <!-- Row 1: monthly chart + top shortage -->
+      <!-- monthly chart -->
+      <rect x="20" y="140" width="640" height="160" rx="8" fill="#fff" stroke="#e5e3dc"/>
+      <text x="30" y="160" font-size="13" font-weight="700">月別 需要・供給・不足</text>
+      <text x="30" y="176" font-size="10" fill="#6b7280">棒グラフ: 需要/供給 ／ 折れ線: 不足</text>
+      <!-- bars (fake) -->
+      <g>
+        <rect x="50"  y="240" width="22" height="40" fill="#d97706" opacity=".6"/>
+        <rect x="74"  y="248" width="22" height="32" fill="#059669" opacity=".6"/>
+        <rect x="110" y="230" width="22" height="50" fill="#d97706" opacity=".6"/>
+        <rect x="134" y="238" width="22" height="42" fill="#059669" opacity=".6"/>
+        <rect x="170" y="214" width="22" height="66" fill="#d97706" opacity=".6"/>
+        <rect x="194" y="224" width="22" height="56" fill="#059669" opacity=".6"/>
+        <rect x="230" y="200" width="22" height="80" fill="#d97706" opacity=".6"/>
+        <rect x="254" y="212" width="22" height="68" fill="#059669" opacity=".6"/>
+        <rect x="290" y="220" width="22" height="60" fill="#d97706" opacity=".6"/>
+        <rect x="314" y="200" width="22" height="80" fill="#059669" opacity=".6"/>
+        <rect x="350" y="230" width="22" height="50" fill="#d97706" opacity=".6"/>
+        <rect x="374" y="214" width="22" height="66" fill="#059669" opacity=".6"/>
+        <rect x="410" y="222" width="22" height="58" fill="#d97706" opacity=".6"/>
+        <rect x="434" y="208" width="22" height="72" fill="#059669" opacity=".6"/>
+        <!-- shortage line -->
+        <polyline points="60,268 120,255 180,244 240,230 300,245 360,255 420,258" stroke="#dc2626" stroke-width="2" fill="none"/>
+        <circle cx="60"  cy="268" r="3" fill="#dc2626"/>
+        <circle cx="120" cy="255" r="3" fill="#dc2626"/>
+        <circle cx="180" cy="244" r="3" fill="#dc2626"/>
+        <circle cx="240" cy="230" r="3" fill="#dc2626"/>
+        <circle cx="300" cy="245" r="3" fill="#dc2626"/>
+        <circle cx="360" cy="255" r="3" fill="#dc2626"/>
+        <circle cx="420" cy="258" r="3" fill="#dc2626"/>
+      </g>
+      <!-- legend -->
+      <g>
+        <rect x="500" y="160" width="12" height="12" fill="#d97706" opacity=".6"/>
+        <text x="518" y="170" font-size="10">需要</text>
+        <rect x="500" y="178" width="12" height="12" fill="#059669" opacity=".6"/>
+        <text x="518" y="188" font-size="10">供給</text>
+        <line x1="500" y1="202" x2="512" y2="202" stroke="#dc2626" stroke-width="2"/>
+        <circle cx="506" cy="202" r="3" fill="#dc2626"/>
+        <text x="518" y="206" font-size="10">不足</text>
+      </g>
+
+      <!-- top shortage -->
+      <rect x="680" y="140" width="400" height="160" rx="8" fill="#fff" stroke="#e5e3dc"/>
+      <text x="690" y="160" font-size="13" font-weight="700">不足TOP 品目</text>
+      <text x="690" y="176" font-size="10" fill="#6b7280">期末時点で需要累計 &gt; 供給累計 の品目</text>
+      <g font-size="10">
+        <text x="690" y="200" font-weight="600" fill="#1a1a1a">PLATINUM-A</text>
+        <text x="820" y="200" text-anchor="end" font-weight="600" fill="#dc2626">340</text>
+        <rect x="840" y="193" width="140" height="6" rx="3" fill="#f3f2ed"/>
+        <rect x="840" y="193" width="42" height="6" rx="3" fill="#dc2626"/>
+        <text x="1070" y="200" text-anchor="end" font-weight="600">30%</text>
+
+        <text x="690" y="220" font-weight="600" fill="#1a1a1a">PLATINUM-D</text>
+        <text x="820" y="220" text-anchor="end" font-weight="600" fill="#dc2626">280</text>
+        <rect x="840" y="213" width="140" height="6" rx="3" fill="#f3f2ed"/>
+        <rect x="840" y="213" width="72" height="6" rx="3" fill="#d97706"/>
+        <text x="1070" y="220" text-anchor="end" font-weight="600">51%</text>
+
+        <text x="690" y="240" font-weight="600" fill="#1a1a1a">PLATINUM-F</text>
+        <text x="820" y="240" text-anchor="end" font-weight="600" fill="#dc2626">210</text>
+        <rect x="840" y="233" width="140" height="6" rx="3" fill="#f3f2ed"/>
+        <rect x="840" y="233" width="90" height="6" rx="3" fill="#d97706"/>
+        <text x="1070" y="240" text-anchor="end" font-weight="600">64%</text>
+
+        <text x="690" y="260" font-weight="600" fill="#1a1a1a">PLATINUM-G</text>
+        <text x="820" y="260" text-anchor="end" font-weight="600" fill="#dc2626">180</text>
+        <rect x="840" y="253" width="140" height="6" rx="3" fill="#f3f2ed"/>
+        <rect x="840" y="253" width="112" height="6" rx="3" fill="#059669"/>
+        <text x="1070" y="260" text-anchor="end" font-weight="600">80%</text>
+
+        <text x="690" y="280" font-weight="600" fill="#1a1a1a">PLATINUM-K</text>
+        <text x="820" y="280" text-anchor="end" font-weight="600" fill="#dc2626">150</text>
+        <rect x="840" y="273" width="140" height="6" rx="3" fill="#f3f2ed"/>
+        <rect x="840" y="273" width="120" height="6" rx="3" fill="#059669"/>
+        <text x="1070" y="280" text-anchor="end" font-weight="600">86%</text>
+      </g>
+
+      <!-- Row 2: cumulative + recent uploads -->
+      <!-- cumulative -->
+      <rect x="20" y="315" width="640" height="155" rx="8" fill="#fff" stroke="#e5e3dc"/>
+      <text x="30" y="335" font-size="13" font-weight="700">累計 需要 vs 供給</text>
+      <text x="30" y="351" font-size="10" fill="#6b7280">全品目合計の累計推移</text>
+      <g>
+        <polyline points="50,440 110,420 180,400 240,380 300,355 360,335 420,310 480,380 540,350 600,345" stroke="#d97706" stroke-width="2" fill="none"/>
+        <polyline points="50,445 110,430 180,415 240,395 300,375 360,360 420,345 480,330 540,320 600,315" stroke="#059669" stroke-width="2" fill="none"/>
+        <!-- area under -->
+        <path d="M 50,440 L 110,420 180,400 240,380 300,355 360,335 420,310 480,380 540,350 600,345 L 600,450 L 50,450 Z" fill="#d97706" opacity=".12"/>
+        <path d="M 50,445 L 110,430 180,415 240,395 300,375 360,360 420,345 480,330 540,320 600,315 L 600,450 L 50,450 Z" fill="#059669" opacity=".12"/>
+      </g>
+      <g>
+        <rect x="500" y="340" width="12" height="12" fill="#d97706"/>
+        <text x="518" y="350" font-size="10">需要累計</text>
+        <rect x="500" y="358" width="12" height="12" fill="#059669"/>
+        <text x="518" y="368" font-size="10">供給累計</text>
+      </g>
+
+      <!-- recent uploads -->
+      <rect x="680" y="315" width="400" height="155" rx="8" fill="#fff" stroke="#e5e3dc"/>
+      <text x="690" y="335" font-size="13" font-weight="700">直近アップロード</text>
+      <g font-size="10">
+        <text x="690" y="360" fill="#6b7280">2026-10-15 09:30</text>
+        <rect x="810" y="350" width="40" height="14" rx="7" fill="#d1fae5"/>
+        <text x="830" y="361" text-anchor="middle" fill="#065f46" font-weight="700">供給</text>
+        <text x="865" y="360">202610_supply.xlsx</text>
+        <text x="1070" y="360" text-anchor="end" font-weight="600">97</text>
+
+        <text x="690" y="380" fill="#6b7280">2026-10-15 09:28</text>
+        <rect x="810" y="370" width="40" height="14" rx="7" fill="#fef3c7"/>
+        <text x="830" y="381" text-anchor="middle" fill="#92400e" font-weight="700">需要</text>
+        <text x="865" y="380">202610_demand.xlsx</text>
+        <text x="1070" y="380" text-anchor="end" font-weight="600">157</text>
+
+        <text x="690" y="400" fill="#6b7280">2026-10-14 17:12</text>
+        <rect x="810" y="390" width="40" height="14" rx="7" fill="#ede9fe"/>
+        <text x="830" y="401" text-anchor="middle" fill="#5b21b6" font-weight="700">在庫</text>
+        <text x="865" y="400">202610_stock.xlsx</text>
+        <text x="1070" y="400" text-anchor="end" font-weight="600">20</text>
+      </g>
+    </svg>
+  </div>
+  <p class="mock-caption">在庫過不足ダッシュボード（6KPI＋2段チャート＋TOP不足＋直近アップロード）</p>
+
+  <h3>KPIの読み方</h3>
+  <table>
+    <thead><tr><th>KPI</th><th>意味</th><th>色の意味</th></tr></thead>
+    <tbody>
+      <tr><td>対象品目</td><td>集計中のペットネーム（品名）の総数</td><td>常に青</td></tr>
+      <tr><td>不足品目</td><td>期末時点で供給累計が需要累計を下回る品目の数</td><td>1以上で赤</td></tr>
+      <tr><td>需要 累計</td><td>全品目の需要の総和</td><td>常にオレンジ</td></tr>
+      <tr><td>供給 累計</td><td>全品目の（在庫＋供給）の総和</td><td>常に緑</td></tr>
+      <tr><td>充足率</td><td>供給累計 ÷ 需要累計（%）</td><td>&lt;100% 赤 ／ 100-109% 橙 ／ 110%+ 緑</td></tr>
+      <tr><td>不足数量</td><td>期末時点の不足数量の合計</td><td>0超で赤</td></tr>
+    </tbody>
+  </table>
+
+  <h3>チャートとTOP不足</h3>
+  <ul>
+    <li><b>月別 需要・供給・不足チャート</b>：棒グラフで需要/供給の月次を比較、折れ線で不足の推移を示す。</li>
+    <li><b>不足TOP 15品目</b>：期末時点で不足している品目を不足数量の多い順に15件表示。充足率バー付き。</li>
+    <li><b>累計 需要 vs 供給</b>：全品目合計の累計を月次で推移表示。供給が需要に追いついているかを一目で把握。</li>
+    <li><b>直近アップロード</b>：最新10件のアップロードを種別色付きで表示。</li>
+  </ul>
+
+  <div class="callout tip">
+    <b>使い方のコツ</b>
+    会議資料や上司への報告には、このダッシュボードの画面キャプチャ（Snipping Toolなど）を貼るだけで十分な情報量になります。
+  </div>
+</section>
+
+<!-- ────────── Chapter 7 ────────── -->
+<section id="c7" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 07</span><h2>バックアップ（デスクトップ版のみ）</h2></div>
+
+  <p>デスクトップ単独HTML版は、データがブラウザ内（IndexedDB）に保存されています。
+    別PCへの移行や、安全のためのバックアップには、JSONファイルでのエクスポート/インポートを使います。</p>
+
+  <h3>バックアップ画面</h3>
+  <div class="mock">
+    <div class="mock-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">バックアップ</span></div>
+    <svg class="diagram" viewBox="0 0 1100 300" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="1100" height="300" fill="#f7f6f1"/>
+      <rect x="20" y="20" width="720" height="260" rx="8" fill="#fff" stroke="#e5e3dc"/>
+      <circle cx="40" cy="46" r="6" fill="#7c3aed"/>
+      <text x="56" y="52" font-size="15" font-weight="700" fill="#1a1a1a">データのエクスポート / インポート</text>
+      <text x="40" y="82" font-size="12" fill="#4a4a4a">このブラウザに保存された全データ（履歴＋需要/供給/在庫）を</text>
+      <text x="40" y="100" font-size="12" fill="#4a4a4a">JSONファイルとして書き出し・読み込みできます。</text>
+      <text x="40" y="118" font-size="12" fill="#4a4a4a">別PC間でのデータ移行や、ブラウザ再インストール時のバックアップに。</text>
+
+      <rect x="40" y="150" width="220" height="42" rx="6" fill="#1e40af"/>
+      <text x="150" y="177" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">📤 全データをJSONに書き出し</text>
+
+      <rect x="280" y="150" width="220" height="42" rx="6" fill="#fff" stroke="#1e40af" stroke-width="2"/>
+      <text x="390" y="177" text-anchor="middle" font-size="13" font-weight="700" fill="#1e40af">📥 JSONを読み込み</text>
+
+      <rect x="40" y="220" width="200" height="36" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="140" y="243" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">⚠ 全データを削除</text>
+
+      <!-- Storage info panel -->
+      <rect x="760" y="20" width="320" height="260" rx="8" fill="#fff" stroke="#e5e3dc"/>
+      <text x="776" y="46" font-size="13" font-weight="700" fill="#1a1a1a">ストレージ使用状況</text>
+      <text x="776" y="78" font-size="11" fill="#6b7280">現在の使用量</text>
+      <text x="776" y="106" font-size="24" font-weight="700" fill="#1e40af">1.2 <tspan font-size="14">MB</tspan></text>
+      <rect x="776" y="128" width="288" height="10" rx="5" fill="#f3f2ed"/>
+      <rect x="776" y="128" width="48" height="10" rx="5" fill="#1e40af"/>
+      <text x="776" y="160" font-size="11" fill="#6b7280">テーブル別件数</text>
+      <text x="776" y="182" font-size="11">履歴: <tspan font-weight="700">6</tspan></text>
+      <text x="776" y="202" font-size="11">需要: <tspan font-weight="700">157</tspan></text>
+      <text x="776" y="222" font-size="11">供給: <tspan font-weight="700">97</tspan></text>
+      <text x="776" y="242" font-size="11">在庫: <tspan font-weight="700">20</tspan></text>
+    </svg>
+  </div>
+  <p class="mock-caption">バックアップ画面（左: 操作ボタン ／ 右: ストレージ使用量とテーブル別件数）</p>
+
+  <h3>3つの操作</h3>
+  <table>
+    <thead><tr><th>操作</th><th>いつ使うか</th><th>結果</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="pill accent">JSONに書き出し</span></td>
+        <td>月末のバックアップ／別PCへの移行前</td>
+        <td><code>勝ち負け表_backup_YYYYMMDD.json</code> がダウンロードされる</td>
+      </tr>
+      <tr>
+        <td><span class="pill supply">JSONを読み込み</span></td>
+        <td>別PCにデータを移す／誤削除から復旧</td>
+        <td>既存データに追記（履歴は別IDで追加）</td>
+      </tr>
+      <tr>
+        <td><span class="pill danger">全データ削除</span></td>
+        <td>やり直し／リセット時</td>
+        <td>確認ダイアログの後、全テーブルが空になる（元に戻せない）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <b>重要</b>
+    「全データ削除」は<b>元に戻せません</b>。実行前に必ずJSONに書き出してから削除してください。
+  </div>
+</section>
+
+<!-- ────────── Chapter 8 ────────── -->
+<section id="c8" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 08</span><h2>典型的な業務シナリオ</h2></div>
+
+  <h3>シナリオ1：月初の需給チェック</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="num-badge">1</div>
+      <div class="body">
+        <h4>販売計画チームから最新の需要Excelを受領</h4>
+        <p>「データアップロード」画面にドラッグ&amp;ドロップ。種別が「需要」と自動判定されることを確認。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">2</div>
+      <div class="body">
+        <h4>生産チームから最新の供給Excelを受領</h4>
+        <p>同じく「データアップロード」画面にドロップ。種別「供給」と判定されるのを確認。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">3</div>
+      <div class="body">
+        <h4>資材から当月初の在庫Excelを受領</h4>
+        <p>同じくドロップ。種別「在庫」と判定されるのを確認。これで3種そろう。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">4</div>
+      <div class="body">
+        <h4>ダッシュボードで全体像を把握</h4>
+        <p>「在庫過不足ダッシュボード」タブへ切替。<b>充足率</b>と<b>不足品目数</b>をまず確認。
+          不足TOPの5品目を特定。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">5</div>
+      <div class="body">
+        <h4>勝ち負け表でExcel出力</h4>
+        <p>「勝ち負け表」タブへ切替。「不足のみ表示」チェックで絞り込み、Excel出力。
+          月次会議の資料として配布。</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>シナリオ2：間違ったファイルを差し替える</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="num-badge">1</div>
+      <div class="body">
+        <h4>間違いに気づく</h4>
+        <p>勝ち負け表の数字が合わない、不足品目が異常に多いなどで異変に気づく。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">2</div>
+      <div class="body">
+        <h4>データアップロード画面で履歴を確認</h4>
+        <p>どのアップロードが問題か特定。該当行を <b>削除</b>（または <b>無効化</b>）。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">3</div>
+      <div class="body">
+        <h4>正しいファイルを再アップロード</h4>
+        <p>修正後のExcelをドロップ。履歴に新しいエントリが追加され、集計に反映。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num-badge">4</div>
+      <div class="body">
+        <h4>勝ち負け表／ダッシュボードで再確認</h4>
+        <p>数字が妥当な範囲に戻ったことを確認して完了。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── Chapter 9 ────────── -->
+<section id="c9" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 09</span><h2>トラブルシューティング</h2></div>
+
+  <table>
+    <thead><tr><th>症状</th><th>原因</th><th>対処</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>ファイルをドロップしても何も起きない</td>
+        <td>ファイル種別が自動判定できない（シート名が規定と違う）</td>
+        <td>Excel側で正しいシート名（<code>needs</code> / <code>ピボット</code> / <code>在庫pivot</code>）を確認</td>
+      </tr>
+      <tr>
+        <td>品名が別物として集計される</td>
+        <td>記号や末尾文字が違うなど、正規化で吸収できないゆれ</td>
+        <td>元ファイル側で表記を統一</td>
+      </tr>
+      <tr>
+        <td>Excel出力の月ヘッダがおかしい</td>
+        <td>旧版の既知バグ（タイムゾーン問題）</td>
+        <td>最新版（AgentDB v7 / デスクトップ最新HTML）に更新済みを使用</td>
+      </tr>
+      <tr>
+        <td>勝ち負け表が空になる</td>
+        <td>すべてのアップロードが無効化されている</td>
+        <td>アップロード画面で有効化トグルを ON に</td>
+      </tr>
+      <tr>
+        <td>供給の月が1年ずれる</td>
+        <td>「7月」形式の年なし月を誤判定</td>
+        <td>需要側のデータが先に正しく入っていることを確認。供給ファイルで年を明記するとより確実</td>
+      </tr>
+      <tr>
+        <td>デスクトップ版が開かない／真っ白</td>
+        <td>初回アクセス時のCDN取得が失敗（ネット未接続）</td>
+        <td>一度ネット接続下で開く → 以降オフライン利用可</td>
+      </tr>
+      <tr>
+        <td>デスクトップ版のデータが消えた</td>
+        <td>ブラウザのサイトデータ削除／別ブラウザで起動</td>
+        <td>JSONバックアップから復元（第7章参照）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout danger">
+    <b>データ関連の操作は慎重に</b>
+    「全データ削除」および履歴の「削除」操作は元に戻せません。
+    実行前に、バックアップ画面からJSONエクスポートを行うことを強く推奨します。
+  </div>
+</section>
+
+<!-- ────────── Chapter 10 ────────── -->
+<section id="c10" class="chapter">
+  <div class="chap-h"><span class="num">CHAPTER 10</span><h2>用語集</h2></div>
+  <table>
+    <thead><tr><th>用語</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td>ペットネーム</td><td>品名／品番の社内呼称。表記ゆれはシステム側で自動吸収。</td></tr>
+      <tr><td>需要（demand）</td><td>販売計画に基づく「売れる見通し」の月次数量。</td></tr>
+      <tr><td>供給（supply）</td><td>生産計画に基づく「作れる・調達できる」月次数量。</td></tr>
+      <tr><td>在庫（stock）</td><td>月初時点で既に手元にある数量。累計計算のスタート値となる。</td></tr>
+      <tr><td>需要累計 / 供給累計</td><td>対象期間の先頭から順に積み上げた累計値。</td></tr>
+      <tr><td>手配過不足 / 不足（shortage）</td><td>MAX(0, 需要累計 − (在庫 + 供給累計))。マイナスは0にクランプ。</td></tr>
+      <tr><td>充足率</td><td>供給累計 ÷ 需要累計（%）。100%未満が不足。</td></tr>
+      <tr><td>縦持ち（long形式）</td><td>1行＝1つの事実（品名×月×数量）を表すデータ形式。</td></tr>
+      <tr><td>横持ち（wide形式）</td><td>月を列に展開するExcelライクな表示形式。本システムは表示時に動的に生成。</td></tr>
+      <tr><td>is_active</td><td>アップロード履歴の「集計に含めるか」のフラグ。</td></tr>
+      <tr><td>v_win_loss</td><td>勝ち負け集計の中核となるDBビュー。実データから累計・不足を算出。</td></tr>
+      <tr><td>pet_key</td><td>ペットネームの正規化キー（全角→半角・スペース削除・大文字化）。</td></tr>
+      <tr><td>IndexedDB</td><td>ブラウザ内の永続ストレージ。デスクトップ版のデータ保存先。</td></tr>
+      <tr><td>Dexie.js</td><td>IndexedDBを扱いやすくするJSライブラリ。デスクトップ版で使用。</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</div>
+</div>
+
+<footer>
+  白金ブランド生産計画「勝ち負け表」システム — 操作マニュアル ／ 2026-10-15 版
+</footer>
+
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

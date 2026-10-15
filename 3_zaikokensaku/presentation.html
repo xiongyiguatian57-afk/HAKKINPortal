@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>7020製品在庫集計ワークフロー システム紹介</title>
+<style>
+  :root {
+    --primary: #1e40af;
+    --primary-light: #3b82f6;
+    --accent: #f59e0b;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-sub: #64748b;
+    --border: #e2e8f0;
+    --success: #10b981;
+    --danger: #ef4444;
+    --info: #0ea5e9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; }
+  .cover {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+    color: white; padding: 80px 60px; text-align: center; position: relative; overflow: hidden;
+  }
+  .cover::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(255,255,255,.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(255,255,255,.08) 0%, transparent 50%);
+  }
+  .cover-content { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; }
+  .cover h1 { font-size: 48px; margin-bottom: 20px; letter-spacing: 2px; font-weight: 700; }
+  .cover .subtitle { font-size: 22px; opacity: 0.9; margin-bottom: 40px; }
+  .cover .meta { font-size: 15px; opacity: 0.85; padding-top: 30px; border-top: 1px solid rgba(255,255,255,.3); }
+  .cover .meta span { margin: 0 15px; }
+
+  .section { max-width: 1100px; margin: 60px auto; padding: 0 30px; }
+  .section-header {
+    display: flex; align-items: center; gap: 15px; margin-bottom: 30px;
+    padding-bottom: 15px; border-bottom: 3px solid var(--primary);
+  }
+  .section-no {
+    background: var(--primary); color: white;
+    width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+    border-radius: 12px; font-size: 22px; font-weight: bold;
+  }
+  .section-title { font-size: 28px; font-weight: 700; }
+  .section-sub { color: var(--text-sub); font-size: 14px; margin-left: auto; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .card h3 { color: var(--primary); font-size: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  }
+
+  .kpi-card {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    padding: 20px; border-radius: 10px; border-left: 4px solid var(--primary);
+  }
+  .kpi-card .label { font-size: 13px; color: var(--text-sub); margin-bottom: 5px; }
+  .kpi-card .value { font-size: 28px; font-weight: bold; color: var(--primary); }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th { background: var(--primary); color: white; padding: 12px; text-align: left; font-size: 14px; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  tr:hover td { background: #eff6ff; }
+
+  .flow-container { padding: 20px 0; overflow-x: auto; }
+  .flow-svg { display: block; margin: 0 auto; }
+
+  .label-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600; margin-right: 5px;
+  }
+  .badge-primary { background: #dbeafe; color: #1e40af; }
+  .badge-success { background: #d1fae5; color: #065f46; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-danger { background: #fee2e2; color: #991b1b; }
+
+  .toc {
+    background: #f1f5f9; border-radius: 10px; padding: 25px; margin: 30px auto;
+    max-width: 1100px; margin-left: 30px; margin-right: 30px;
+  }
+  .toc h2 { color: var(--primary); margin-bottom: 15px; font-size: 20px; }
+  .toc ol { padding-left: 25px; }
+  .toc li { margin: 8px 0; font-size: 15px; }
+  .toc a { color: var(--text); text-decoration: none; }
+  .toc a:hover { color: var(--primary); text-decoration: underline; }
+
+  .highlight {
+    background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
+    padding: 15px 20px; border-radius: 8px; border-left: 4px solid var(--accent);
+    margin: 15px 0;
+  }
+  .highlight strong { color: #92400e; }
+
+  .footer {
+    background: #1e293b; color: #94a3b8; padding: 40px 30px; text-align: center;
+    margin-top: 80px;
+  }
+  .footer p { margin: 5px 0; font-size: 13px; }
+
+  ul.feature-list { list-style: none; padding: 0; }
+  ul.feature-list li {
+    padding: 10px 0 10px 30px; position: relative; border-bottom: 1px dashed var(--border);
+  }
+  ul.feature-list li::before {
+    content: "✓"; position: absolute; left: 0; color: var(--success); font-weight: bold; font-size: 18px;
+  }
+
+  .ui-mockup {
+    background: #f8fafc; border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; margin: 15px 0;
+  }
+  .mock-browser-bar {
+    background: #e2e8f0; padding: 8px 12px; border-radius: 6px 6px 0 0;
+    display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--text-sub);
+  }
+  .mock-browser-bar .dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
+  .mock-browser-bar .url { background: white; padding: 4px 12px; border-radius: 10px; flex: 1; margin-left: 10px; }
+
+  .before-after {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center;
+    margin: 20px 0;
+  }
+  .ba-box {
+    background: white; border: 2px solid var(--border); border-radius: 10px; padding: 20px;
+  }
+  .ba-box.before { border-color: #cbd5e1; }
+  .ba-box.after { border-color: var(--success); background: #f0fdf4; }
+  .ba-arrow { font-size: 32px; color: var(--primary); }
+  .ba-box h4 { font-size: 16px; margin-bottom: 10px; }
+
+  .page-break { page-break-after: always; }
+</style>
+</head>
+<body>
+
+<!-- 表紙 -->
+<div class="cover">
+  <div class="cover-content">
+    <h1>7020製品在庫集計ワークフロー</h1>
+    <div class="subtitle">— システム紹介資料 —</div>
+    <p style="font-size:18px; margin-top:30px; opacity:0.95;">
+      2つのExcelをドラッグ&ドロップするだけで、<br>
+      ペットネーム別の在庫集計表(6シート構成)が自動生成されるシステムです。
+    </p>
+    <div class="meta">
+      <span>■ ブラウザ単体で動作</span>
+      <span>■ インストール不要</span>
+      <span>■ 社外通信なし</span>
+      <br>
+      <span style="margin-top:10px; display:inline-block;">発行日: 2026年10月15日</span>
+    </div>
+  </div>
+</div>
+
+<!-- 目次 -->
+<div class="toc">
+  <h2>■ 目次</h2>
+  <ol>
+    <li><a href="#s1">主旨・システムの位置づけ</a></li>
+    <li><a href="#s2">解決する課題(Before / After)</a></li>
+    <li><a href="#s3">全体業務フロー</a></li>
+    <li><a href="#s4">入力データと出力データ</a></li>
+    <li><a href="#s5">主要機能一覧</a></li>
+    <li><a href="#s6">画面構成(UI模式図)</a></li>
+    <li><a href="#s7">データモデル(内部DB)</a></li>
+    <li><a href="#s8">結果Excel の6シート仕様</a></li>
+    <li><a href="#s9">技術スタックと動作環境</a></li>
+    <li><a href="#s10">運用上の留意点</a></li>
+  </ol>
+</div>
+
+<!-- 1. 主旨 -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <div class="section-no">1</div>
+    <div class="section-title">主旨・システムの位置づけ</div>
+    <div class="section-sub">What is this?</div>
+  </div>
+  <div class="card">
+    <h3>■ システム概要</h3>
+    <p>本システムは、<strong>岩崎電気の7020製品(照明器具)の在庫データ</strong>と、
+    <strong>型番ペットネーム対比表</strong>という2つのExcelファイルを突き合わせ、
+    ペットネーム(=製品の愛称)別に実残・販売・引当を集計して、1つの集計Excelファイルを自動生成する業務ツールです。</p>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <h3>■ 対象業務</h3>
+      <p>7020ライン製品の<strong>在庫可視化</strong>と月次/週次の在庫状況レポート作成。</p>
+    </div>
+    <div class="card">
+      <h3>■ 想定利用者</h3>
+      <p>在庫管理担当者、生産管理部門、営業企画(見込み数量の把握)。</p>
+    </div>
+    <div class="card">
+      <h3>■ 価値提案</h3>
+      <p>従来Excel手作業で30〜60分かかっていた集計を、<strong>数十秒</strong>で完了。</p>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Before After -->
+<div class="section" id="s2">
+  <div class="section-header">
+    <div class="section-no">2</div>
+    <div class="section-title">解決する課題</div>
+    <div class="section-sub">Before &rarr; After</div>
+  </div>
+
+  <div class="before-after">
+    <div class="ba-box before">
+      <h4>■ 導入前(手作業)</h4>
+      <ul style="padding-left:20px; color:var(--text-sub);">
+        <li>Excel上でVLOOKUP関数を複数シート渡って記述</li>
+        <li>ペットネーム未登録の型番の洗い出しが手動</li>
+        <li>マスターの重複型番チェックが漏れがち</li>
+        <li>担当者ごとに集計手順が異なる</li>
+        <li><strong>30〜60分/回</strong> の作業時間</li>
+      </ul>
+    </div>
+    <div class="ba-arrow">&rarr;</div>
+    <div class="ba-box after">
+      <h4>■ 導入後(本システム)</h4>
+      <ul style="padding-left:20px; color:#065f46;">
+        <li>2ファイルをドロップ&集計ボタンのみ</li>
+        <li>NGリスト・重複リストを自動検出・自動出力</li>
+        <li>岩崎/伊東の判定も製造部門コードから自動</li>
+        <li>結果Excelは関数式入りで追跡可能</li>
+        <li><strong>30秒〜1分</strong> で完了</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- 3. フロー図 -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <div class="section-no">3</div>
+    <div class="section-title">全体業務フロー</div>
+    <div class="section-sub">End-to-End Flow</div>
+  </div>
+
+  <div class="card">
+    <h3>■ 利用者視点のフロー</h3>
+    <div class="flow-container">
+      <svg class="flow-svg" width="1000" height="420" viewBox="0 0 1000 420" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#1e40af"/>
+          </marker>
+          <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#dbeafe"/>
+            <stop offset="100%" stop-color="#93c5fd"/>
+          </linearGradient>
+          <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fef3c7"/>
+            <stop offset="100%" stop-color="#fcd34d"/>
+          </linearGradient>
+          <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#d1fae5"/>
+            <stop offset="100%" stop-color="#6ee7b7"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Step1: Input files -->
+        <rect x="30" y="40" width="180" height="90" rx="10" fill="url(#g1)" stroke="#1e40af" stroke-width="2"/>
+        <text x="120" y="68" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e40af">① 入力ファイル</text>
+        <text x="120" y="90" text-anchor="middle" font-size="11" fill="#1e293b">型番とペットネーム対比表.xlsx</text>
+        <text x="120" y="107" text-anchor="middle" font-size="11" fill="#1e293b">7020製品在庫YYMMDDHHMM.xlsx</text>
+
+        <!-- Step2: Upload -->
+        <rect x="270" y="40" width="180" height="90" rx="10" fill="url(#g2)" stroke="#92400e" stroke-width="2"/>
+        <text x="360" y="68" text-anchor="middle" font-size="14" font-weight="bold" fill="#92400e">② ドロップ</text>
+        <text x="360" y="90" text-anchor="middle" font-size="11" fill="#1e293b">D&amp;D またはクリック選択</text>
+        <text x="360" y="107" text-anchor="middle" font-size="11" fill="#1e293b">自動で型番数を認識</text>
+
+        <!-- Step3: Aggregation -->
+        <rect x="510" y="40" width="180" height="90" rx="10" fill="url(#g2)" stroke="#92400e" stroke-width="2"/>
+        <text x="600" y="68" text-anchor="middle" font-size="14" font-weight="bold" fill="#92400e">③ 集計実行</text>
+        <text x="600" y="90" text-anchor="middle" font-size="11" fill="#1e293b">マスター照合・NG検出</text>
+        <text x="600" y="107" text-anchor="middle" font-size="11" fill="#1e293b">岩崎/伊東判定・重複検出</text>
+
+        <!-- Step4: Download -->
+        <rect x="750" y="40" width="220" height="90" rx="10" fill="url(#g3)" stroke="#065f46" stroke-width="2"/>
+        <text x="860" y="68" text-anchor="middle" font-size="14" font-weight="bold" fill="#065f46">④ ダウンロード</text>
+        <text x="860" y="90" text-anchor="middle" font-size="11" fill="#1e293b">7020製品在庫集計結果_</text>
+        <text x="860" y="107" text-anchor="middle" font-size="11" fill="#1e293b">YYYYMMDD.xlsx</text>
+
+        <!-- Arrows -->
+        <line x1="212" y1="85" x2="268" y2="85" stroke="#1e40af" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="452" y1="85" x2="508" y2="85" stroke="#1e40af" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="692" y1="85" x2="748" y2="85" stroke="#1e40af" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Branch: filter view -->
+        <rect x="270" y="200" width="420" height="60" rx="10" fill="#eff6ff" stroke="#1e40af" stroke-dasharray="4" stroke-width="2"/>
+        <text x="480" y="225" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">(オプション)画面上でフィルタ(岩崎/伊東・種別・販売区分・事業所)</text>
+        <text x="480" y="245" text-anchor="middle" font-size="11" fill="#64748b">在庫pivotに即時反映 → フィルタ後の値をExcelにも出力</text>
+        <line x1="600" y1="135" x2="480" y2="195" stroke="#1e40af" stroke-width="2" stroke-dasharray="4" marker-end="url(#arrow)"/>
+
+        <!-- Output artifacts -->
+        <text x="500" y="310" text-anchor="middle" font-size="15" font-weight="bold" fill="#065f46">出力Excel 6シート</text>
+        <g font-size="11" fill="#1e293b">
+          <rect x="80" y="330" width="130" height="55" rx="6" fill="#f0fdf4" stroke="#10b981"/>
+          <text x="145" y="353" text-anchor="middle" font-weight="bold">在庫pivot</text>
+          <text x="145" y="372" text-anchor="middle">集計表</text>
+
+          <rect x="225" y="330" width="130" height="55" rx="6" fill="#f0fdf4" stroke="#10b981"/>
+          <text x="290" y="353" text-anchor="middle" font-weight="bold">7020ZAI</text>
+          <text x="290" y="372" text-anchor="middle">在庫明細+関数式</text>
+
+          <rect x="370" y="330" width="130" height="55" rx="6" fill="#f0fdf4" stroke="#10b981"/>
+          <text x="435" y="353" text-anchor="middle" font-weight="bold">見込型番</text>
+          <text x="435" y="372" text-anchor="middle">自動抽出</text>
+
+          <rect x="515" y="330" width="130" height="55" rx="6" fill="#f0fdf4" stroke="#10b981"/>
+          <text x="580" y="353" text-anchor="middle" font-weight="bold">全型番</text>
+          <text x="580" y="372" text-anchor="middle">マスター全行</text>
+
+          <rect x="660" y="330" width="130" height="55" rx="6" fill="#fef2f2" stroke="#ef4444"/>
+          <text x="725" y="353" text-anchor="middle" font-weight="bold">NGリスト</text>
+          <text x="725" y="372" text-anchor="middle">未登録型番</text>
+
+          <rect x="805" y="330" width="130" height="55" rx="6" fill="#fef2f2" stroke="#ef4444"/>
+          <text x="870" y="353" text-anchor="middle" font-weight="bold">マスター重複</text>
+          <text x="870" y="372" text-anchor="middle">重複型番</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- 4. 入力と出力 -->
+<div class="section" id="s4">
+  <div class="section-header">
+    <div class="section-no">4</div>
+    <div class="section-title">入力データと出力データ</div>
+    <div class="section-sub">I/O Specification</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>■ 入力① 型番とペットネーム対比表</h3>
+      <table>
+        <tr><th>列</th><th>項目</th><th>例</th></tr>
+        <tr><td>A</td><td>No.</td><td>1</td></tr>
+        <tr><td>B</td><td>形式(型番)</td><td>FXTR40/16</td></tr>
+        <tr><td>C</td><td>EYE/ITO</td><td>EYE</td></tr>
+        <tr><td>D</td><td>ペットネーム</td><td>LEDioc FLOOD</td></tr>
+        <tr><td>E</td><td>種別</td><td>LED灯具</td></tr>
+        <tr><td>F</td><td>販売区分</td><td>見込 / (空=受注)</td></tr>
+      </table>
+      <p style="margin-top:10px; font-size:13px; color:var(--text-sub);">
+      ※シート名「全型番とペットネーム」から読込み。<br>
+      ※販売区分='見込'の行は見込マスターとして自動抽出。
+      </p>
+    </div>
+    <div class="card">
+      <h3>■ 入力② 7020製品在庫</h3>
+      <table>
+        <tr><th>列</th><th>項目</th><th>例</th></tr>
+        <tr><td>A</td><td>製品コード</td><td>P001234</td></tr>
+        <tr><td>B</td><td>製品名(=型番)</td><td>FXTR40/16</td></tr>
+        <tr><td>C</td><td>在庫事業所</td><td>100</td></tr>
+        <tr><td>D</td><td>販売可能数</td><td>50</td></tr>
+        <tr><td>E</td><td>引当済数</td><td>10</td></tr>
+        <tr><td>M</td><td>製造部門コード</td><td>4131</td></tr>
+      </table>
+      <p style="margin-top:10px; font-size:13px; color:var(--text-sub);">
+      ※シート名「7020ZAI」。<br>
+      ※実残 = 販売可能数 + 引当済数<br>
+      ※製造部門コード末尾が1→EYE / 0→ITO
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>■ 出力 7020製品在庫集計結果_YYYYMMDD.xlsx</h3>
+    <table>
+      <tr><th>#</th><th>シート</th><th>内容</th><th>備考</th></tr>
+      <tr><td>1</td><td>在庫pivot</td><td>ペットネーム別実残・販売・引当</td><td>フィルタ結果が反映</td></tr>
+      <tr><td>2</td><td>7020ZAI</td><td>在庫明細(F=実残, P=岩崎/伊東, R/S/T=VLOOKUP数式)</td><td><span class="label-badge badge-primary">数式</span></td></tr>
+      <tr><td>3</td><td>見込型番とペットネーム</td><td>販売区分='見込'の自動抽出結果</td><td></td></tr>
+      <tr><td>4</td><td>全型番とペットネーム</td><td>マスター全行(重複込み)</td><td><span class="label-badge badge-primary">数式</span></td></tr>
+      <tr><td>5</td><td>NGリスト</td><td>マスター未登録型番</td><td><span class="label-badge badge-danger">警告</span></td></tr>
+      <tr><td>6</td><td>マスター重複</td><td>マスターで複数回出現する型番</td><td><span class="label-badge badge-warn">注意</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 5. 機能一覧 -->
+<div class="section" id="s5">
+  <div class="section-header">
+    <div class="section-no">5</div>
+    <div class="section-title">主要機能一覧</div>
+    <div class="section-sub">Key Features</div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <h3>■ データ処理機能</h3>
+      <ul class="feature-list">
+        <li>Excelファイル2種類の自動取込(ドラッグ&ドロップ対応)</li>
+        <li>型番完全一致によるマスター照合</li>
+        <li>マスター未登録(NG)型番の自動検出</li>
+        <li>マスター重複型番の検出・リスト化</li>
+        <li>岩崎(EYE)/伊東(ITO)の自動判定(製造部門コード末尾)</li>
+        <li>販売区分='見込'の行を全型番から自動抽出</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>■ 画面・操作機能</h3>
+      <ul class="feature-list">
+        <li>KPIダッシュボード(6指標)</li>
+        <li>4軸フィルタ(岩崎伊東・種別・販売区分・事業所)</li>
+        <li>ペットネーム別pivot表のリアルタイム更新</li>
+        <li>NGリスト・重複リストの画面表示</li>
+        <li>結果Excelのダウンロード(数式入り)</li>
+        <li>DBバックアップ(.sqlite形式でエクスポート)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- 6. UI模式図 -->
+<div class="section" id="s6">
+  <div class="section-header">
+    <div class="section-no">6</div>
+    <div class="section-title">画面構成(UI模式図)</div>
+    <div class="section-sub">UI Layout</div>
+  </div>
+  <div class="card">
+    <h3>■ 画面全体のレイアウト</h3>
+    <div class="ui-mockup">
+      <div class="mock-browser-bar">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <div class="url">file:///C:/Users/.../7020在庫集計.html</div>
+      </div>
+      <svg width="100%" viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" style="background:white;">
+        <!-- Header -->
+        <rect x="0" y="0" width="1000" height="70" fill="#1e40af"/>
+        <text x="30" y="35" fill="white" font-size="20" font-weight="bold">7020製品在庫集計ワークフロー</text>
+        <text x="30" y="55" fill="#dbeafe" font-size="12">在庫Excelとマスターを突き合わせ、ペットネーム別の集計表を生成します</text>
+
+        <!-- KPI Cards -->
+        <g>
+          <rect x="20" y="90" width="155" height="70" rx="6" fill="#eff6ff" stroke="#3b82f6"/>
+          <text x="30" y="110" font-size="11" fill="#64748b">在庫件数</text>
+          <text x="30" y="140" font-size="22" font-weight="bold" fill="#1e40af">1,442</text>
+
+          <rect x="185" y="90" width="155" height="70" rx="6" fill="#eff6ff" stroke="#3b82f6"/>
+          <text x="195" y="110" font-size="11" fill="#64748b">全型番マスター件数</text>
+          <text x="195" y="140" font-size="22" font-weight="bold" fill="#1e40af">1,973</text>
+
+          <rect x="350" y="90" width="155" height="70" rx="6" fill="#eff6ff" stroke="#3b82f6"/>
+          <text x="360" y="110" font-size="11" fill="#64748b">見込型番数</text>
+          <text x="360" y="140" font-size="22" font-weight="bold" fill="#1e40af">740</text>
+
+          <rect x="515" y="90" width="155" height="70" rx="6" fill="#eff6ff" stroke="#3b82f6"/>
+          <text x="525" y="110" font-size="11" fill="#64748b">マッチ済</text>
+          <text x="525" y="140" font-size="22" font-weight="bold" fill="#10b981">1,442</text>
+
+          <rect x="680" y="90" width="155" height="70" rx="6" fill="#fef2f2" stroke="#ef4444"/>
+          <text x="690" y="110" font-size="11" fill="#64748b">NG件数</text>
+          <text x="690" y="140" font-size="22" font-weight="bold" fill="#ef4444">0</text>
+
+          <rect x="845" y="90" width="135" height="70" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+          <text x="855" y="110" font-size="11" fill="#64748b">重複件数</text>
+          <text x="855" y="140" font-size="22" font-weight="bold" fill="#f59e0b">1</text>
+        </g>
+
+        <!-- Upload zones -->
+        <g>
+          <rect x="20" y="180" width="480" height="100" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="6"/>
+          <text x="260" y="215" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e40af">① 型番とペットネーム対比表.xlsx</text>
+          <text x="260" y="238" text-anchor="middle" font-size="12" fill="#64748b">ここにファイルをドラッグ&amp;ドロップ</text>
+          <text x="260" y="258" text-anchor="middle" font-size="12" fill="#64748b">またはクリックして選択</text>
+
+          <rect x="520" y="180" width="460" height="100" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="6"/>
+          <text x="750" y="215" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e40af">② 7020製品在庫YYMMDDHHMM.xlsx</text>
+          <text x="750" y="238" text-anchor="middle" font-size="12" fill="#64748b">ここにファイルをドラッグ&amp;ドロップ</text>
+          <text x="750" y="258" text-anchor="middle" font-size="12" fill="#64748b">またはクリックして選択</text>
+        </g>
+
+        <!-- Buttons -->
+        <g>
+          <rect x="20" y="300" width="140" height="36" rx="6" fill="#1e40af"/>
+          <text x="90" y="324" text-anchor="middle" fill="white" font-size="13" font-weight="bold">集計実行</text>
+
+          <rect x="170" y="300" width="180" height="36" rx="6" fill="#10b981"/>
+          <text x="260" y="324" text-anchor="middle" fill="white" font-size="13" font-weight="bold">結果Excelダウンロード</text>
+
+          <rect x="360" y="300" width="130" height="36" rx="6" fill="white" stroke="#cbd5e1"/>
+          <text x="425" y="324" text-anchor="middle" fill="#64748b" font-size="13">保存データ消去</text>
+
+          <rect x="500" y="300" width="130" height="36" rx="6" fill="white" stroke="#cbd5e1"/>
+          <text x="565" y="324" text-anchor="middle" fill="#64748b" font-size="13">DBをバックアップ</text>
+        </g>
+
+        <!-- Filters -->
+        <rect x="20" y="360" width="960" height="60" rx="8" fill="#f1f5f9"/>
+        <text x="30" y="380" font-size="12" font-weight="bold" fill="#1e40af">フィルタ:</text>
+        <g font-size="11">
+          <rect x="90" y="372" width="130" height="28" rx="4" fill="white" stroke="#cbd5e1"/>
+          <text x="155" y="391" text-anchor="middle" fill="#64748b">岩崎伊東 ▾</text>
+
+          <rect x="230" y="372" width="130" height="28" rx="4" fill="white" stroke="#cbd5e1"/>
+          <text x="295" y="391" text-anchor="middle" fill="#64748b">種別 ▾</text>
+
+          <rect x="370" y="372" width="130" height="28" rx="4" fill="white" stroke="#cbd5e1"/>
+          <text x="435" y="391" text-anchor="middle" fill="#64748b">販売区分 ▾</text>
+
+          <rect x="510" y="372" width="130" height="28" rx="4" fill="white" stroke="#cbd5e1"/>
+          <text x="575" y="391" text-anchor="middle" fill="#64748b">事業所 ▾</text>
+        </g>
+
+        <!-- Pivot table -->
+        <text x="20" y="445" font-size="14" font-weight="bold" fill="#1e40af">在庫pivot(ペットネーム別)</text>
+        <g>
+          <rect x="20" y="455" width="960" height="30" fill="#1e40af"/>
+          <text x="30" y="475" fill="white" font-size="12" font-weight="bold">ペットネーム</text>
+          <text x="650" y="475" fill="white" font-size="12" font-weight="bold">合計/実残</text>
+          <text x="780" y="475" fill="white" font-size="12" font-weight="bold">合計/販売</text>
+          <text x="890" y="475" fill="white" font-size="12" font-weight="bold">合計/引当</text>
+
+          <rect x="20" y="485" width="960" height="28" fill="white"/>
+          <text x="30" y="503" font-size="12" fill="#1e293b">LEDioc FLOOD NEO</text>
+          <text x="650" y="503" font-size="12" fill="#1e293b">1,250</text>
+          <text x="780" y="503" font-size="12" fill="#1e293b">1,180</text>
+          <text x="890" y="503" font-size="12" fill="#1e293b">70</text>
+
+          <rect x="20" y="513" width="960" height="28" fill="#f8fafc"/>
+          <text x="30" y="531" font-size="12" fill="#1e293b">LEDioc EXTERIOR SPOT</text>
+          <text x="650" y="531" font-size="12" fill="#1e293b">820</text>
+          <text x="780" y="531" font-size="12" fill="#1e293b">800</text>
+          <text x="890" y="531" font-size="12" fill="#1e293b">20</text>
+
+          <rect x="20" y="541" width="960" height="28" fill="white"/>
+          <text x="30" y="559" font-size="12" fill="#1e293b">LEDioc HIGH BAY</text>
+          <text x="650" y="559" font-size="12" fill="#1e293b">640</text>
+          <text x="780" y="559" font-size="12" fill="#1e293b">600</text>
+          <text x="890" y="559" font-size="12" fill="#1e293b">40</text>
+
+          <rect x="20" y="569" width="960" height="28" fill="#f8fafc"/>
+          <text x="30" y="587" font-size="12" fill="#64748b">...</text>
+          <text x="650" y="587" font-size="12" fill="#64748b">...</text>
+          <text x="780" y="587" font-size="12" fill="#64748b">...</text>
+          <text x="890" y="587" font-size="12" fill="#64748b">...</text>
+
+          <rect x="20" y="597" width="960" height="32" fill="#dbeafe"/>
+          <text x="30" y="618" font-size="12" font-weight="bold" fill="#1e40af">総計</text>
+          <text x="650" y="618" font-size="12" font-weight="bold" fill="#1e40af">12,845</text>
+          <text x="780" y="618" font-size="12" font-weight="bold" fill="#1e40af">11,920</text>
+          <text x="890" y="618" font-size="12" font-weight="bold" fill="#1e40af">925</text>
+        </g>
+
+        <!-- Log area -->
+        <rect x="20" y="645" width="960" height="40" rx="4" fill="#0f172a"/>
+        <text x="30" y="665" font-size="11" font-family="monospace" fill="#4ade80">[23:30] 集計完了: zaiko=1442, NG=0, 重複=1</text>
+        <text x="30" y="679" font-size="11" font-family="monospace" fill="#60a5fa">[23:30] 結果Excelを生成しました</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Data model -->
+<div class="section" id="s7">
+  <div class="section-header">
+    <div class="section-no">7</div>
+    <div class="section-title">データモデル(内部DB)</div>
+    <div class="section-sub">Internal Schema</div>
+  </div>
+  <div class="card">
+    <h3>■ 6テーブル構造(SQLite / ブラウザ内DB)</h3>
+    <div class="flow-container">
+      <svg width="1000" height="420" viewBox="0 0 1000 420" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+          </marker>
+        </defs>
+
+        <!-- Input layer -->
+        <text x="150" y="25" font-size="13" font-weight="bold" fill="#1e40af">■ 入力取込テーブル</text>
+        <rect x="30" y="40" width="240" height="130" rx="6" fill="#eff6ff" stroke="#1e40af" stroke-width="2"/>
+        <text x="150" y="60" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">petname_master(全型番)</text>
+        <line x1="40" y1="70" x2="260" y2="70" stroke="#1e40af"/>
+        <g font-size="11" fill="#1e293b">
+          <text x="40" y="88">id (PK)</text>
+          <text x="40" y="105">keishiki — 型番</text>
+          <text x="40" y="122">petname — ペットネーム</text>
+          <text x="40" y="139">shubetsu — 種別</text>
+          <text x="40" y="156">hanbai_kubun — 販売区分</text>
+        </g>
+
+        <rect x="30" y="190" width="240" height="100" rx="6" fill="#eff6ff" stroke="#1e40af" stroke-width="2"/>
+        <text x="150" y="210" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">mikomi_master(見込)</text>
+        <line x1="40" y1="220" x2="260" y2="220" stroke="#1e40af"/>
+        <g font-size="11" fill="#1e293b">
+          <text x="40" y="238">※全型番から販売区分='見込'</text>
+          <text x="40" y="255">の行のみ自動抽出</text>
+          <text x="40" y="275" fill="#64748b">(構造は petname_master と同じ)</text>
+        </g>
+
+        <!-- Main layer -->
+        <text x="500" y="25" font-size="13" font-weight="bold" fill="#92400e">■ 在庫テーブル</text>
+        <rect x="380" y="40" width="240" height="250" rx="6" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+        <text x="500" y="60" text-anchor="middle" font-size="13" font-weight="bold" fill="#92400e">zaiko_current</text>
+        <line x1="390" y1="70" x2="610" y2="70" stroke="#92400e"/>
+        <g font-size="11" fill="#1e293b">
+          <text x="390" y="88">seihin_code — 製品コード</text>
+          <text x="390" y="105">seihin_mei — 型番(=keishiki)</text>
+          <text x="390" y="122">hanbai_kanou — 販売可能数</text>
+          <text x="390" y="139">hikiate_zumi — 引当済数</text>
+          <text x="390" y="156">seizou_bumon_code — 製造部門</text>
+          <text x="390" y="178" font-weight="bold" fill="#059669">— 以下は照合で埋める —</text>
+          <text x="390" y="196">petname — ペットネーム</text>
+          <text x="390" y="213">led_col — 種別</text>
+          <text x="390" y="230">iwasaki_ito — EYE/ITO/例外</text>
+          <text x="390" y="247">hanbai_kubun — 販売区分</text>
+          <text x="390" y="264">is_master_hit — 照合成否</text>
+        </g>
+
+        <!-- Output layer -->
+        <text x="820" y="25" font-size="13" font-weight="bold" fill="#991b1b">■ 検出結果テーブル</text>
+        <rect x="700" y="40" width="260" height="100" rx="6" fill="#fef2f2" stroke="#991b1b" stroke-width="2"/>
+        <text x="830" y="60" text-anchor="middle" font-size="13" font-weight="bold" fill="#991b1b">ng_list</text>
+        <line x1="710" y1="70" x2="950" y2="70" stroke="#991b1b"/>
+        <g font-size="11" fill="#1e293b">
+          <text x="710" y="88">seihin_code</text>
+          <text x="710" y="105">seihin_mei</text>
+          <text x="710" y="122">seizou_bumon_code</text>
+        </g>
+
+        <rect x="700" y="160" width="260" height="130" rx="6" fill="#fef2f2" stroke="#991b1b" stroke-width="2"/>
+        <text x="830" y="180" text-anchor="middle" font-size="13" font-weight="bold" fill="#991b1b">master_duplicates</text>
+        <line x1="710" y1="190" x2="950" y2="190" stroke="#991b1b"/>
+        <g font-size="11" fill="#1e293b">
+          <text x="710" y="208">keishiki</text>
+          <text x="710" y="225">occurrences — 出現回数</text>
+          <text x="710" y="242">petnames_distinct</text>
+          <text x="710" y="259">petnames_sample</text>
+          <text x="710" y="276">shubetsu_sample</text>
+        </g>
+
+        <!-- Runs -->
+        <text x="150" y="320" font-size="13" font-weight="bold" fill="#064e3b">■ 実行履歴</text>
+        <rect x="30" y="335" width="930" height="70" rx="6" fill="#f0fdf4" stroke="#064e3b" stroke-width="2"/>
+        <text x="495" y="358" text-anchor="middle" font-size="13" font-weight="bold" fill="#064e3b">runs(集計実行の履歴)</text>
+        <text x="495" y="380" text-anchor="middle" font-size="11" fill="#1e293b">
+          id | zaiko_file | master_file | output_file | run_at
+        </text>
+
+        <!-- Arrows (lookup direction) -->
+        <line x1="270" y1="105" x2="378" y2="200" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrow2)"/>
+        <text x="315" y="130" font-size="10" fill="#64748b">lookup</text>
+        <line x1="620" y1="200" x2="698" y2="90" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrow2)"/>
+        <text x="650" y="140" font-size="10" fill="#64748b">未照合</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- 8. Sheet spec -->
+<div class="section" id="s8">
+  <div class="section-header">
+    <div class="section-no">8</div>
+    <div class="section-title">結果Excel の6シート仕様</div>
+    <div class="section-sub">Output Sheet Spec</div>
+  </div>
+  <div class="card">
+    <h3>■ シート②「7020ZAI」の列構成(数式含む)</h3>
+    <table>
+      <tr><th>列</th><th>項目名</th><th>内容</th><th>数式/備考</th></tr>
+      <tr><td>A</td><td>製品コード</td><td>在庫Excelからコピー</td><td>-</td></tr>
+      <tr><td>B</td><td>製品名(型番)</td><td>在庫Excelからコピー</td><td>-</td></tr>
+      <tr><td>C</td><td>在庫事業所</td><td>-</td><td>-</td></tr>
+      <tr><td>D</td><td>販売可能数</td><td>-</td><td>-</td></tr>
+      <tr><td>E</td><td>引当済数</td><td>-</td><td>-</td></tr>
+      <tr><td><strong>F</strong></td><td><strong>実残</strong></td><td>販売可能+引当済</td><td><code>=D2+E2</code></td></tr>
+      <tr><td>G〜N</td><td>各種属性</td><td>在庫Excelからコピー</td><td>-</td></tr>
+      <tr><td><strong>P</strong></td><td><strong>岩崎/伊東</strong></td><td>製造部門コード末尾判定</td><td><code>=IF(RIGHT(N,1)="1","EYE",IF(RIGHT(N,1)="0","ITO","例外"))</code></td></tr>
+      <tr><td><strong>R</strong></td><td><strong>ペットネーム</strong></td><td>マスターから引当</td><td><code>=VLOOKUP($B,全型番!$B$2:$F$N,3,0)</code></td></tr>
+      <tr><td><strong>S</strong></td><td><strong>種別</strong></td><td>マスターから引当</td><td><code>=VLOOKUP($B,全型番!$B$2:$F$N,4,0)</code></td></tr>
+      <tr><td><strong>T</strong></td><td><strong>販売区分</strong></td><td>マスターから引当</td><td><code>=VLOOKUP($B,全型番!$B$2:$F$N,5,0)</code></td></tr>
+    </table>
+    <div class="highlight">
+      <strong>■ ポイント:</strong> ペットネーム・種別・販売区分は<strong>静的な値ではなく関数式</strong>で保存されるため、
+      Excel上で「全型番」シートを編集すると、7020ZAI シートの対応セルも自動で更新されます。
+    </div>
+  </div>
+</div>
+
+<!-- 9. Technology -->
+<div class="section" id="s9">
+  <div class="section-header">
+    <div class="section-no">9</div>
+    <div class="section-title">技術スタックと動作環境</div>
+    <div class="section-sub">Tech Stack</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>■ 構成技術</h3>
+      <table>
+        <tr><th>層</th><th>採用技術</th><th>役割</th></tr>
+        <tr><td>UI</td><td>HTML/CSS/JS</td><td>画面描画</td></tr>
+        <tr><td>Excel処理</td><td>SheetJS 0.18.5</td><td>読込・書出・数式</td></tr>
+        <tr><td>DB</td><td>sql.js 1.10.3 (SQLite/WASM)</td><td>データ照合・集計</td></tr>
+        <tr><td>永続化</td><td>localStorage</td><td>再起動後もデータ維持</td></tr>
+        <tr><td>配布</td><td>単一HTMLファイル</td><td>1.8MB(全依存同梱)</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>■ 動作環境</h3>
+      <table>
+        <tr><th>項目</th><th>要件</th></tr>
+        <tr><td>OS</td><td>Windows 10 / 11</td></tr>
+        <tr><td>ブラウザ</td><td>Microsoft Edge / Chrome(最新版)</td></tr>
+        <tr><td>通信</td><td><strong>不要(オフライン可)</strong></td></tr>
+        <tr><td>インストール</td><td><strong>不要(ダブルクリック起動)</strong></td></tr>
+        <tr><td>推奨メモリ</td><td>4GB以上</td></tr>
+        <tr><td>推奨データ量</td><td>在庫10,000行まで快適</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 10. Operations -->
+<div class="section" id="s10">
+  <div class="section-header">
+    <div class="section-no">10</div>
+    <div class="section-title">運用上の留意点</div>
+    <div class="section-sub">Operation Notes</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>■ セキュリティ</h3>
+      <ul class="feature-list">
+        <li>データ処理は全てブラウザ内で完結</li>
+        <li>サーバー送信・外部通信なし</li>
+        <li>機密データでも社外漏洩リスクなし</li>
+        <li>ブラウザ閉じてもlocalStorageで保持</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>■ データ管理</h3>
+      <ul class="feature-list">
+        <li>データはブラウザ単位で保存(Edge/Chrome別)</li>
+        <li>「保存データを消去」で初期化可能</li>
+        <li>「DBをバックアップ」で.sqlite保存可</li>
+        <li>別PCへの引継ぎは.sqliteファイル経由</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>■ よくある質問(FAQ ダイジェスト)</h3>
+    <table>
+      <tr><th>Q</th><th>A</th></tr>
+      <tr><td>複数PCで同じデータを共有したい</td><td>DBバックアップ(.sqlite)をファイル共有し、別PCで読込(今後の拡張予定)</td></tr>
+      <tr><td>ブラウザ履歴削除でデータが消えた</td><td>定期的に「DBをバックアップ」ボタンでファイル保存を推奨</td></tr>
+      <tr><td>マスターにない型番の扱いは?</td><td>NGリスト(シート⑤)に自動出力され、ペットネーム列は「(未登録)」になります</td></tr>
+      <tr><td>販売区分が空欄の行は?</td><td>内部的に「受注」として扱い、画面・Excelとも「受注」表示</td></tr>
+      <tr><td>マスターに同じ型番が複数ある場合は?</td><td>sort_order最小(=先頭)の行を採用。重複は「マスター重複」シートに出力</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <p><strong>7020製品在庫集計ワークフロー - システム紹介資料</strong></p>
+  <p>発行: 2026年10月15日 / Version: スタンドアロン版 v1.0</p>
+  <p style="margin-top:15px;">詳細な操作手順は、別紙「操作マニュアル(user_manual.html)」をご参照ください。</p>
+</div>
+
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

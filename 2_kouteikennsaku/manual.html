@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>受注データ検索システム — ユーザーガイド</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --paper: #ffffff;
+    --ink: #1a2332;
+    --ink-soft: #4a5568;
+    --muted: #718096;
+    --line: #e2e8f0;
+    --accent: #2b6cb0;
+    --accent-soft: #ebf4fb;
+    --warn: #c05621;
+    --warn-soft: #fff5eb;
+    --ok: #276749;
+    --ok-soft: #e6f4ea;
+    --chip: #edf2f7;
+    --shadow: 0 2px 8px rgba(20, 30, 50, 0.06);
+    --shadow-lg: 0 8px 24px rgba(20, 30, 50, 0.10);
+    --radius: 10px;
+    --mono: 'SF Mono', Consolas, 'MS Gothic', monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+    background: var(--bg); color: var(--ink);
+    line-height: 1.75;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* ========= レイアウト ========= */
+  .shell { display: grid; grid-template-columns: 240px 1fr; max-width: 1400px; margin: 0 auto; }
+  nav.toc {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--paper); border-right: 1px solid var(--line);
+    padding: 28px 20px;
+  }
+  nav.toc h3 {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); margin: 0 0 14px;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  nav.toc li { counter-increment: toc; margin-bottom: 2px; }
+  nav.toc a {
+    display: block; padding: 7px 10px; border-radius: 6px;
+    color: var(--ink-soft); text-decoration: none;
+    font-size: 13px; transition: all 0.15s;
+  }
+  nav.toc a::before { content: counter(toc) ". "; color: var(--muted); font-weight: 600; margin-right: 2px; }
+  nav.toc a:hover { background: var(--accent-soft); color: var(--accent); }
+
+  main { padding: 0; min-width: 0; }
+  .page {
+    background: var(--paper); padding: 48px 56px;
+    border-left: 1px solid var(--line);
+    min-height: 100vh;
+  }
+
+  /* ========= ヒーロー ========= */
+  .hero {
+    background: linear-gradient(135deg, #2b6cb0 0%, #1e4e7a 100%);
+    color: #fff; padding: 56px 56px 48px;
+    margin: -48px -56px 40px;
+  }
+  .hero .eyebrow {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    background: rgba(255,255,255,0.18); font-size: 11px; letter-spacing: 0.08em;
+    font-weight: 700; margin-bottom: 16px;
+  }
+  .hero h1 { font-size: 34px; margin: 0 0 12px; letter-spacing: -0.01em; line-height: 1.3; }
+  .hero p.lead { font-size: 16px; margin: 0; opacity: 0.95; max-width: 720px; line-height: 1.7; }
+  .hero .meta { margin-top: 24px; font-size: 12px; opacity: 0.8; font-family: var(--mono); }
+
+  /* ========= セクション ========= */
+  section { margin-bottom: 64px; scroll-margin-top: 20px; }
+  h2 {
+    font-size: 24px; margin: 0 0 8px;
+    padding-bottom: 10px; border-bottom: 3px solid var(--accent);
+    display: inline-block;
+  }
+  h2 .num {
+    display: inline-block; background: var(--accent); color: #fff;
+    padding: 2px 10px; border-radius: 4px; font-size: 14px;
+    margin-right: 10px; vertical-align: 3px;
+  }
+  h3 { font-size: 18px; margin: 32px 0 12px; color: var(--ink); }
+  h4 { font-size: 15px; margin: 20px 0 8px; color: var(--accent); }
+  p { margin: 0 0 14px; }
+
+  /* ========= カード・ボックス ========= */
+  .card {
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px 24px;
+    margin: 16px 0; box-shadow: var(--shadow);
+  }
+  .callout {
+    padding: 16px 20px; border-radius: 8px; margin: 16px 0;
+    border-left: 4px solid; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .callout.info { background: var(--accent-soft); border-color: var(--accent); }
+  .callout.warn { background: var(--warn-soft); border-color: var(--warn); }
+  .callout.ok   { background: var(--ok-soft);   border-color: var(--ok);   }
+  .callout .ico { font-size: 20px; line-height: 1.2; flex-shrink: 0; }
+  .callout .body { flex: 1; }
+  .callout .body strong { font-size: 14px; display: block; margin-bottom: 4px; }
+
+  /* ========= 比較表 ========= */
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    background: var(--paper); font-size: 14px;
+    box-shadow: var(--shadow); border-radius: 8px; overflow: hidden;
+  }
+  thead { background: var(--ink); color: #fff; }
+  thead th { padding: 12px 14px; text-align: left; font-weight: 600; font-size: 13px; letter-spacing: 0.02em; }
+  tbody tr { border-bottom: 1px solid var(--line); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:nth-child(even) { background: #fafbfc; }
+  tbody td { padding: 11px 14px; vertical-align: top; }
+  tbody td.lbl { font-weight: 600; color: var(--ink); white-space: nowrap; background: #f0f3f7; }
+  .tick { color: var(--ok); font-weight: 700; }
+  .cross { color: #c53030; font-weight: 700; }
+
+  /* ========= フロー図 ========= */
+  .flow {
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    margin: 24px 0; padding: 24px; background: #f9fafc;
+    border: 1px solid var(--line); border-radius: var(--radius);
+  }
+  .flow-box {
+    background: var(--paper); border: 2px solid var(--accent);
+    border-radius: 8px; padding: 14px 22px; min-width: 300px;
+    text-align: center; box-shadow: var(--shadow);
+    position: relative;
+  }
+  .flow-box.step { border-color: var(--accent); }
+  .flow-box.admin { border-color: var(--warn); background: var(--warn-soft); }
+  .flow-box.user { border-color: var(--ok); background: var(--ok-soft); }
+  .flow-box .title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .flow-box .desc { font-size: 12px; color: var(--ink-soft); }
+  .flow-arrow {
+    font-size: 20px; color: var(--muted); line-height: 1;
+    padding: 6px 0;
+  }
+
+  /* ========= 画面キャプチャ(SVGラッパ) ========= */
+  .screenshot {
+    margin: 20px 0; border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow-lg); border: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .screenshot .browser-chrome {
+    background: #e8eaed; padding: 8px 14px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #d1d5da;
+  }
+  .screenshot .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .screenshot .dot.r { background: #ff5f57; }
+  .screenshot .dot.y { background: #febc2e; }
+  .screenshot .dot.g { background: #28c840; }
+  .screenshot .url-bar {
+    flex: 1; background: #fff; border: 1px solid #c7cbd1; border-radius: 4px;
+    padding: 3px 10px; font-size: 11px; color: var(--muted); font-family: var(--mono);
+    margin-left: 10px;
+  }
+  .screenshot svg { display: block; width: 100%; height: auto; background: #f6f7f9; }
+  .caption {
+    text-align: center; font-size: 12px; color: var(--muted);
+    margin-top: 8px; margin-bottom: 20px; font-style: italic;
+  }
+
+  /* ========= 手順ステップ ========= */
+  .steps { counter-reset: step; margin: 20px 0; padding: 0; list-style: none; }
+  .steps > li {
+    counter-increment: step;
+    position: relative; padding-left: 56px; margin-bottom: 20px;
+    min-height: 42px;
+  }
+  .steps > li::before {
+    content: "STEP " counter(step);
+    position: absolute; left: 0; top: 0;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em;
+    flex-direction: column;
+  }
+  .steps > li .step-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; color: var(--ink); }
+  .steps > li .step-body { color: var(--ink-soft); font-size: 14px; }
+  .steps > li .step-body code {
+    background: var(--chip); padding: 1px 6px; border-radius: 3px;
+    font-family: var(--mono); font-size: 12px;
+  }
+
+  /* ========= Fact Grid ========= */
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 20px 0; }
+  .fact {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
+    padding: 16px; text-align: center; box-shadow: var(--shadow);
+  }
+  .fact .num { font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .fact .label { font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: 0.03em; }
+
+  /* ========= Chip ========= */
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--chip); font-size: 11px; margin-right: 4px; }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.info { background: var(--accent-soft); color: var(--accent); }
+
+  /* ========= KBD ========= */
+  kbd {
+    background: #f0f3f7; border: 1px solid #c7cbd1; border-bottom-width: 2px;
+    border-radius: 4px; padding: 1px 7px; font-family: var(--mono);
+    font-size: 12px; color: var(--ink); white-space: nowrap;
+  }
+
+  /* ========= フッター ========= */
+  footer {
+    text-align: center; padding: 32px; color: var(--muted);
+    font-size: 12px; border-top: 1px solid var(--line);
+    margin-top: 40px;
+  }
+
+  /* ========= 印刷 ========= */
+  @media print {
+    .shell { grid-template-columns: 1fr; }
+    nav.toc { display: none; }
+    .page { padding: 20px; }
+    .hero { margin: -20px -20px 20px; padding: 24px; }
+    section { page-break-inside: avoid; }
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    nav.toc { position: static; height: auto; }
+    .page { padding: 24px 20px; }
+    .hero { margin: -24px -20px 24px; padding: 32px 24px; }
+    .hero h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- =========== TOC =========== -->
+  <nav class="toc">
+    <h3>目次</h3>
+    <ol>
+      <li><a href="#s1">このシステムは何?</a></li>
+      <li><a href="#s2">こんな時に使います</a></li>
+      <li><a href="#s3">システム全体図</a></li>
+      <li><a href="#s4">URLとパスワード</a></li>
+      <li><a href="#s5">閲覧者の使い方</a></li>
+      <li><a href="#s6">管理者の使い方</a></li>
+      <li><a href="#s7">画面の見方(詳細)</a></li>
+      <li><a href="#s8">Excel出力の種類</a></li>
+      <li><a href="#s9">困ったときは</a></li>
+      <li><a href="#s10">FAQ</a></li>
+    </ol>
+  </nav>
+
+  <!-- =========== MAIN =========== -->
+  <main>
+    <div class="page">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="eyebrow">USER GUIDE</div>
+        <h1>受注データ検索システム<br>ユーザーガイド</h1>
+        <p class="lead">
+          型番・ペットネーム・受注Noでワンクリック検索。整形済みExcelを即ダウンロード。<br>
+          本資料は、はじめて本システムを使う方のための「全部入り」ガイドです。
+        </p>
+        <div class="meta">Version 2.0 &nbsp;·&nbsp; 2026-10-15 &nbsp;·&nbsp; 社内配布資料</div>
+      </div>
+
+      <!-- =========== 1. このシステムは何? =========== -->
+      <section id="s1">
+        <h2><span class="num">1</span>このシステムは何?</h2>
+        <p>
+          <strong>受注データ検索システム</strong> は、工場・業務部門が日々扱う
+          受注データと型番マスタを、ブラウザからワンクリックで横断検索し、整形済みのExcelを即出力するためのツールです。
+        </p>
+
+        <div class="facts">
+          <div class="fact"><div class="num">3</div><div class="label">検索条件(型番/pet/受注No)</div></div>
+          <div class="fact"><div class="num">8</div><div class="label">結果テーブル列数</div></div>
+          <div class="fact"><div class="num">18</div><div class="label">工程出力の整形列数</div></div>
+          <div class="fact"><div class="num">0</div><div class="label">インフラ費用(円)</div></div>
+        </div>
+
+        <h3>これまでの困りごと → 解決</h3>
+        <table>
+          <thead><tr><th style="width:50%">これまで</th><th>本システム導入後</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>受注csvをExcelで開き、VLOOKUPで型番マスタと突合</td>
+              <td><span class="tick">✓</span> ブラウザで型番・pet・受注Noを入力して即検索</td>
+            </tr>
+            <tr>
+              <td>Excel操作に慣れた人しかデータを扱えない(属人化)</td>
+              <td><span class="tick">✓</span> 誰でもURLを開くだけで検索可能</td>
+            </tr>
+            <tr>
+              <td>工程計画表に貼り直すたびに列調整が発生</td>
+              <td><span class="tick">✓</span> 整形済み18列Excelをワンクリック出力</td>
+            </tr>
+            <tr>
+              <td>最新データかどうか人によって持っているバージョンが違う</td>
+              <td><span class="tick">✓</span> 管理者が更新すれば、全員のブラウザが即最新に</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- =========== 2. こんな時に使います =========== -->
+      <section id="s2">
+        <h2><span class="num">2</span>こんな時に使います</h2>
+
+        <div class="facts" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+          <div class="card" style="margin:0;">
+            <h4 style="margin-top:0;">🔍 型番から受注を調べる</h4>
+            <p style="font-size:13px; margin:0;">「<code>EYE22B</code> という型番で、直近どの受注Noが入っているか知りたい」</p>
+          </div>
+          <div class="card" style="margin:0;">
+            <h4 style="margin-top:0;">🏷 ペットネームで一覧</h4>
+            <p style="font-size:13px; margin:0;">「販売中のあのシリーズに該当する受注を全部出したい」</p>
+          </div>
+          <div class="card" style="margin:0;">
+            <h4 style="margin-top:0;">📋 工程計画表を作る</h4>
+            <p style="font-size:13px; margin:0;">「製造部に渡す整形済みExcelを、列幅も含めて即生成したい」</p>
+          </div>
+          <div class="card" style="margin:0;">
+            <h4 style="margin-top:0;">⚠ アンマッチ型番を発見</h4>
+            <p style="font-size:13px; margin:0;">「対比表に載っていない新型番が受注に混ざっていないかチェック」</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========== 3. システム全体図 =========== -->
+      <section id="s3">
+        <h2><span class="num">3</span>システム全体図</h2>
+        <p>
+          本システムは、管理者が <strong>1箇所</strong>(Google Drive)にデータを置き、
+          閲覧者が <strong>URLでアクセス</strong>して検索するシンプルな構成です。
+        </p>
+
+        <div class="flow">
+          <div class="flow-box admin">
+            <div class="title">👤 管理者(1名)</div>
+            <div class="desc">受注csv・型番xlsxをアップロード</div>
+          </div>
+          <div class="flow-arrow">▼</div>
+          <div class="flow-box step">
+            <div class="title">☁ Google Apps Script Web App</div>
+            <div class="desc">認証 → データ加工 → 保存</div>
+          </div>
+          <div class="flow-arrow">▼</div>
+          <div class="flow-box step">
+            <div class="title">💾 Google Drive(data.json)</div>
+            <div class="desc">集中管理されたマスターデータ</div>
+          </div>
+          <div class="flow-arrow">▲▼</div>
+          <div class="flow-box user">
+            <div class="title">👥 閲覧者(社内20名)</div>
+            <div class="desc">URLでアクセス → 検索・Excel出力</div>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <div class="ico">💡</div>
+          <div class="body">
+            <strong>ポイント</strong>
+            閲覧者は <u>Googleアカウント不要</u>。URLとパスワードさえあればどのPC・どのブラウザからでも使えます。
+          </div>
+        </div>
+      </section>
+
+      <!-- =========== 4. URLとパスワード =========== -->
+      <section id="s4">
+        <h2><span class="num">4</span>URLとパスワード</h2>
+        <p>システムには<strong>2つのURL</strong>があります。役割が異なるので使い分けてください。</p>
+
+        <table>
+          <thead><tr><th>区分</th><th>URL</th><th>パスワード</th><th>できること</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="lbl">🙂 閲覧者</td>
+              <td><code>https://script.google.com/macros/s/xxxxx/exec</code></td>
+              <td>閲覧パスワード</td>
+              <td>検索・CSV/Excel出力</td>
+            </tr>
+            <tr>
+              <td class="lbl">🔑 管理者</td>
+              <td><code>https://script.google.com/macros/s/xxxxx/exec?admin=1</code></td>
+              <td>管理者パスワード</td>
+              <td>上記 + データ更新・Drive保存</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout warn">
+          <div class="ico">⚠</div>
+          <div class="body">
+            <strong>パスワードの管理</strong>
+            URLとパスワードは <u>社内限定</u> でお取り扱いください。外部に漏れると、誰でも受注データが閲覧できる状態になります。
+          </div>
+        </div>
+      </section>
+
+      <!-- =========== 5. 閲覧者の使い方 =========== -->
+      <section id="s5">
+        <h2><span class="num">5</span>閲覧者の使い方</h2>
+
+        <h3>5.1 ログインする</h3>
+        <ol class="steps">
+          <li>
+            <div class="step-title">閲覧者用URLをブラウザで開く</div>
+            <div class="step-body">管理者から配布されたURLを、ChromeまたはEdgeで開きます。</div>
+          </li>
+          <li>
+            <div class="step-title">パスワード入力画面が表示される</div>
+            <div class="step-body">初回のみ表示されます。閲覧パスワードを入力して <kbd>ログイン</kbd> をクリック。</div>
+          </li>
+          <li>
+            <div class="step-title">30日間はパスワード入力不要</div>
+            <div class="step-body">ブラウザが認証情報を記憶するため、同じPCの同じブラウザからは次回以降スキップされます。</div>
+          </li>
+        </ol>
+
+        <!-- 疑似キャプチャ: ログイン画面 -->
+        <div class="screenshot">
+          <div class="browser-chrome">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span class="url-bar">script.google.com/macros/s/xxxxx/exec</span>
+          </div>
+          <svg viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+            <rect width="800" height="420" fill="#f6f7f9"/>
+            <!-- Login card -->
+            <rect x="260" y="90" width="280" height="240" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+            <text x="400" y="135" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#1a2332">工程計画検索</text>
+            <text x="400" y="160" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#718096">閲覧パスワードを入力してください</text>
+            <!-- Input -->
+            <rect x="290" y="190" width="220" height="36" rx="4" fill="#f9fafc" stroke="#c7cbd1"/>
+            <text x="300" y="213" font-family="monospace" font-size="12" fill="#1a2332">● ● ● ● ● ● ● ●</text>
+            <!-- Button -->
+            <rect x="290" y="240" width="220" height="38" rx="4" fill="#2b6cb0"/>
+            <text x="400" y="264" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#fff">ログイン</text>
+          </svg>
+        </div>
+        <div class="caption">▲ 初回アクセス時のログイン画面</div>
+
+        <h3>5.2 検索する</h3>
+        <ol class="steps">
+          <li>
+            <div class="step-title">検索条件を入れる</div>
+            <div class="step-body">
+              <strong>型番</strong>(部分一致) /
+              <strong>ペットネーム</strong>(プルダウン) /
+              <strong>受注No</strong>(部分一致)の3つを、使いたいものだけ入れます。<br>
+              全部空欄のまま検索すると、全件表示されます。
+            </div>
+          </li>
+          <li>
+            <div class="step-title"><kbd>検索</kbd> ボタンをクリック(または <kbd>Enter</kbd>)</div>
+            <div class="step-body">テーブルに結果が即時表示されます。</div>
+          </li>
+          <li>
+            <div class="step-title">件数バッジを確認</div>
+            <div class="step-body">右上に「○○ 件」と表示されます。500件を超えた場合は先頭500件のみ表示されます(表示だけの話で、Excel出力は全件対象)。</div>
+          </li>
+        </ol>
+
+        <!-- 疑似キャプチャ: 検索結果画面 -->
+        <div class="screenshot">
+          <div class="browser-chrome">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span class="url-bar">script.google.com/macros/s/xxxxx/exec</span>
+          </div>
+          <svg viewBox="0 0 800 540" xmlns="http://www.w3.org/2000/svg">
+            <rect width="800" height="540" fill="#f6f7f9"/>
+            <!-- Header -->
+            <text x="30" y="40" font-family="sans-serif" font-size="20" font-weight="700" fill="#1a2332">工程計画検索</text>
+            <text x="30" y="58" font-family="sans-serif" font-size="11" fill="#718096">型番・ペットネーム・受注Noで絞り込み</text>
+            <text x="770" y="40" text-anchor="end" font-family="sans-serif" font-size="11" fill="#4a5568">受注 <tspan font-weight="700" fill="#1a2332">8,432</tspan> 件  型番マスタ <tspan font-weight="700" fill="#1a2332">1,205</tspan> 件</text>
+
+            <!-- Freshness bar -->
+            <rect x="30" y="78" width="740" height="30" rx="6" fill="#ebf4fb" stroke="#2b6cb0" stroke-width="1" stroke-opacity="0.3"/>
+            <text x="46" y="97" font-family="sans-serif" font-size="11" fill="#2b6cb0" font-weight="600">受注データ</text>
+            <text x="120" y="97" font-family="monospace" font-size="11" fill="#1a2332">2026/10/15 09:30</text>
+            <text x="220" y="97" font-family="sans-serif" font-size="11" fill="#276749">本日</text>
+            <text x="260" y="97" font-family="monospace" font-size="10" fill="#718096">受注20261015.csv</text>
+            <text x="460" y="97" font-family="sans-serif" font-size="11" fill="#2b6cb0" font-weight="600">型番マスタ</text>
+            <text x="530" y="97" font-family="monospace" font-size="11" fill="#1a2332">2026/10/01 14:00</text>
+            <text x="630" y="97" font-family="sans-serif" font-size="11" fill="#718096">14日前</text>
+
+            <!-- Search card -->
+            <rect x="30" y="125" width="740" height="90" rx="8" fill="#fff" stroke="#e2e8f0"/>
+            <text x="46" y="150" font-family="sans-serif" font-size="11" font-weight="600" fill="#4a5568">型番</text>
+            <rect x="46" y="158" width="200" height="32" rx="4" fill="#f9fafc" stroke="#c7cbd1"/>
+            <text x="56" y="179" font-family="monospace" font-size="12" fill="#1a2332">EYE22B</text>
+
+            <text x="268" y="150" font-family="sans-serif" font-size="11" font-weight="600" fill="#4a5568">ペットネーム</text>
+            <rect x="268" y="158" width="200" height="32" rx="4" fill="#f9fafc" stroke="#c7cbd1"/>
+            <text x="278" y="179" font-family="sans-serif" font-size="12" fill="#1a2332">(すべて) ▼</text>
+
+            <text x="490" y="150" font-family="sans-serif" font-size="11" font-weight="600" fill="#4a5568">受注No</text>
+            <rect x="490" y="158" width="150" height="32" rx="4" fill="#f9fafc" stroke="#c7cbd1"/>
+
+            <rect x="658" y="158" width="100" height="32" rx="4" fill="#2b6cb0"/>
+            <text x="708" y="179" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#fff">🔍 検索</text>
+
+            <!-- Result card -->
+            <rect x="30" y="230" width="740" height="280" rx="8" fill="#fff" stroke="#e2e8f0"/>
+            <text x="46" y="256" font-family="sans-serif" font-size="14" font-weight="700" fill="#1a2332">検索結果</text>
+            <rect x="130" y="245" width="54" height="18" rx="9" fill="#ebf4fb"/>
+            <text x="157" y="258" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#2b6cb0" font-weight="700">24 件</text>
+
+            <!-- Export buttons -->
+            <rect x="520" y="243" width="60" height="24" rx="4" fill="#fff" stroke="#c7cbd1"/>
+            <text x="550" y="259" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#4a5568">↓ CSV</text>
+            <rect x="585" y="243" width="60" height="24" rx="4" fill="#fff" stroke="#c7cbd1"/>
+            <text x="615" y="259" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#4a5568">↓ Excel</text>
+            <rect x="650" y="243" width="110" height="24" rx="4" fill="#2b6cb0"/>
+            <text x="705" y="259" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">工程データExcel出力</text>
+
+            <!-- Table header -->
+            <rect x="46" y="280" width="708" height="26" fill="#1a2332"/>
+            <text x="56"  y="298" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">型番</text>
+            <text x="160" y="298" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">ペットネーム</text>
+            <text x="280" y="298" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">種別</text>
+            <text x="360" y="298" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">販売区分</text>
+            <text x="440" y="298" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">EYE/ITO</text>
+            <text x="530" y="298" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">数量</text>
+            <text x="600" y="298" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">納期回答日</text>
+            <text x="690" y="298" font-family="sans-serif" font-size="10" fill="#fff" font-weight="600">受注No</text>
+
+            <!-- Rows -->
+            <g font-family="monospace" font-size="10" fill="#1a2332">
+              <rect x="46" y="306" width="708" height="24" fill="#fff"/>
+              <text x="56" y="322">EYE22B-800040-1</text>
+              <text x="160" y="322" font-family="sans-serif">クリアビューN</text>
+              <text x="280" y="322" font-family="sans-serif">カラー</text>
+              <rect x="356" y="310" width="40" height="16" rx="8" fill="#edf2f7"/><text x="376" y="322" text-anchor="middle" font-family="sans-serif">A</text>
+              <rect x="436" y="310" width="40" height="16" rx="8" fill="#ebf4fb"/><text x="456" y="322" text-anchor="middle" font-family="sans-serif" fill="#2b6cb0">EYE</text>
+              <text x="548" y="322" text-anchor="end">120</text>
+              <text x="600" y="322">2026-10-20</text>
+              <text x="690" y="322">R-00012345</text>
+
+              <rect x="46" y="330" width="708" height="24" fill="#fafbfc"/>
+              <text x="56" y="346">EYE22B-800042-0</text>
+              <text x="160" y="346" font-family="sans-serif">クリアビューN</text>
+              <text x="280" y="346" font-family="sans-serif">カラー</text>
+              <rect x="356" y="334" width="40" height="16" rx="8" fill="#edf2f7"/><text x="376" y="346" text-anchor="middle" font-family="sans-serif">A</text>
+              <rect x="436" y="334" width="40" height="16" rx="8" fill="#fff5eb"/><text x="456" y="346" text-anchor="middle" font-family="sans-serif" fill="#c05621">ITO</text>
+              <text x="548" y="346" text-anchor="end">80</text>
+              <text x="600" y="346">2026-10-22</text>
+              <text x="690" y="346">R-00012356</text>
+
+              <rect x="46" y="354" width="708" height="24" fill="#fff"/>
+              <text x="56" y="370">EYE22B-800043-1</text>
+              <text x="160" y="370" font-family="sans-serif">クリアビューS</text>
+              <text x="280" y="370" font-family="sans-serif">クリア</text>
+              <rect x="356" y="358" width="40" height="16" rx="8" fill="#edf2f7"/><text x="376" y="370" text-anchor="middle" font-family="sans-serif">B</text>
+              <rect x="436" y="358" width="40" height="16" rx="8" fill="#ebf4fb"/><text x="456" y="370" text-anchor="middle" font-family="sans-serif" fill="#2b6cb0">EYE</text>
+              <text x="548" y="370" text-anchor="end">60</text>
+              <text x="600" y="370">2026-10-25</text>
+              <text x="690" y="370">R-00012389</text>
+
+              <rect x="46" y="378" width="708" height="24" fill="#fafbfc"/>
+              <text x="56" y="394" fill="#718096">...</text>
+            </g>
+          </svg>
+        </div>
+        <div class="caption">▲ 検索結果画面(型番「EYE22B」で絞り込み・24件該当)</div>
+
+        <h3>5.3 結果をダウンロードする</h3>
+        <p>検索結果右上の3つのボタンから、用途に応じて選びます:</p>
+        <table>
+          <thead><tr><th>ボタン</th><th>内容</th><th>こんな時に</th></tr></thead>
+          <tbody>
+            <tr><td><strong>↓ CSV</strong></td><td>表示中の列を素直にCSV化</td><td>別システムへ取り込む / テキスト加工する</td></tr>
+            <tr><td><strong>↓ Excel</strong></td><td>表示中の列をxlsx化(簡易)</td><td>検索結果をそのまま誰かに渡す</td></tr>
+            <tr><td><strong>工程データExcel出力</strong></td><td><b>全受注データ</b>を整形済み18列xlsxで出力(スタイル付き)</td><td>製造部門向けの工程計画表を作る</td></tr>
+          </tbody>
+        </table>
+        <div class="callout info">
+          <div class="ico">💡</div>
+          <div class="body">
+            <strong>工程データExcel出力は検索結果ではなく全件対象</strong>
+            このボタンは「現在読み込まれているデータ全部」を整形出力します。<br>
+            列幅自動調整・ヘッダー着色・ウィンドウ枠固定・オートフィルタ付きで、そのまま配布可能な形式です。
+          </div>
+        </div>
+      </section>
+
+      <!-- =========== 6. 管理者の使い方 =========== -->
+      <section id="s6">
+        <h2><span class="num">6</span>管理者の使い方</h2>
+        <p>管理者は、新しい受注csv・型番xlsxが届いたら、以下の<strong>3ステップ</strong>で全員に反映できます。</p>
+
+        <div class="flow">
+          <div class="flow-box admin">
+            <div class="title">STEP 1</div>
+            <div class="desc">管理者URLを開く → 管理者パスワード入力</div>
+          </div>
+          <div class="flow-arrow">▼</div>
+          <div class="flow-box admin">
+            <div class="title">STEP 2</div>
+            <div class="desc">ファイルをドラッグ&ドロップ → 「取り込み実行」</div>
+          </div>
+          <div class="flow-arrow">▼</div>
+          <div class="flow-box admin">
+            <div class="title">STEP 3</div>
+            <div class="desc">「💾 Google Driveに保存」をクリック → 完了</div>
+          </div>
+        </div>
+
+        <h3>6.1 ログインする</h3>
+        <ol class="steps">
+          <li>
+            <div class="step-title">管理者用URL(末尾に <code>?admin=1</code>)を開く</div>
+            <div class="step-body">閲覧者用と間違えないようにブックマーク推奨。</div>
+          </li>
+          <li>
+            <div class="step-title">プロンプトで管理者パスワードを入力</div>
+            <div class="step-body">ブラウザのポップアップが出るので、閲覧用とは<strong>別</strong>の管理者パスワードを入力します。</div>
+          </li>
+          <li>
+            <div class="step-title">画面上部に「ログイン中: 管理者 (パスワード認証済み)」と出ればOK</div>
+            <div class="step-body">以降、保存操作が有効になります。</div>
+          </li>
+        </ol>
+
+        <h3>6.2 データを更新する</h3>
+
+        <!-- 擬似キャプチャ: アップロード画面 -->
+        <div class="screenshot">
+          <div class="browser-chrome">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span class="url-bar">script.google.com/macros/s/xxxxx/exec?admin=1</span>
+          </div>
+          <svg viewBox="0 0 800 460" xmlns="http://www.w3.org/2000/svg">
+            <rect width="800" height="460" fill="#f6f7f9"/>
+            <!-- Header -->
+            <text x="30" y="36" font-family="sans-serif" font-size="18" font-weight="700" fill="#1a2332">工程計画検索</text>
+            <rect x="190" y="22" width="56" height="18" rx="9" fill="#c05621"/>
+            <text x="218" y="35" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#fff" font-weight="700">管理者</text>
+            <text x="30" y="54" font-family="sans-serif" font-size="11" fill="#718096">アップロード → 自動整形 → Google Drive の data.json に保存</text>
+
+            <!-- Admin info -->
+            <rect x="30" y="68" width="740" height="26" rx="4" fill="#edf2f7"/>
+            <text x="42" y="86" font-family="monospace" font-size="11" fill="#1a2332">ログイン中: <tspan fill="#c05621" font-weight="700">管理者</tspan> (パスワード認証済み)</text>
+
+            <!-- Upload panel -->
+            <rect x="30" y="110" width="740" height="320" rx="8" fill="#fff" stroke="#e2e8f0"/>
+            <text x="46" y="134" font-family="sans-serif" font-size="13" font-weight="700" fill="#1a2332">▼ データを更新する(ファイルアップロード)</text>
+
+            <!-- Drop zones -->
+            <rect x="46" y="150" width="340" height="110" rx="6" fill="#f9fafc" stroke="#2b6cb0" stroke-dasharray="4,3"/>
+            <text x="216" y="180" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="#1a2332">受注データ オリジナル (csv / xls)</text>
+            <text x="216" y="200" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#718096">クリックして選択 または ドラッグ&ドロップ</text>
+            <text x="216" y="230" text-anchor="middle" font-family="monospace" font-size="11" fill="#276749" font-weight="700">✓ 受注20261015.csv (420.3 KB)</text>
+
+            <rect x="414" y="150" width="340" height="110" rx="6" fill="#f9fafc" stroke="#2b6cb0" stroke-dasharray="4,3"/>
+            <text x="584" y="180" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="#1a2332">型番/ペットネーム対比表 xlsx</text>
+            <text x="584" y="200" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#718096">クリックして選択 または ドラッグ&ドロップ</text>
+            <text x="584" y="217" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#718096">「全型番とペットネーム」シートのみ読込</text>
+
+            <!-- Buttons -->
+            <rect x="46" y="280" width="200" height="36" rx="4" fill="#2b6cb0"/>
+            <text x="146" y="302" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="#fff">取り込み実行</text>
+
+            <rect x="256" y="280" width="150" height="36" rx="4" fill="#fff" stroke="#c7cbd1"/>
+            <text x="331" y="302" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#4a5568">アンマッチ情報出力</text>
+
+            <rect x="590" y="280" width="164" height="36" rx="4" fill="#276749"/>
+            <text x="672" y="302" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="#fff">💾 Google Driveに保存</text>
+
+            <!-- Save hint (success) -->
+            <rect x="46" y="332" width="708" height="40" rx="4" fill="#e6f4ea" stroke="#276749" stroke-opacity="0.5"/>
+            <text x="60" y="357" font-family="sans-serif" font-size="12" fill="#276749" font-weight="600">✓ Google Drive上の data.json を更新しました。一般ユーザーは次回ブラウザリロードで新データを見られます。</text>
+
+            <!-- Status -->
+            <text x="46" y="402" font-family="sans-serif" font-size="11" fill="#276749" font-weight="600">✓ 取り込み完了: 型番マスタ更新 1,205件 / 受注 8,432件</text>
+          </svg>
+        </div>
+        <div class="caption">▲ 管理者画面(アップロード〜保存完了まで)</div>
+
+        <ol class="steps">
+          <li>
+            <div class="step-title">左のゾーンに受注csv/xlsをドラッグ&ドロップ</div>
+            <div class="step-body">「オリジナル」の受注ファイルをそのまま入れればOK。自動で整形されます。</div>
+          </li>
+          <li>
+            <div class="step-title">(必要なら)右に型番マスタxlsxをドラッグ&ドロップ</div>
+            <div class="step-body">対比表xlsxは<strong>アップロードした時のみ更新</strong>されます。普段は空のままで構いません。</div>
+          </li>
+          <li>
+            <div class="step-title"><kbd>取り込み実行</kbd> をクリック</div>
+            <div class="step-body">内部データが新しいファイルの内容に置き換わります。この時点ではまだブラウザメモリ上の変更です。</div>
+          </li>
+          <li>
+            <div class="step-title">アンマッチ警告が出たら確認</div>
+            <div class="step-body">対比表に載っていない新型番があれば警告バナーが出ます。 <kbd>アンマッチ情報出力</kbd> でCSVダウンロード可能。</div>
+          </li>
+          <li>
+            <div class="step-title"><kbd>💾 Google Driveに保存</kbd> をクリック</div>
+            <div class="step-body">これで初めてサーバー側に反映されます。緑のメッセージが出れば成功。</div>
+          </li>
+        </ol>
+
+        <div class="callout warn">
+          <div class="ico">⚠</div>
+          <div class="body">
+            <strong>「取り込み実行」だけでは全員には反映されません</strong>
+            必ず最後に <kbd>💾 Google Driveに保存</kbd> まで実行してください。保存を忘れると、ブラウザを閉じた時点で変更内容が消えます。
+          </div>
+        </div>
+      </section>
+
+      <!-- =========== 7. 画面の見方(詳細) =========== -->
+      <section id="s7">
+        <h2><span class="num">7</span>画面の見方(詳細)</h2>
+
+        <h3>7.1 データ鮮度バー</h3>
+        <p>画面上部に表示される帯で、<strong>データが最後にいつ更新されたか</strong>が一目で分かります。</p>
+        <table>
+          <thead><tr><th>表示項目</th><th>意味</th></tr></thead>
+          <tbody>
+            <tr><td class="lbl">受注データ / 型番マスタ</td><td>どちらの最終更新日かのラベル</td></tr>
+            <tr><td class="lbl">日付</td><td>管理者がアップロードしたファイルの最終更新日時</td></tr>
+            <tr><td class="lbl">本日 / N日前</td><td>現在からの経過。 <span class="chip warn">7日以上前はオレンジ強調</span></td></tr>
+            <tr><td class="lbl">ファイル名</td><td>取り込んだ元ファイル名(トレーサビリティ用)</td></tr>
+          </tbody>
+        </table>
+
+        <h3>7.2 結果テーブルの列</h3>
+        <table>
+          <thead><tr><th>列名</th><th>由来</th><th>備考</th></tr></thead>
+          <tbody>
+            <tr><td class="lbl">型番</td><td>受注データの型番フィールド</td><td>部分一致の検索対象</td></tr>
+            <tr><td class="lbl">ペットネーム</td><td>型番マスタから引き当て</td><td>対比表にない型番は空欄</td></tr>
+            <tr><td class="lbl">種別</td><td>型番マスタ</td><td>カラー / クリア 等</td></tr>
+            <tr><td class="lbl">販売区分</td><td>型番マスタ</td><td>A / B / C など</td></tr>
+            <tr><td class="lbl">EYE/ITO</td><td>型番マスタまたは自動判定</td><td><span class="chip info">EYE</span> <span class="chip warn">ITO</span> で色分け</td></tr>
+            <tr><td class="lbl">数量</td><td>受注データ</td><td>右寄せ数値</td></tr>
+            <tr><td class="lbl">納期回答日</td><td>受注データ</td><td>YYYY-MM-DD 表示</td></tr>
+            <tr><td class="lbl">受注No</td><td>受注データ</td><td>部分一致の検索対象</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- =========== 8. Excel出力の種類 =========== -->
+      <section id="s8">
+        <h2><span class="num">8</span>Excel出力の種類</h2>
+        <p>目的別に<strong>3種類のダウンロード</strong>があります。使い分けを下表で確認してください。</p>
+
+        <table>
+          <thead>
+            <tr><th>種類</th><th>対象</th><th>列数</th><th>スタイル</th><th>想定用途</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="lbl">↓ CSV</td>
+              <td>検索結果のみ</td>
+              <td>8列</td>
+              <td>プレーン(UTF-8 BOM)</td>
+              <td>別システム取込・テキスト加工</td>
+            </tr>
+            <tr>
+              <td class="lbl">↓ Excel</td>
+              <td>検索結果のみ</td>
+              <td>8列</td>
+              <td>簡易(列幅のみ)</td>
+              <td>検索結果の共有・報告</td>
+            </tr>
+            <tr>
+              <td class="lbl">工程データExcel出力</td>
+              <td><strong>全受注データ</strong></td>
+              <td>18列</td>
+              <td>スタイル付き(※)</td>
+              <td>工程計画表・製造部門配布</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px; color:var(--muted);">
+          ※ 工程データExcel出力のスタイル詳細: ヘッダー着色(薄青)・ヘッダー太字中央寄せ・列幅自動調整・ウィンドウ枠固定(1行目)・オートフィルタ・EYE/ITO自動判定(列13末尾1桁)・ITOの場合は営Cコードを<code>2050</code>に自動変換。
+        </p>
+
+        <h4>ファイル名ルール</h4>
+        <p>すべて <strong>日付・時刻・検索条件</strong> が自動で入ります。</p>
+        <ul>
+          <li><code>工程計画_20261015_1620.csv</code> ... 検索条件なし</li>
+          <li><code>工程計画_20261015_1620_型番=EYE22B.csv</code> ... 型番で絞り込み</li>
+          <li><code>受注20261015_整形済.xlsx</code> ... 工程データExcel出力(元ファイル名+「_整形済」)</li>
+        </ul>
+      </section>
+
+      <!-- =========== 9. 困ったときは =========== -->
+      <section id="s9">
+        <h2><span class="num">9</span>困ったときは</h2>
+
+        <table>
+          <thead><tr><th>症状</th><th>対処</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="lbl">パスワードを忘れた</td>
+              <td>管理者に連絡してください。管理者がスクリプトプロパティで再設定できます。</td>
+            </tr>
+            <tr>
+              <td class="lbl">Chromeで「アドレスを確認してもう一度お試しください」と出る</td>
+              <td>Chromeのサードパーティ Cookie 制限が原因。次のいずれか:<br>
+                ① <code>chrome://settings/cookies</code> → 常に使用できるサイトに <code>[*.]google.com</code> と <code>[*.]googleusercontent.com</code> を追加<br>
+                ② <strong>Microsoft Edgeで開く</strong>(一番簡単)
+              </td>
+            </tr>
+            <tr>
+              <td class="lbl">「Googleによって確認されていません」警告</td>
+              <td>管理者が初回アクセス時のみ表示。「詳細」→「(安全でないページに移動)」で通過。閲覧者には表示されません。</td>
+            </tr>
+            <tr>
+              <td class="lbl">検索しても何も出ない</td>
+              <td>検索条件を一度全部クリアして再検索。それでも出ない場合は、画面上部の「受注〇〇件」が0件になっていないか確認。</td>
+            </tr>
+            <tr>
+              <td class="lbl">データが古い気がする</td>
+              <td>ブラウザを <kbd>Ctrl</kbd>+<kbd>F5</kbd> で強制リロード。それでも古い場合は管理者に最終更新日を確認。</td>
+            </tr>
+            <tr>
+              <td class="lbl">(管理者)「取り込み実行」したのに閲覧者に反映されない</td>
+              <td>最後に <kbd>💾 Google Driveに保存</kbd> を押しましたか?これを押さないとサーバー側には反映されません。</td>
+            </tr>
+            <tr>
+              <td class="lbl">(管理者)「保存エラー: 管理者パスワードが違います」</td>
+              <td>ブラウザのセッションが切れた可能性。ページを再読み込みして、プロンプトで再度パスワードを入力してください。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- =========== 10. FAQ =========== -->
+      <section id="s10">
+        <h2><span class="num">10</span>FAQ</h2>
+
+        <div class="card">
+          <h4>Q1. Googleアカウントが無くても使えますか?</h4>
+          <p>はい、閲覧者はGoogleアカウント不要です。URLとパスワードさえあれば、どのPC・どのブラウザからでもアクセスできます(ChromeとEdge推奨)。</p>
+        </div>
+
+        <div class="card">
+          <h4>Q2. スマートフォンから見られますか?</h4>
+          <p>見ることは可能ですが、画面が狭くテーブルが見づらいため、PCでの利用を推奨します。</p>
+        </div>
+
+        <div class="card">
+          <h4>Q3. 複数人が同時に検索しても問題ありませんか?</h4>
+          <p>問題ありません。閲覧操作は並列実行されます。ただし、管理者による「Google Driveに保存」は<strong>1名のみ</strong>が行う運用にしてください(同時に複数の管理者が更新すると、後から保存した方の内容で上書きされます)。</p>
+        </div>
+
+        <div class="card">
+          <h4>Q4. データはどこに保存されていますか?</h4>
+          <p>管理者のGoogleドライブ内の <code>data.json</code> ファイルです。社外のサーバーには一切保存されていません。</p>
+        </div>
+
+        <div class="card">
+          <h4>Q5. 月々の費用はかかりますか?</h4>
+          <p>かかりません。Google Apps Scriptの無料枠(個人Gmailで 20,000回/日、90分/日)内で運用可能です。</p>
+        </div>
+
+        <div class="card">
+          <h4>Q6. 検索結果が「先頭500件を表示」と出ます。全件見るには?</h4>
+          <p>検索条件をさらに絞って500件以内にしてください。<br>
+          または、絞り込まずに <kbd>工程データExcel出力</kbd> をクリックすれば<strong>全件が1ファイルに</strong>出力されます。</p>
+        </div>
+
+        <div class="card">
+          <h4>Q7. 以前見られたパスワードが突然効かなくなった</h4>
+          <p>管理者がパスワードを変更した可能性があります。管理者に新しいパスワードを問い合わせてください。</p>
+        </div>
+
+        <div class="card">
+          <h4>Q8. オフラインで使えますか?</h4>
+          <p>GAS版はインターネット接続が必須です。オフライン運用が必要な場合は、別途「ブラウザ版(単独起動版)」を管理者から入手してください。</p>
+        </div>
+      </section>
+
+      <footer>
+        受注データ検索システム — ユーザーガイド v2.0<br>
+        発行: 2026-10-15 &nbsp;·&nbsp; 社内配布資料
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 最終更新: 202610152348 (yyyymmddhhmm)。index.html を更新した際は、フッター左側の番号とこのコメントを同じ日時(更新日時)に揃えて更新すること。 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -278,6 +279,14 @@
   }
   .tile .tile-doc:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.55); outline-offset: 2px; }
 
+  /* 複数の pill ボタンを右上に配置するラッパー（列方向・右揃え） */
+  .tile .tile-docs {
+    position: absolute; top: 12px; right: 12px; z-index: 5;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  }
+  .tile .tile-docs .tile-doc-row { display: flex; align-items: center; gap: 6px; }
+  .tile .tile-docs .tile-doc { position: static; top: auto; right: auto; }
+
   .tile:hover {
     transform: translateY(-4px) scale(1.012);
     background: var(--glass-strong);
@@ -537,11 +546,25 @@
             <span>Sales</span>
           </div>
         </div>
-        <a class="tile-doc" target="_blank" rel="noopener"
-           href="./1_kenmeijouhou/presentation.html">
-          概要説明
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
-        </a>
+        <div class="tile-docs">
+          <div class="tile-doc-row">
+            <a class="tile-doc" target="_blank" rel="noopener"
+               href="./1_kenmeijouhou/generaloverview.html">
+              あらまし説明
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+            </a>
+            <a class="tile-doc" target="_blank" rel="noopener"
+               href="./1_kenmeijouhou/presentation.html">
+              概要説明
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+            </a>
+          </div>
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./1_kenmeijouhou/manual.html">
+            操作説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+        </div>
       </div>
 
       <div class="tile" data-keywords="工程計画 検索 全工程 簡易 バナー ホスト">
@@ -571,11 +594,18 @@
             <span>Sales</span>
           </div>
         </div>
-        <a class="tile-doc" target="_blank" rel="noopener"
-           href="./2_kouteikennsaku/presentation.html">
-          概要説明
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
-        </a>
+        <div class="tile-docs">
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./2_kouteikennsaku/presentation.html">
+            概要説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./2_kouteikennsaku/manual.html">
+            操作説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+        </div>
       </div>
     </div>
   </section>
@@ -589,10 +619,13 @@
     </div>
     <div class="grid">
 
-      <a class="tile" href="./3_zaikokensaku/index.html" target="_blank" rel="noopener"
+      <div class="tile"
          data-keywords="在庫 製品 ペットネーム 実残 フリー 引当 月曜 更新">
         <span class="ring"></span>
         <div class="body">
+          <a class="tile-stretch" target="_blank" rel="noopener"
+             aria-label="製品在庫検索・集計を開く"
+             href="./3_zaikokensaku/index.html"></a>
           <div class="icon-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <path d="M3 7 L12 3 L21 7 V17 L12 21 L3 17 Z" stroke-linejoin="round"/>
@@ -609,12 +642,27 @@
             <span>Shared</span>
           </div>
         </div>
-      </a>
+        <div class="tile-docs">
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./3_zaikokensaku/presentation.html">
+            概要説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./3_zaikokensaku/manual.html">
+            操作説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+        </div>
+      </div>
 
-      <a class="tile" href="./4_kachimake/index.html" target="_blank" rel="noopener"
+      <div class="tile"
          data-keywords="在庫 生産計画 件名 需要 供給 勝ち負け ペットネーム 立案済">
         <span class="ring"></span>
         <div class="body">
+          <a class="tile-stretch" target="_blank" rel="noopener"
+             aria-label="在庫・生産計画と件名需要：勝ち負け表を開く"
+             href="./4_kachimake/index.html"></a>
           <div class="icon-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <path d="M12 4 V20 M6 20 H18"/>
@@ -632,7 +680,19 @@
             <span>Shared</span>
           </div>
         </div>
-      </a>
+        <div class="tile-docs">
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./4_kachimake/presentation.html">
+            概要説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./4_kachimake/manual.html">
+            操作説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -645,10 +705,13 @@
     </div>
     <div class="grid">
 
-      <a class="tile" href="./5_jucyuusyuukei/index.html" target="_blank" rel="noopener"
+      <div class="tile"
          data-keywords="工程計画 受注データ 集計 切り口 製造">
         <span class="ring"></span>
         <div class="body">
+          <a class="tile-stretch" target="_blank" rel="noopener"
+             aria-label="工程計画（受注データ）集計を開く"
+             href="./5_jucyuusyuukei/index.html"></a>
           <div class="icon-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <path d="M4 20 H20"/>
@@ -666,12 +729,27 @@
             <span>Manufacturing</span>
           </div>
         </div>
-      </a>
+        <div class="tile-docs">
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./5_jucyuusyuukei/presentation.html">
+            概要説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./5_jucyuusyuukei/manual.html">
+            操作説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+        </div>
+      </div>
 
-      <a class="tile tile--parent" href="./6_jidoukeikakurituann/index.html" target="_blank" rel="noopener"
+      <div class="tile tile--parent"
          data-keywords="生産計画 自動立案 需要 在庫 立案済 案 参考 人間系 追加">
         <span class="ring"></span>
         <div class="body">
+          <a class="tile-stretch" target="_blank" rel="noopener"
+             aria-label="生産計画【案】自動立案を開く"
+             href="./6_jidoukeikakurituann/index.html"></a>
           <div class="icon-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <path d="M12 8 a4 4 0 1 0 4 4 M12 4 V2 M12 22 V20 M4.9 4.9 L3.5 3.5 M19.1 19.1 L20.5 20.5 M2 12 H4 M20 12 H22 M4.9 19.1 L3.5 20.5 M19.1 4.9 L20.5 3.5" stroke-linejoin="round"/>
@@ -688,7 +766,19 @@
             <span>Production</span>
           </div>
         </div>
-      </a>
+        <div class="tile-docs">
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./6_jidoukeikakurituann/presentation.html">
+            概要説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+          <a class="tile-doc" target="_blank" rel="noopener"
+             href="./6_jidoukeikakurituann/manual.html">
+            操作説明
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+          </a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -697,9 +787,9 @@
 </main>
 
 <footer class="bottom">
-  <div>© 2026 伊東電機株式会社 謹製 — 白金ブランド 製販連携 業務ポータル 202610151804</div>
+  <div>© 2026 伊東電機株式会社 謹製 — 白金ブランド 製販連携 業務ポータル 202610152348</div>
   <div class="doc-links">
-    <a href="./presentation.html" target="_blank" rel="noopener">
+    <a href="https://iwasaki365-my.sharepoint.com/:u:/g/personal/ogawa-takumi_eye_co_jp/IQDpVBzvzSviTr3XAuz3fLXhAbQCjEF2WZx0rTByGXpszZs?e=alHgIE" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M8 6 H16 M7 7.6 L11 16.4 M17 7.6 L13 16.4"/></svg>
       業務フロー説明ドキュメント
     </a>
