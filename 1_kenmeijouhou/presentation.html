@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>件名情報 登録・管理システム v7 ― 概要・仕組みガイド</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/white.css" id="theme">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/monokai.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+
+<style>
+  :root{
+    --accent:#1a56db; --accent2:#3b82f6; --ok:#15803d; --warn:#b45309; --err:#b91c1c;
+    --bg:#f0f4fb; --card:#ffffff; --line:#d7e0ee; --txt:#1f2937; --sub:#6b7280;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Noto Sans JP", sans-serif; }
+  .reveal { font-family: "Noto Sans JP", sans-serif; color: var(--txt); }
+  .reveal .slides { text-align: left; }
+  .reveal h1, .reveal h2, .reveal h3, .reveal h4 { font-family: "Noto Sans JP", sans-serif; font-weight: 900; color: var(--accent); text-transform: none; }
+  .reveal h1 { font-size: 2.1em; }
+  .reveal h2 { font-size: 1.5em; border-bottom: 4px solid var(--accent2); padding-bottom: 0.25em; margin-bottom: 0.6em; }
+  .reveal h3 { font-size: 1.05em; color: var(--txt); }
+  .reveal p, .reveal li { font-size: 0.68em; line-height: 1.55; }
+  .reveal ul, .reveal ol { display:block; margin-left: 0.6em; }
+  .reveal section { padding: 20px 10px; }
+
+  .title-slide { text-align:center; }
+  .title-slide .badge { display:inline-block; background:var(--accent); color:#fff; padding:6px 18px; border-radius:20px; font-size:0.5em; font-weight:700; margin-bottom:20px; letter-spacing:0.05em;}
+  .title-slide h1 { font-size:1.7em; margin-bottom: 0.2em; }
+  .title-slide .sub { color: var(--sub); font-size:0.75em; margin-top: 0.6em; }
+  .title-slide .company { margin-top: 2em; font-size: 0.6em; color: var(--sub); }
+
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .grid5 { display:grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
+
+  .card { background: var(--card); border:1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(30,60,120,0.06); }
+  .card h3 { margin-top:0; font-size: 0.95em; display:flex; align-items:center; gap:8px; }
+  .card h3 i { color: var(--accent2); }
+  .card p, .card li { font-size: 0.62em; margin: 0.25em 0; }
+
+  .tab-card { background: var(--card); border:1px solid var(--line); border-radius: 14px; padding: 12px 8px; text-align:center; min-width:0; }
+  .tab-card .num { font-size: 1.6em; font-weight:900; color: var(--accent); }
+  .tab-card .ti { font-size: 0.62em; font-weight:700; margin: 6px 0 4px; }
+  .tab-card .de { font-size: 0.5em; color: var(--sub); }
+  .tab-card i { font-size: 1.3em; color: var(--accent2); margin-bottom: 6px; display:block; }
+
+  .pill { display:inline-block; background: #eef3fd; color: var(--accent); border-radius: 999px; padding: 3px 12px; font-size:0.55em; font-weight:700; margin: 2px 4px 2px 0; }
+  .pill.ok { background:#eafaf0; color: var(--ok); }
+  .pill.warn { background:#fff6e8; color: var(--warn); }
+  .pill.err { background:#fdecec; color: var(--err); }
+
+  .flow { display:flex; align-items:center; justify-content:center; gap: 10px; flex-wrap:wrap; margin: 20px 0; }
+  .flow .box { background: var(--card); border:2px solid var(--accent2); border-radius: 12px; padding: 14px 18px; text-align:center; font-size:0.62em; font-weight:700; min-width: 140px; }
+  .flow .box.srv { border-color: var(--ok); color: var(--ok); }
+  .flow .box.warnbox { border-color: var(--warn); color: var(--warn); }
+  .flow .arrow { font-size: 1.4em; color: var(--sub); }
+
+  .note-box { background:#fffbea; border-left:5px solid var(--warn); padding: 10px 16px; border-radius: 6px; margin-top: 14px; }
+  .note-box p { margin:0; font-size:0.58em; color:#78350f; }
+
+  .ok-box { background:#f0fdf4; border-left:5px solid var(--ok); padding: 10px 16px; border-radius: 6px; margin-top: 14px; }
+  .ok-box p { margin:0; font-size:0.58em; color:#14532d; }
+
+  .step { display:flex; gap: 14px; align-items:flex-start; margin: 10px 0; }
+  .step .n { flex-shrink:0; width: 32px; height:32px; border-radius:50%; background: var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.65em; }
+  .step .c { font-size:0.62em; padding-top:4px; }
+  .step .c b { color: var(--accent); }
+
+  table.simple { width:100%; border-collapse: collapse; font-size: 0.58em; }
+  table.simple th { background: var(--accent); color:#fff; padding: 8px 10px; text-align:left; }
+  table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  table.simple tr:nth-child(even) { background: #f7faff; }
+
+  .footer-mini { position:absolute; bottom:8px; right:18px; font-size:0.4em; color:#9ca3af; }
+  .kicker { font-size:0.55em; color: var(--sub); font-weight:700; letter-spacing:0.05em; margin-bottom:6px; display:block; }
+
+  .lock-diagram { display:flex; justify-content:center; gap: 30px; margin: 20px 0; }
+  .lock-diagram .user { text-align:center; font-size:0.6em; }
+  .lock-diagram .user .av { width:50px; height:50px; border-radius:50%; background:var(--accent2); color:#fff; display:flex; align-items:center; justify-content:center; margin:0 auto 6px; font-size:1.2em;}
+
+  .two-col-img { display:flex; gap: 16px; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+  <!-- 1. タイトル -->
+  <section class="title-slide">
+    <div class="badge">伊東電機販売社 様</div>
+    <h1>件名情報 登録・管理システム v7</h1>
+    <p class="sub">はじめての方向け　概要・仕組みガイド</p>
+    <div style="margin-top:40px; font-size:3em; color:var(--accent2);">
+      <i class="fa-solid fa-clipboard-list"></i>
+    </div>
+    <p class="company">件名（案件）情報の登録・需要集計・分析・複数人共有をまとめて行う業務支援ツール</p>
+  </section>
+
+  <!-- 2. このシステムは何？ -->
+  <section>
+    <h2><i class="fa-solid fa-circle-info"></i> このシステムは何？</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-bullseye"></i> 目的</h3>
+        <ul>
+          <li>営業担当ごとの「件名（案件）」情報を一元管理</li>
+          <li>各件名に紐づく製品明細（ペットネーム・数量・手配状況）を管理</li>
+          <li>需要の集計・受注状況の分析を自動化</li>
+          <li>複数人での情報共有を可能にする（オプション機能）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-laptop-code"></i> 技術的な特徴</h3>
+        <ul>
+          <li>ブラウザだけで動く「静的Webアプリ」（単一HTMLファイル）</li>
+          <li>サーバー不要・インストール不要、URLを開くだけ</li>
+          <li>通常はブラウザの中にデータを保存（<b>localStorage</b>）</li>
+          <li>必要に応じて Google Apps Script（GAS）と連携し、複数人でデータ共有も可能</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 全体構成：5つのタブ -->
+  <section>
+    <h2><i class="fa-solid fa-table-columns"></i> 全体構成：5つのタブ</h2>
+    <div class="grid5">
+      <div class="tab-card"><i class="fa-solid fa-list-check"></i><div class="num">①</div><div class="ti">件名一覧<br>登録/修正</div><div class="de">案件・明細の登録と編集</div></div>
+      <div class="tab-card"><i class="fa-solid fa-table-cells"></i><div class="num">②</div><div class="ti">需要集計<br>一覧表</div><div class="de">ペット×月のクロス集計</div></div>
+      <div class="tab-card"><i class="fa-solid fa-chart-pie"></i><div class="num">③</div><div class="ti">分析<br>ダッシュボード</div><div class="de">グラフ・KPI・要注意リスト</div></div>
+      <div class="tab-card"><i class="fa-solid fa-cloud-arrow-up"></i><div class="num">④</div><div class="ti">サーバー<br>連携設定</div><div class="de">複数人共有（GAS）の設定</div></div>
+      <div class="tab-card"><i class="fa-solid fa-screwdriver-wrench"></i><div class="num">⑤</div><div class="ti">メンテ<br>ナンス</div><div class="de">マスタ編集・削除・管理者設定</div></div>
+    </div>
+    <div class="note-box" style="margin-top:28px;">
+      <p><i class="fa-solid fa-lightbulb"></i> ①②③は同じ検索条件（担当・納入予定月・受注確率・手配状況）で絞り込み可能。同じデータを異なる切り口で見られます。</p>
+    </div>
+  </section>
+
+  <!-- 4. ①件名一覧・登録/修正 -->
+  <section>
+    <h2><span class="kicker">TAB ①</span>件名一覧・登録/修正</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-pen-to-square"></i> できること</h3>
+        <ul>
+          <li>件名（案件）の新規登録・修正・一覧表示</li>
+          <li>製品明細（ペットネーム・代表形式・数量・手配状況）を複数行登録</li>
+          <li>キーワード・納入予定月・担当・受注確率などで絞り込み</li>
+          <li>列ヘッダクリックで並び替え</li>
+          <li><b>件名複製</b>：似た案件を複製してから一部だけ修正、手早く新規登録</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-file-csv"></i> 書き出し機能</h3>
+        <ul>
+          <li>JSON書き出し（全件バックアップ）</li>
+          <li>CSV書き出し（明細展開・全件 / 絞込結果のみ）</li>
+          <li>納入予定月はExcelでも読みやすい「yyyy/mm/dd」形式で出力</li>
+          <li>JSONファイルの取込によるマージ（更新日時が新しい方を優先）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. ②需要集計一覧表 -->
+  <section>
+    <h2><span class="kicker">TAB ②</span>需要集計一覧表</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-table-cells"></i> 何が見える？</h3>
+        <ul>
+          <li>「ペットネーム × 納入予定月」でのクロス集計表</li>
+          <li>①と同じ絞り込み条件を適用可能</li>
+          <li>年度・半期・月別の切替表示</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-calendar-days"></i> 月ヘッダの工夫</h3>
+        <ul>
+          <li>データが存在する月の<b>最古〜最新まで歯抜けなく</b>連続表示</li>
+          <li>データのない月は「0」を表示（見た目の連続性を確保）</li>
+          <li>CSV出力時も同じ方針＋「yyyy/mm/dd」形式で統一</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ok-box">
+      <p><i class="fa-solid fa-circle-check"></i> 例：抽出結果が2026年3月と7月のデータしかなくても、3〜7月の5列が表示され、間の4〜6月は「0」として埋まります。</p>
+    </div>
+  </section>
+
+  <!-- 6. ③分析ダッシュボード -->
+  <section>
+    <h2><span class="kicker">TAB ③</span>分析ダッシュボード</h2>
+    <div class="grid3">
+      <div class="card">
+        <h3><i class="fa-solid fa-gauge-high"></i> KPIカード</h3>
+        <ul><li>件名数・合計数量</li><li>受注済件数・受注率</li><li>納品予定月超過の未納品数 等</li></ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-chart-column"></i> グラフ（ECharts）</h3>
+        <ul><li>受注確度別件名数（ドーナツ）</li><li>担当別数量（積み上げ棒）</li><li>納品予定月別数量推移（棒＋累積折れ線）</li><li>ペットネーム別TOP10 等</li></ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-triangle-exclamation"></i> 要注意リスト</h3>
+        <ul><li>納品予定月を<b>超過</b>している未納品の明細</li><li>対象：受注・A・B・Cのみ（失注・納品済は除外）</li><li>🖨 PDF出力で現在の絞込状態のまま印刷可能</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. データはどこに保存される？ -->
+  <section>
+    <h2><i class="fa-solid fa-database"></i> データはどこに保存される？（通常モード）</h2>
+    <div class="flow">
+      <div class="box"><i class="fa-solid fa-desktop"></i><br>ブラウザ操作<br>（登録・編集・削除）</div>
+      <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
+      <div class="box"><i class="fa-solid fa-hard-drive"></i><br>localStorage<br>（このブラウザの中だけ）</div>
+    </div>
+    <div class="note-box">
+      <p><i class="fa-solid fa-triangle-exclamation"></i> <b>重要</b>：localStorageは「ブラウザ＋端末ごと」に独立しています。他の人のパソコンや、別のブラウザからは<b>見えません</b>。複数人で同じデータを共有したい場合は、次ページの「サーバー連携（GAS）」の設定が必要です。</p>
+    </div>
+  </section>
+
+  <!-- 8. 複数人共有の必要性 -->
+  <section>
+    <h2><span class="kicker">TAB ④</span>サーバー連携設定（GAS）とは</h2>
+    <div class="card">
+      <h3><i class="fa-solid fa-users"></i> なぜ必要？</h3>
+      <p>標準の状態では、Aさんが登録した件名はAさんのブラウザにしか無く、Bさんの画面には表示されません。<br>
+      <b>Google Apps Script（GAS）</b>をバックエンドとして設定すると、Googleドライブ上のJSONファイル1つを介して、複数人が同じ件名データ・マスタ設定を参照・更新できるようになります。</p>
+    </div>
+    <div class="flow" style="margin-top:28px;">
+      <div class="box">Aさんのブラウザ<br>（localStorage）</div>
+      <div class="arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+      <div class="box srv"><i class="fa-brands fa-google"></i><br>GAS + Googleドライブ<br>（共有JSONファイル）</div>
+      <div class="arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+      <div class="box">Bさんのブラウザ<br>（localStorage）</div>
+    </div>
+  </section>
+
+  <!-- 9. 同期の3ステップ -->
+  <section>
+    <h2><i class="fa-solid fa-rotate"></i> 同期の基本動作</h2>
+    <div class="step"><div class="n">1</div><div class="c"><b>⇅ 今すぐサーバーへ送信・同期</b> — このブラウザの変更をサーバーへ送り、サーバー側の最新内容を統合して取得（双方向）</div></div>
+    <div class="step"><div class="n">2</div><div class="c"><b>⬇ サーバーの内容を取得して統合</b> — ローカルの未送信の変更は残したまま、サーバー側の内容を取り込みマージ</div></div>
+    <div class="step"><div class="n">3</div><div class="c"><b>🗑⬇ ローカルを全消去してサーバーから取得</b> — ローカルを完全に消去し、サーバーの最新データで上書き（マージしない）</div></div>
+    <div class="note-box">
+      <p><i class="fa-solid fa-circle-info"></i> 更新は「日時の新しい方」を優先して自動マージされます。削除は「削除記録（トゥームストーン）」で管理し、古いデータによる復活を防止します。</p>
+    </div>
+  </section>
+
+  <!-- 10. 二段階同期 -->
+  <section>
+    <h2><i class="fa-solid fa-layer-group"></i> こだわりの工夫：二段階同期</h2>
+    <div class="card">
+      <h3><i class="fa-solid fa-bolt"></i> どんな問題を防ぐ？</h3>
+      <p>複数人がほぼ同時刻に同期操作を行うと、通信の遅延により、後から操作した人の変更が先に処理されてしまうことがあります。この「タイミングのズレ」が原因で、片方の端末だけ古い状態のまま取り残されるケースがありました。</p>
+    </div>
+    <div class="lock-diagram">
+      <div class="user"><div class="av"><i class="fa-solid fa-user"></i></div>Aさん：削除操作</div>
+      <div class="user"><div class="av"><i class="fa-solid fa-user"></i></div>Bさん：ほぼ同時に同期</div>
+    </div>
+    <div class="ok-box">
+      <p><i class="fa-solid fa-circle-check"></i> <b>対策</b>：同期が成功した約4秒後に、もう一度静かにサーバー状態を確認・再取得する「確認取得」を自動実行。ほぼ同時の他者の変更も取りこぼしにくくなりました。</p>
+    </div>
+  </section>
+
+  <!-- 11. ⑤メンテナンス -->
+  <section>
+    <h2><span class="kicker">TAB ⑤</span>メンテナンス（管理者機能）</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-lock"></i> アクセス制限</h3>
+        <ul><li>管理者パスワードで保護（初期値あり、半角英数字6〜12文字）</li><li>パスワードはここで変更可能</li></ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-list-ul"></i> 主な機能</h3>
+        <ul>
+          <li>ドロップダウン項目（受注確率・手配状況・担当・ペットネーム対比表 等）の追加・編集・削除</li>
+          <li>件名データの削除（削除はここでのみ可能）・全案件削除</li>
+          <li>サーバー連携（GAS）の設定・同期も、④と同じ内容がここからも操作可能</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note-box">
+      <p><i class="fa-solid fa-circle-exclamation"></i> このパスワード保護はあくまで「誤操作防止」のための簡易的なものです。ブラウザの中で完結する静的サイトのため、本当の意味でのセキュリティ（なりすまし防止等）は提供できません。</p>
+    </div>
+  </section>
+
+  <!-- 12. 導入手順 -->
+  <section>
+    <h2><i class="fa-solid fa-rocket"></i> サーバー連携（GAS）導入の流れ</h2>
+    <div class="step"><div class="n">1</div><div class="c">⑤メンテナンス →「サーバー連携(GAS)」から、GASデプロイ用ファイル（<b>gas/Code.gs</b>）をダウンロード</div></div>
+    <div class="step"><div class="n">2</div><div class="c">Google Apps Scriptでプロジェクトを作成し、Code.gsの内容を貼り付けて<b>ウェブアプリとしてデプロイ</b></div></div>
+    <div class="step"><div class="n">3</div><div class="c">発行された<b>ウェブアプリURL</b>を、④サーバー連携設定の入力欄に貼り付けて「設定を保存」</div></div>
+    <div class="step"><div class="n">4</div><div class="c">「⇅ 今すぐサーバーへ送信・同期」を押して接続確認・初回同期を実施</div></div>
+    <div class="step"><div class="n">5</div><div class="c">他のメンバーにも同じウェブアプリURLを共有し、各自のブラウザで同じ設定を行う</div></div>
+  </section>
+
+  <!-- 13. 注意点・トラブルシューティング -->
+  <section>
+    <h2><i class="fa-solid fa-circle-question"></i> よくあるつまずきポイント</h2>
+    <table class="simple">
+      <tr><th>症状</th><th>よくある原因</th><th>対処</th></tr>
+      <tr>
+        <td>設定保存ボタンを押しても<br>何も起きない</td>
+        <td>公開先に <code>js/gas-sync.js</code> が<br>配置されていない（404）</td>
+        <td>同じ階層構成（js/・data/フォルダ含む）で<br>必要ファイルを漏れなくアップロード</td>
+      </tr>
+      <tr>
+        <td>ファイルをダブルクリックで<br>直接開くと一部機能が不安定</td>
+        <td><code>file://</code>形式はブラウザの<br>セキュリティ制限を受けやすい</td>
+        <td>簡易Webサーバー（http://）や<br>公開済みURLを利用する</td>
+      </tr>
+      <tr>
+        <td>同期したのに他の人の<br>削除が反映されない</td>
+        <td>ほぼ同時刻の同期によるタイミングのズレ</td>
+        <td>二段階同期で自動的に数秒後に再確認<br>（本バージョンで対応済み）</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- 14. まとめ -->
+  <section class="title-slide">
+    <h2 style="border:none;"><i class="fa-solid fa-flag-checkered"></i> まとめ</h2>
+    <div class="grid2" style="text-align:left; margin-top: 20px;">
+      <div class="card">
+        <h3><i class="fa-solid fa-check"></i> 覚えておきたいこと</h3>
+        <ul>
+          <li>通常はブラウザの<b>localStorage</b>にデータ保存（端末ごとに独立）</li>
+          <li>複数人で共有したい時は<b>④サーバー連携設定（GAS）</b>を使う</li>
+          <li>削除は⑤メンテナンスでのみ可能</li>
+          <li>①②③は同じ条件で絞り込み・横断的に確認できる</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-circle-info"></i> 困ったときは</h3>
+        <ul>
+          <li>公開先にファイルの配置漏れがないか確認</li>
+          <li><code>file://</code>直接実行ではなく公開URLを利用</li>
+          <li>設定・同期の状況は④・⑤どちらからでも確認可能</li>
+        </ul>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:30px;">ご不明点があれば開発担当までお気軽にお問い合わせください。</p>
+  </section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    width: 1280,
+    height: 720,
+    margin: 0.06,
+    controls: true,
+    progress: true,
+    center: false,
+    transition: 'slide',
+    plugins: [ RevealNotes, RevealHighlight ]
+  });
+</script>
+</body>
+</html>
