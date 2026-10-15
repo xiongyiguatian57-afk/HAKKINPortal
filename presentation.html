@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白金ブランド 見込計画(修正バッチ)立案 業務フロー解説</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root{
+  --paper:#F2F4F7;
+  --surface:#FFFFFF;
+  --ink:#182430;
+  --ink2:#4A5A6C;
+  --muted:#7C8896;
+  --line:#D9E0E8;
+  --amber:#DB8A00;
+  --amber-soft:#FDF3E3;
+  --teal:#1F6F6F;
+  --teal-soft:#E6F2F0;
+  --steel:#33628F;
+  --steel-soft:#EEF3F9;
+  --spine:#C9D2DC;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Noto Sans JP',"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  font-size:15px;
+  line-height:1.85;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace}
+.wrap{max-width:1020px;margin:0 auto;padding:0 20px}
+
+/* ===== header ===== */
+.site-header{padding:44px 0 26px}
+.stripe{height:7px;border-radius:4px;max-width:1020px;margin:0 auto 30px;
+  background:repeating-linear-gradient(-45deg,var(--amber) 0 11px,var(--ink) 11px 22px)}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+h1{font-size:clamp(26px,4vw,38px);font-weight:900;line-height:1.35;letter-spacing:.01em}
+h1 .amber{color:var(--amber)}
+.lead{margin-top:14px;font-size:15.5px;color:var(--ink2);max-width:46em}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.meta span{font-size:12px;color:var(--ink2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+
+/* ===== sticky nav ===== */
+.toc{position:sticky;top:0;z-index:50;background:rgba(242,244,247,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.toc .wrap{display:flex;gap:2px;overflow-x:auto;padding-top:8px;padding-bottom:8px}
+.toc a{white-space:nowrap;text-decoration:none;color:var(--ink2);font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:7px}
+.toc a:hover{background:#E7EBF1;color:var(--ink)}
+.toc a:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+/* ===== sections ===== */
+main{padding-bottom:56px}
+section{padding:40px 0 8px;scroll-margin-top:64px}
+.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}
+.sec-head::before{content:"";width:13px;height:13px;background:var(--amber);border-radius:3px;flex:none;align-self:center}
+h2{font-size:23px;font-weight:900;letter-spacing:.01em}
+.kicker{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.1em;margin-bottom:20px}
+
+/* ===== summary ===== */
+.sum3{display:grid;grid-template-columns:1fr;gap:12px;margin:22px 0 26px}
+.sum3 .row{display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 20px;align-items:flex-start;box-shadow:0 1px 2px rgba(24,36,48,.05)}
+.sum3 .n{flex:none;width:34px;height:34px;border-radius:8px;background:var(--ink);color:var(--amber);font-family:'JetBrains Mono',monospace;font-weight:600;display:flex;align-items:center;justify-content:center;font-size:15px}
+.sum3 p{font-size:15px}
+.sum3 b{color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px}
+.stat{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--amber);border-radius:10px;padding:14px 16px 12px}
+.stat .v{font-size:30px;font-weight:900;line-height:1.2;letter-spacing:-.01em}
+.stat .v small{font-size:15px;font-weight:700;margin-left:2px}
+.stat .l{font-size:12px;color:var(--ink2);margin-top:2px}
+.prose p{margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chips .chp{font-size:13px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 14px}
+.chips .chp::before{content:"◆";color:var(--amber);font-size:9px;margin-right:7px;vertical-align:2px}
+
+/* ===== flow ===== */
+.overview{display:flex;flex-wrap:wrap;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:20px 0 30px}
+.ov{display:flex;flex-direction:column;gap:1px;background:#F6F8FA;border:1px solid var(--line);border-radius:9px;padding:7px 12px 6px}
+.ov b{font-size:13px}
+.ov small{font-size:10.5px;color:var(--muted);font-weight:700}
+.ov.hot{background:var(--amber-soft);border-color:var(--amber)}
+.ov.hot b{color:#8A5800}
+.arr{color:var(--muted);font-weight:900;font-size:14px}
+.flowline{position:relative;padding-left:54px}
+.flowline::before{content:"";position:absolute;left:18px;top:14px;bottom:26px;width:3px;background:var(--spine);border-radius:2px}
+.station{position:relative;margin-bottom:18px}
+.node{position:absolute;left:-54px;top:12px;width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--amber);font-family:'JetBrains Mono',monospace;font-weight:600;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 5px var(--paper)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 22px 16px;box-shadow:0 1px 3px rgba(24,36,48,.06)}
+.card-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:6px}
+.card-head h3{font-size:16.5px;font-weight:900}
+.when{margin-left:auto;font-size:11.5px;font-weight:700;color:#8A5800;background:var(--amber-soft);border:1px solid var(--amber);border-radius:999px;padding:2px 11px}
+.card p{font-size:14.5px;color:var(--ink2)}
+.card p b{color:var(--ink)}
+.io{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px}
+.io .grp{min-width:200px;flex:1}
+.io .lab{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);margin-bottom:6px}
+.chip{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 9px;border-radius:6px;margin:0 5px 5px 0;border:1px solid;word-break:break-all}
+.chip.out{background:var(--teal-soft);border-color:var(--teal);color:#14544C}
+.chip.in{background:var(--amber-soft);border-color:var(--amber);color:#8A5800}
+.chip.sys{background:var(--steel-soft);border-color:var(--steel);color:#2A5379}
+.tool{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13.5px}
+.tool .t-lab{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.tool .t-name{font-weight:900;color:var(--steel)}
+.final{margin-top:12px;background:var(--amber-soft);border:1px dashed var(--amber);border-radius:9px;padding:9px 14px;font-size:13.5px}
+.final b{color:#8A5800}
+
+/* ===== tables ===== */
+.tbl{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(24,36,48,.05);margin-top:20px}
+.tbl thead th{background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;text-align:left;padding:11px 16px;letter-spacing:.05em}
+.tbl td{padding:12px 16px;border-top:1px solid var(--line);font-size:14px;vertical-align:top}
+.tbl tr:first-child td{border-top:none}
+.tbl td b{color:var(--ink)}
+.tbl .freq{white-space:nowrap;font-weight:900;color:#8A5800}
+.tbl code{font-family:'JetBrains Mono',monospace;font-size:12px;background:#F4F6F9;border:1px solid var(--line);border-radius:5px;padding:1px 7px;word-break:break-all;display:inline-block;line-height:1.6}
+.tbl a{color:var(--steel);word-break:break-all}
+.note{margin-top:14px;font-size:13px;color:var(--ink2);background:var(--steel-soft);border-left:3px solid var(--steel);border-radius:0 8px 8px 0;padding:10px 16px}
+
+/* ===== related cards ===== */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+.rel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;box-shadow:0 1px 3px rgba(24,36,48,.05)}
+.rel h3{font-size:15.5px;font-weight:900;margin-bottom:8px;padding-left:12px;border-left:4px solid var(--amber)}
+.rel p{font-size:14px;color:var(--ink2)}
+.rel code{font-family:'JetBrains Mono',monospace;font-size:12px;background:#F4F6F9;border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ===== systems ===== */
+.arch{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px 22px;margin-top:22px;box-shadow:0 1px 3px rgba(24,36,48,.05)}
+.a-root{max-width:460px;margin:0 auto;background:var(--ink);color:#fff;border-radius:10px;padding:12px 18px;text-align:center}
+.a-root b{color:var(--amber);font-size:15px}
+.a-root span{display:block;font-size:12.5px;color:#C4CDD8;margin-top:2px}
+.a-arrow{width:0;height:0;margin:10px auto;border-left:9px solid transparent;border-right:9px solid transparent;border-top:11px solid var(--spine)}
+.a-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.a-box{background:#F6F8FA;border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-align:center}
+.a-box .plat{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);display:block;margin-bottom:3px}
+.a-box b{font-size:13.5px;display:block;line-height:1.5}
+.a-box small{font-size:11.5px;color:var(--ink2);display:block;margin-top:3px}
+.a-users{margin-top:14px;background:var(--teal-soft);border:1px solid var(--teal);border-radius:10px;padding:9px 16px;text-align:center;font-size:13px;font-weight:700;color:#14544C}
+.account{margin-top:18px;background:var(--surface);border:1px solid var(--amber);border-radius:12px;padding:18px 22px;box-shadow:0 1px 3px rgba(24,36,48,.05)}
+.account h3{font-size:14.5px;font-weight:900;margin-bottom:8px;color:#8A5800}
+.account dl{display:grid;grid-template-columns:150px 1fr;gap:6px 16px;font-size:14px}
+.account dt{color:var(--muted);font-weight:700;font-size:12.5px;padding-top:2px}
+.account dd{font-weight:500;word-break:break-all}
+.warn{margin-top:12px;font-size:12.5px;color:#8A4A00;background:var(--amber-soft);border:1px dashed var(--amber);border-radius:8px;padding:8px 14px}
+.tbl td .sub{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ===== terms ===== */
+.terms{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:13px 17px}
+.term b{font-size:14px;color:var(--ink);display:block;margin-bottom:3px}
+.term span{font-size:13px;color:var(--ink2)}
+
+/* ===== notes / footer ===== */
+.notes{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 24px;margin-top:22px}
+.notes li{font-size:13.5px;color:var(--ink2);margin:6px 0 6px 18px}
+footer{border-top:1px solid var(--line);padding:26px 0 46px;font-size:12.5px;color:var(--muted)}
+footer .stripe{margin-bottom:0}
+
+/* ===== responsive ===== */
+@media (max-width:760px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .duo,.terms{grid-template-columns:1fr}
+  .a-grid{grid-template-columns:1fr}
+  .account dl{grid-template-columns:1fr;gap:2px 0}
+  .flowline{padding-left:46px}
+  .flowline::before{left:15px}
+  .node{left:-46px;width:36px;height:36px}
+  .io .grp{min-width:100%}
+}
+@media print{
+  .toc{display:none}
+  body{background:#fff}
+  .card,.tbl,.rel,.arch,.account{box-shadow:none}
+  section{break-inside:auto}
+  .station{break-inside:avoid}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="stripe"></div>
+  <div class="wrap">
+    <p class="eyebrow">伊東電機販売社・生産管理業務 社内説明資料</p>
+    <h1>白金ブランドの見込計画<span class="amber">(修正バッチ)</span>立案 — 業務フロー解説</h1>
+    <p class="lead">件名情報の登録から、需要・在庫・受注の3つの勢力図を突き合わせる「勝ち負け表」、そして生産計画台帳への反映まで。初めて担当する方にも分かるよう、元資料の内容をフロー図と表に整理しました。</p>
+    <div class="meta">
+      <span>元資料：「白金ブランドの見込計画(修正バッチ)立案関連業務フロー説明.docx」</span>
+      <span>整理日：2026年10月15日</span>
+      <span>対象：営業各員／生産管理／工場</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#summary">主旨・概要</a>
+    <a href="#flow">全体業務フロー</a>
+    <a href="#cycle">サイクル</a>
+    <a href="#related">恒常業務</a>
+    <a href="#files">帳票一覧</a>
+    <a href="#systems">システム・アカウント</a>
+    <a href="#terms">用語解説</a>
+    <a href="#notes">補足</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ 1. 主旨・概要 ============ -->
+  <section id="summary">
+    <div class="sec-head"><h2>主旨・概要</h2></div>
+    <p class="kicker">なぜこの業務を行うのか — 3行でいうと</p>
+
+    <div class="sum3">
+      <div class="row"><span class="n">1</span><p>伊東電機販売社の売上の <b>90% は「件名」</b>。したがって、<b>見込計画立案の源流は件名情報</b>にあり、各営業員が都度「件名情報登録・管理システム」へ登録するところから始まる。</p></div>
+      <div class="row"><span class="n">2</span><p><b>需要(件名)・在庫・受注</b>の3つのデータをペットネーム別に集計し、「<b>勝ち負け表</b>」で不足分を可視化する。</p></div>
+      <div class="row"><span class="n">3</span><p>不足を踏まえ、<b>5ヶ月バッチで「何を何台追加するか」</b>を決定。<b>生産計画台帳(修正バッチ)</b>に反映して生産計画を立てる。</p></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="v">90<small>%</small></div><div class="l">売上に占める件名の割合</div></div>
+      <div class="stat"><div class="v">3<small>種類</small></div><div class="l">突き合わせるデータ(需要・在庫・受注)</div></div>
+      <div class="stat"><div class="v">毎週<small>月曜</small></div><div class="l">情シスから7020製品在庫を配信</div></div>
+      <div class="stat"><div class="v">5<small>ヶ月</small></div><div class="l">追加生産を決めるバッチ幅</div></div>
+    </div>
+
+    <div class="prose">
+      <p>伊東電機販売社は全売上の90%を件名が占める。このため見込計画立案の源流は件名情報にあり、<b>各営業員が都度、件名情報登録・管理システムに登録する</b>ところから始まります。</p>
+    </div>
+  </section>
+
+  <!-- ============ 2. 全体業務フロー ============ -->
+  <section id="flow">
+    <div class="sec-head"><h2>全体業務フロー</h2></div>
+    <p class="kicker">件名情報の登録から生産計画台帳まで — 全6ステップ</p>
+
+    <div class="overview">
+      <div class="ov"><small>STEP 1</small><b>件名情報の登録</b></div>
+      <span class="arr">→</span>
+      <div class="ov"><small>STEP 2</small><b>需要集計</b></div>
+      <span class="arr">→</span>
+      <div class="ov"><small>STEP 3</small><b>在庫集計</b></div>
+      <span class="arr">→</span>
+      <div class="ov"><small>STEP 4</small><b>受注データ集計</b></div>
+      <span class="arr">→</span>
+      <div class="ov"><small>STEP 5</small><b>勝ち負け表</b></div>
+      <span class="arr">→</span>
+      <div class="ov hot"><small>STEP 6</small><b>計画立案(修正バッチ)</b></div>
+    </div>
+
+    <div class="flowline">
+
+      <div class="station">
+        <div class="node">1</div>
+        <div class="card">
+          <div class="card-head"><h3>件名情報の登録</h3><span class="when">各営業員が都度</span></div>
+          <p>伊東電機販売社は全売上の<b>90%が件名</b>であり、見込計画立案のための源流はこの件名情報にある。各営業員が都度、<b>件名情報登録・管理システム</b>に件名情報を登録する。</p>
+          <div class="io">
+            <div class="grp"><div class="lab">登録先</div><span class="chip sys">件名情報登録・管理システム</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="station">
+        <div class="node">2</div>
+        <div class="card">
+          <div class="card-head"><h3>需要集計(件名情報総括)</h3><span class="when">見込計画立案時</span></div>
+          <p>件名情報登録・精査シートでピボットを回し、<b>ペットネーム別【件名情報総括】</b>を作る。その後ピボットで<b>出荷済を除き、これから出荷する予定の最大数</b>をまとめる(必要に応じて <b>ABC区分</b>を考慮)。</p>
+          <div class="tool"><span class="t-lab">使用ツール</span><span class="t-name">件名情報登録・管理システム</span></div>
+          <div class="io">
+            <div class="grp"><div class="lab">成果物</div><span class="chip out">① 需要集計一覧表(CSV)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="station">
+        <div class="node">3</div>
+        <div class="card">
+          <div class="card-head"><h3>在庫集計</h3><span class="when">毎週月曜 — 情シス配信データ</span></div>
+          <p>毎週月曜に情シスから配信される【7020製品在庫】からピボットを回し、<b>ペットネーム別【在庫状況】</b>を集計する(<b>実残ベース</b>)。引当の有無は不問 — 件名情報も引当を見ないため、<b>同じ土俵で判断</b>できる。</p>
+          <div class="tool"><span class="t-lab">使用ツール</span><span class="t-name">7020製品在庫集計ワークフロー</span></div>
+          <div class="io">
+            <div class="grp"><div class="lab">成果物</div><span class="chip out">② 7020製品在庫集計結果_YYYYMMDD.xlsx</span><span class="chip">Pivot用フィルタ掛け後にダウンロード</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="station">
+        <div class="node">4</div>
+        <div class="card">
+          <div class="card-head"><h3>受注データ集計(工程計画)</h3><span class="when">在庫集計日の翌日以降</span></div>
+          <p><b>在庫集計日の翌日以降の【受注データ】</b>を集計し、工程計画の状況を可視化する。</p>
+          <div class="tool"><span class="t-lab">使用ツール</span><span class="t-name">⑤ 工程計画 受注データ集計</span></div>
+          <div class="io">
+            <div class="grp"><div class="lab">成果物</div><span class="chip out">③ 工程計画ピボット_YYYYMMDD_HHMM.xlsx</span><span class="chip">Pivot用フィルタ掛け後にダウンロード</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="station">
+        <div class="node">5</div>
+        <div class="card">
+          <div class="card-head"><h3>勝ち負け表の作成</h3><span class="when">需要・在庫・受注の突合</span></div>
+          <p>①②③をインプットに、<b>【ペットネーム別の件名と手配済の月別・累計比較表(勝ち負け表)】</b>を作る。<b>在庫は前月末(工程計画のある月の直近月)に当てる</b>。【ペットネーム別在庫状況】を同じ表に集約し、【ALL販売品】データもまとめる。</p>
+          <div class="tool"><span class="t-lab">使用ツール</span><span class="t-name">④ 白金ブランド生産計画 勝ち負け表</span></div>
+          <div class="io">
+            <div class="grp"><div class="lab">インプット</div><span class="chip in">① 需要集計一覧表(CSV or XLSX)</span><span class="chip in">② 7020製品在庫集計結果_YYYYMMDD.xlsx</span><span class="chip in">③ 工程計画ピボット_YYYYMMDD_HHMM.xlsx</span></div>
+            <div class="grp"><div class="lab">成果物</div><span class="chip out">ペットネーム別_勝ち負け表_YYYY-MM_yyyy-mm.xlsx</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="station">
+        <div class="node">6</div>
+        <div class="card">
+          <div class="card-head"><h3>見込計画(修正バッチ)の立案</h3><span class="when">最終ステップ</span></div>
+          <p>勝ち負け表を見て<b>不足分を考慮し見込計画を立案</b>する。見込品の<b>「件名外安全在庫」を定義</b>し(例：充足率105%程度)、それを踏まえて<b>5ヶ月バッチで「何を何台追加するか」</b>を決める。</p>
+          <div class="tool"><span class="t-lab">使用ツール</span><span class="t-name">⑥ 白金ブランド生産計画立案</span></div>
+          <div class="io">
+            <div class="grp"><div class="lab">成果物</div><span class="chip out">ペットネーム別生産計画(案)</span></div>
+          </div>
+          <div class="final"><b>最終成果物：</b>これを元に【7020 生産計画台帳(修正バッチ) 本当に追加したいものだけ版 yyyymmdd.XLSX】をハンドで検討・作成する。</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="note">丸数字について — 元資料では出力ファイルを <b>①需要集計一覧表／②7020製品在庫集計結果／③工程計画ピボット</b>、使用ツールを <b>④勝ち負け表／⑤受注データ集計／⑥生産計画立案</b> と番号振りしています。本ページはこの番号に統一しています(詳細は巻末の補足参照)。</div>
+  </section>
+
+  <!-- ============ 3. サイクル ============ -->
+  <section id="cycle">
+    <div class="sec-head"><h2>いつ・何をするか(サイクル一覧)</h2></div>
+    <p class="kicker">毎週・毎月のリズム</p>
+    <table class="tbl">
+      <thead><tr><th style="width:160px">頻度</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td class="freq">毎週 月曜</td><td>情シスから【7020製品在庫】が配信される → これをピボットで集計し、ペットネーム別在庫状況を作る(実残ベース・引当不問)。</td></tr>
+        <tr><td class="freq">都度(最新データで)</td><td>需要①・在庫②・受注③の最新データを入力に勝ち負け表を作成し、見込計画(修正バッチ)を立案。生産計画台帳(修正バッチ)を作成する。</td></tr>
+        <tr><td class="freq">毎月</td><td>生産実績と受注リストを合体させ、今期の生産実績および予定を見える化する(【112期防爆製品LED照明器具生産計画(実績)現状】を UPDATE)。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 4. 恒常業務 ============ -->
+  <section id="related">
+    <div class="sec-head"><h2>あわせて行う恒常業務</h2></div>
+    <p class="kicker">見込計画立案と並行して運用する仕組み</p>
+    <div class="duo">
+      <div class="rel">
+        <h3>生産実績の見える化</h3>
+        <p>毎月の<b>生産実績</b>と<b>受注リスト</b>を合体させ、今期の生産実績および予定を見える化する。【<code>112期防爆製品LED照明器具生産計画(実績)現状</code>】を UPDATE する。</p>
+      </div>
+      <div class="rel">
+        <h3>営業員への工程計画公開</h3>
+        <p>最新の生産工程計画を閲覧できるよう、WEBベースで営業員が参照できる仕組みを用意した。受注データCSVから<b>空白削除・見出し修正</b>をしたExcelを作り、<b>型番とペットネーム対比表Excel</b>をアップロードすることで、工程化されているものがすべて(受注データCSVに落ちているもの)確認できる。(→ 工程計画検索システム)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. 帳票一覧 ============ -->
+  <section id="files">
+    <div class="sec-head"><h2>丸数字と管理ファイル一覧</h2></div>
+    <p class="kicker">フロー内で出てくる番号・データ・成果物の対応表</p>
+    <table class="tbl">
+      <thead><tr><th style="width:70px">番号</th><th style="width:330px">名称</th><th>種別・役割</th></tr></thead>
+      <tbody>
+        <tr><td><b>①</b></td><td><code>需要集計一覧表(CSV or XLSX)</code></td><td><b>出力データ</b>。件名情報登録・管理システムが出力。これから出荷する予定の最大数(必要に応じてABC区分考慮)。</td></tr>
+        <tr><td><b>②</b></td><td><code>7020製品在庫集計結果_YYYYMMDD.xlsx</code></td><td><b>出力データ</b>。7020製品在庫集計ワークフローが出力。ペットネーム別在庫状況(実残ベース)。</td></tr>
+        <tr><td><b>③</b></td><td><code>工程計画ピボット_YYYYMMDD_HHMM.xlsx</code></td><td><b>出力データ</b>。「⑤工程計画 受注データ集計」が出力。在庫集計日の翌日以降の受注データ。</td></tr>
+        <tr><td><b>④</b></td><td>白金ブランド生産計画 勝ち負け表</td><td><b>ツール</b>。①②③を入力して勝ち負け表(<code>ペットネーム別_勝ち負け表_YYYY-MM_yyyy-mm.xlsx</code>)を出力。</td></tr>
+        <tr><td><b>⑤</b></td><td>工程計画 受注データ集計</td><td><b>ツール</b>。受注データを集計し、工程計画ピボットを作成。</td></tr>
+        <tr><td><b>⑥</b></td><td>白金ブランド生産計画立案</td><td><b>ツール</b>。ペットネーム別生産計画(案)を出力。</td></tr>
+        <tr><td>—</td><td><code>7020 生産計画台帳(修正バッチ) 本当に追加したいものだけ版 yyyymmdd.XLSX</code></td><td><b>最終成果物</b>。生産計画(案)を元に、ハンドで検討・作成する。</td></tr>
+        <tr><td>—</td><td><code>件名情報登録・精査シート</code></td><td><b>入力シート</b>。件名情報の源流データ。これをピボットして件名情報総括を作る。</td></tr>
+        <tr><td>—</td><td><code>112期防爆製品LED照明器具生産計画(実績)現状</code></td><td><b>管理資料</b>。生産実績＋受注リストの見える化用。毎月 UPDATE。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 6. システム・アカウント ============ -->
+  <section id="systems">
+    <div class="sec-head"><h2>使うシステムとアカウント(参考情報)</h2></div>
+    <p class="kicker">GAS ×2、GitHub Pages ポータル、共通 Google アカウント</p>
+
+    <div class="arch">
+      <div class="a-root"><b>伊東電機 販売社 — 共通 Google アカウント</b><span class="mono"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="94ecfdfbfaf3edfdf3e1f5e0fdf5faa1a3d4f3f9f5fdf8baf7fbf9">[email&#160;protected]</a></span></div>
+      <div class="a-arrow"></div>
+      <div class="a-grid">
+        <div class="a-box"><span class="plat">GAS ウェブアプリ</span><b>件名情報登録・管理システム</b><small>件名の登録・需要集計</small></div>
+        <div class="a-box"><span class="plat">GAS ウェブアプリ</span><b>工程計画検索システム</b><small>営業員への工程計画公開</small></div>
+        <div class="a-box"><span class="plat">GitHub Pages</span><b>HAKKINPortal</b><small>ポータル画面＋実行WEBアプリ</small></div>
+      </div>
+      <div class="a-users">利用者：営業各員／工場(データ登録・更新者)／生産管理</div>
+    </div>
+
+    <div class="account">
+      <h3>共通アカウント(全システム共通で使用)</h3>
+      <dl>
+        <dt>アカウント名</dt><dd>伊東電機 販売社 (Googleアカウント)</dd>
+        <dt>メールアドレス</dt><dd class="mono"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="81f9e8eeefe6f8e8e6f4e0f5e8e0efb4b6c1e6ece0e8edafe2eeec">[email&#160;protected]</a></dd>
+        <dt>パスワード</dt><dd class="mono">OSK47908950</dd>
+      </dl>
+      <div class="warn">取り扱い注意 — このページにはパスワード・シークレットが平文で含まれています。社内限定で管理し、外部へ持ち出さないでください。</div>
+    </div>
+
+    <table class="tbl">
+      <thead><tr><th style="width:250px">システム</th><th>設定情報・URL</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>件名情報登録・管理システム</b><span class="sub">GAS ウェブアプリ<br>用途：件名情報の登録・需要集計(①の出力元)</span></td>
+          <td>
+            <b>GAS ウェブアプリURL</b>(※以前と変わっています。最新：2026/09/11 12:00)<br>
+            <a href="https://script.google.com/macros/s/AKfycbxD_ED45x15Cx-f-zu91-TSASirY3-UShaKkV0w5AMIKjrvfwuj4NPtmFR-M_yHsW0d/exec" target="_blank" rel="noopener">https://script.google.com/macros/s/AKfycbxD_ED45x15Cx-…-M_yHsW0d/exec</a><br><br>
+            <b>クイックシェア</b>(システムを実行するには)<br>
+            <a href="https://iaqkhoes.gensparkspace.com/" target="_blank" rel="noopener">https://iaqkhoes.gensparkspace.com/</a><br><br>
+            <b>共有シークレット</b>：<span class="mono">OSK47908950</span>
+          </td>
+        </tr>
+        <tr>
+          <td><b>工程計画検索システム</b><span class="sub">GAS ウェブアプリ<br>用途：最新の生産工程計画を営業員がWEB閲覧<br>注意：※Edgeでしか動きません(多分)</span></td>
+          <td>
+            <b>【閲覧者】URL</b><br>
+            <a href="https://script.google.com/macros/s/AKfycbxZpcdI5m68K3TJTXGxbP6YyOv9heee1pAK6VUYaJsEukEAprkpX1JNDhBf0ZhHRLgmag/exec" target="_blank" rel="noopener">https://script.google.com/macros/s/AKfycbxZpcdI5m68…gmag/exec</a><br>
+            シークレット：<span class="mono">OSK47908950</span><br><br>
+            <b>【管理者／データ登録・更新者(工場)】URL</b>(末尾に ?admin=1)<br>
+            <a href="https://script.google.com/macros/s/AKfycbxZpcdI5m68K3TJTXGxbP6YyOv9heee1pAK6VUYaJsEukEAprkpX1JNDhBf0ZhHRLgmag/exec?admin=1" target="_blank" rel="noopener">https://script.google.com/macros/s/AKfycbxZpcdI5m68…gmag/exec?admin=1</a><br>
+            シークレット：<span class="mono">TKY58124611</span>
+          </td>
+        </tr>
+        <tr>
+          <td><b>ポータルサイト</b><span class="sub">GitHub Pages(無料WEBサーバー)<br>用途：ポータル画面と実行WEBアプリの公開</span></td>
+          <td>
+            <b>ポータルURL</b>：<a href="https://xiongyiguatian57-afk.github.io/HAKKINPortal/" target="_blank" rel="noopener">https://xiongyiguatian57-afk.github.io/HAKKINPortal/</a><br><br>
+            <b>リポジトリ</b>：<span class="mono">HAKKINPortal</span>(ポータル画面及び実行WEBアプリを登録)<br>
+            <b>運用アカウント</b>：伊東電機 販売社 Googleアカウント(上記共通アカウント)
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note"><b>GAS(Google Apps Script)とは</b> — Googleが提供する、JavaScriptをベースにしたクラウド型のアプリケーション開発・自動化プラットフォーム。この仕組みを利用して「①件名情報登録・管理」「②工程計画検索」の2つのアプリを複数人で共有している。</div>
+  </section>
+
+  <!-- ============ 7. 用語 ============ -->
+  <section id="terms">
+    <div class="sec-head"><h2>用語ミニ解説</h2></div>
+    <p class="kicker">はじめて見る人向け — 元資料の記載に基づく説明</p>
+    <div class="terms">
+      <div class="term"><b>件名</b><span>受注案件のこと。伊東電機販売社の売上の90%を占めるため、件名情報が見込計画の源流になる。</span></div>
+      <div class="term"><b>ペットネーム</b><span>製品群の呼称。件名情報総括・在庫集計・勝ち負け表など、すべての集計はペットネーム単位で行う。</span></div>
+      <div class="term"><b>勝ち負け表</b><span>ペットネーム別の「件名」と「手配済」の月別・累計比較表。これを見て不足分を考慮し、見込計画を立案する。</span></div>
+      <div class="term"><b>修正バッチ</b><span>見込計画に対して「何を何台追加するか」を決める追加生産のこと。5ヶ月バッチで検討する。</span></div>
+      <div class="term"><b>実残ベース／引当不問</b><span>在庫は引当の有無を問わず実残で集計する。件名情報も引当を見ないため、需要と在庫を同じ土俵で判断できる。</span></div>
+      <div class="term"><b>7020製品在庫</b><span>毎週月曜に情シスから配信される製品在庫データ。在庫集計の入力になる。</span></div>
+      <div class="term"><b>件名外安全在庫</b><span>見込品として件名とは別に確保する安全在庫。充足率105%などで定義し、5ヶ月バッチの追加台数決定に反映する。</span></div>
+      <div class="term"><b>ABC区分</b><span>需要集計時に必要に応じて考慮する優先度区分。</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 8. 補足 ============ -->
+  <section id="notes">
+    <div class="sec-head"><h2>本資料の作成にあたって(補足)</h2></div>
+    <p class="kicker">元資料からの整理に際しての注記</p>
+    <div class="notes">
+      <ul>
+        <li>元資料の冒頭説明(「毎月入手する件名情報表(フォーキャスト資料)をベースに、営業会議や隔週の精査でシートをUPDATEする」の一節)は、<b>元資料で取り消し線(打ち消し)書きになっているため、本ページでは削除</b>しています。 STEP 1 は残存する記述(各営業員が件名情報をシステムに都度登録)のみで構成しています。</li>
+        <li>元資料では「7020製品在庫集計結果」を<b>③</b>と表記している箇所がありますが、勝ち負け表ツールの入力指定では<b>②</b>となっているため、本ページでは入力指定側の番号(①②③)に統一しました。</li>
+        <li>「在庫集計日の翌日以降の【受注データ】と、」の一文は元資料で文が途切れています。文脈上、<b>工程計画ピボットの出力に使う受注データ</b>と解釈して整理しています。</li>
+        <li>元資料の注意書き(GAS URLの変更「最新：2026/09/11 12:00」、工程計画検索システム「Edgeでしか動かない(多分)」)は原文どおり記載しています。</li>
+        <li>アカウント・パスワード・シークレットは元資料記載のまま記載しています。<b>社内限定</b>で取り扱ってください。</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="stripe"></div>
+  <div class="wrap" style="padding-top:18px">
+    参照元：「白金ブランドの見込計画(修正バッチ)立案関連業務フロー説明.docx」 ／ 整理日：2026年10月15日 ／ このページは単一HTMLファイルで動作します(オフライン閲覧可)。
+  </div>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
