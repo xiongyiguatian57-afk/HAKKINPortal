@@ -404,9 +404,9 @@ button.danger{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
               </div>
               <div class="pf-field">
                 <span class="pf-lbl">納入予定月 <b class="req">必須</b></span>
-                <input id="kenmeiMon" list="kenmeiMonList" type="text" pattern="\d{4}-(0[1-9]|1[0-2])" maxlength="7" placeholder="YYYY-MM">
+                <input id="kenmeiMon" list="kenmeiMonList" type="text" pattern="\d{4}-(0[1-9]|1[0-2])" maxlength="7" placeholder="YYYY-MM" autocomplete="off">
                 <datalist id="kenmeiMonList"></datalist>
-                <small class="note">前3ヶ月〜後18ヶ月から選択可・自由入力</small>
+                <small class="note">前3ヶ月〜後18ヶ月から選択可・自由入力（範囲外は登録できません）</small>
               </div>
               <div class="pf-field">
                 <span class="pf-lbl">受注確率 <b class="req">必須</b></span>
@@ -1298,6 +1298,9 @@ function validate(){
   const pmon=document.getElementById("kenmeiMon").value.trim();
   if(!pmon) errs.push("納入予定月は必須です");
   else if(!validYM(pmon)) errs.push("納入予定月は YYYY-MM 形式（例: 2026-09）");
+  // ★ 最終防御：フォーカスアウト時の範囲チェック（上記イベントリスナー）をすり抜けた場合でも、
+  //   登録（保存）・入力チェックの時点で必ず前3ヶ月〜後18ヶ月の範囲内かを確認する
+  else if(!monthCandidates().includes(pmon)) errs.push("現在からあまりにも納入予定時期が離れた件名です。入力できません。");
   const rows=document.querySelectorAll("#rows tr");
   if(rows.length===0) errs.push("明細行が1行以上必要です");
   rows.forEach((tr,i)=>{
@@ -1346,6 +1349,40 @@ function collectCase(){
     updatedAt: nowJstStr()   // 日本時間（分秒まで）。同日中の複数編集でも前後関係を正しく判定できるようにする
   };
 }
+
+// ================================================================
+// 納入予定月（親）：フォーカス時はドロップダウン候補を常に全件（前3ヶ月〜後18ヶ月）
+// 表示させ、範囲外の値が確定（フォーカスアウト）した場合はポップアップで警告して
+// 元の値に戻す。
+// ★ <input list="..."> はブラウザの標準仕様として、入力欄に既存値がある状態だと、
+//   その値に部分一致する候補のみにdatalistが絞り込まれてしまう（修正画面で
+//   既存の月が入力済みのため候補が少なく見えるのはこのため）。これを回避するため、
+//   フォーカス時に一旦値を空にしてから候補一覧を開かせ、何も選択・入力されずに
+//   フォーカスが外れた場合のみ元の値に戻す。
+// ================================================================
+(function(){
+  const kenmeiMonEl = document.getElementById("kenmeiMon");
+  let kenmeiMonPrevValue = "";
+  kenmeiMonEl.addEventListener("focus", function(){
+    kenmeiMonPrevValue = this.value;
+    this.value = ""; // ★ 新規・修正を問わず、常に全候補（前3ヶ月〜後18ヶ月）が表示されるようにする
+  });
+  kenmeiMonEl.addEventListener("blur", function(){
+    const v = this.value.trim();
+    if(v === ""){
+      // 何も選択・入力されずに離れた場合は元の値（修正時は既存値／新規時は空）に戻す
+      this.value = kenmeiMonPrevValue;
+      return;
+    }
+    if(validYM(v) && !monthCandidates().includes(v)){
+      // 入力形式は正しいが、許容範囲（前3ヶ月〜後18ヶ月）の外にある場合は受け付けない
+      window.alert("現在からあまりにも納入予定時期が離れた件名です。入力できません。");
+      this.value = kenmeiMonPrevValue;
+    }
+    // 形式自体が不正（YYYY-MM以外）な場合はここでは警告せず、登録（保存）時の
+    // 入力チェック（validate()）側の「YYYY-MM形式で入力してください」メッセージに任せる
+  });
+})();
 
 document.getElementById("kenmeiNo").addEventListener("input",()=>{
   const kno=document.getElementById("kenmeiNo").value.trim();
