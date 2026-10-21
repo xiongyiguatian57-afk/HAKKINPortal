@@ -1,590 +1,372 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>伊東電機販売社 件名情報 登録・管理システム v7 — システム紹介資料</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>件名情報 登録・管理システム v7 ― 概要・仕組みガイド</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/white.css" id="theme">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/monokai.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+
 <style>
-:root{
-  --ink:#182A36;        /* 墨紺: パネル帯 */
-  --ink-2:#22394A;      /* プレート面 */
-  --ink-3:#35505F;      /* プレート縁 */
-  --paper:#F5F4EF;      /* 紙白: 背景 */
-  --card:#FFFFFF;
-  --amber:#E9A11B;      /* 電球黄: 強調 */
-  --amber-d:#C4830F;
-  --verd:#1F7A68;       /* 緑青: 正常系 */
-  --steel:#3D6480;      /* 鋼青: サブ */
-  --verm:#C24A2F;       /* 朱: 注意系 */
-  --text:#26343E;
-  --muted:#66727C;
-  --line:#DDE2DD;
-  --code-bg:#EEF1EC;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-  max-width:1000px;margin:0 auto;padding:40px 28px 72px;
-  background:var(--paper);color:var(--text);
-  font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN",sans-serif;
-  font-size:15.5px;line-height:1.75;-webkit-font-smoothing:antialiased;
-}
-h1,h2,h3{line-height:1.3;color:var(--ink)}
-a{color:var(--steel)}
-code,.mono{font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--code-bg);padding:1px 6px;border-radius:4px}
-code{color:#3A4B56}
+  :root{
+    --accent:#1a56db; --accent2:#3b82f6; --ok:#15803d; --warn:#b45309; --err:#b91c1c;
+    --bg:#f0f4fb; --card:#ffffff; --line:#d7e0ee; --txt:#1f2937; --sub:#6b7280;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Noto Sans JP", sans-serif; }
+  .reveal { font-family: "Noto Sans JP", sans-serif; color: var(--txt); }
+  .reveal .slides { text-align: left; }
+  .reveal h1, .reveal h2, .reveal h3, .reveal h4 { font-family: "Noto Sans JP", sans-serif; font-weight: 900; color: var(--accent); text-transform: none; }
+  .reveal h1 { font-size: 2.1em; }
+  .reveal h2 { font-size: 1.5em; border-bottom: 4px solid var(--accent2); padding-bottom: 0.25em; margin-bottom: 0.6em; }
+  .reveal h3 { font-size: 1.05em; color: var(--txt); }
+  .reveal p, .reveal li { font-size: 0.68em; line-height: 1.55; }
+  .reveal ul, .reveal ol { display:block; margin-left: 0.6em; }
+  .reveal section { padding: 20px 10px; }
 
-/* ---------- ヒーロー ---------- */
-.hero{background:var(--ink);border-radius:16px;padding:44px 40px 36px;color:#EAF0F2;position:relative;overflow:hidden}
-.hero::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;
-  background:repeating-linear-gradient(90deg,var(--amber) 0 26px,var(--ink) 26px 40px)}
-.hero .eyebrow{font-size:13px;letter-spacing:.14em;color:var(--amber);font-weight:700;margin:10px 0 12px}
-.hero h1{font-size:clamp(30px,4.6vw,44px);font-weight:900;color:#fff;margin:0 0 6px;letter-spacing:.02em}
-.hero .ver{font-family:"IBM Plex Mono",monospace;color:#9FB4C0;font-size:14px}
-.hero .lead{margin:16px 0 0;max-width:56em;color:#D7E0E5;font-size:15.5px}
-.hero .lead b{color:#FFD98A;font-weight:700}
-.plates{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 6px}
-.plate{display:flex;align-items:stretch;border:1px solid var(--ink-3);background:var(--ink-2);border-radius:8px;overflow:hidden;text-decoration:none}
-.plate .no{background:var(--amber);color:var(--ink);font-weight:900;font-size:15px;display:flex;align-items:center;padding:0 10px}
-.plate .lb{padding:8px 14px 8px 10px;font-size:13px;font-weight:700;color:#F2F6F8;white-space:nowrap}
-.hero .stats{display:flex;flex-wrap:wrap;gap:0;margin-top:24px;border-top:1px solid var(--ink-3)}
-.hero .stat{padding:16px 26px 4px 0;margin-right:26px}
-.hero .stat .n{font-family:"IBM Plex Mono",monospace;font-size:30px;font-weight:600;color:var(--amber);line-height:1.1}
-.hero .stat .l{font-size:12px;color:#9FB4C0;margin-top:2px}
-.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
-.toc a{background:transparent;border:1px solid var(--ink-3);color:#CBD9E1;font-size:12.5px;padding:6px 13px;border-radius:99px;text-decoration:none}
-.toc a:hover{border-color:var(--amber);color:var(--amber)}
+  .title-slide { text-align:center; }
+  .title-slide .badge { display:inline-block; background:var(--accent); color:#fff; padding:6px 18px; border-radius:20px; font-size:0.5em; font-weight:700; margin-bottom:20px; letter-spacing:0.05em;}
+  .title-slide h1 { font-size:1.7em; margin-bottom: 0.2em; }
+  .title-slide .sub { color: var(--sub); font-size:0.75em; margin-top: 0.6em; }
+  .title-slide .company { margin-top: 2em; font-size: 0.6em; color: var(--sub); }
 
-/* ---------- セクション見出し ---------- */
-section{margin-top:64px}
-.sechead{display:flex;align-items:center;gap:14px;margin:0 0 8px}
-.secno{flex:none;background:var(--ink);color:var(--amber);font-family:"IBM Plex Mono",monospace;
-  font-weight:600;font-size:15px;padding:8px 14px;border-radius:8px;letter-spacing:.06em}
-.sechead h2{font-size:26px;font-weight:900;margin:0}
-.sechead .sub{font-size:13px;color:var(--muted);margin-left:auto;text-align:right}
-p.seclead{color:var(--muted);font-size:14px;margin:0 0 22px}
-h3{font-size:18.5px;font-weight:900;margin:34px 0 12px;display:flex;align-items:center;gap:10px}
-h3::before{content:"";width:10px;height:10px;background:var(--amber);border-radius:2px;flex:none}
-h4{font-size:15.5px;font-weight:700;margin:20px 0 8px;color:var(--ink)}
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .grid5 { display:grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
 
-/* ---------- カード・グリッド ---------- */
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(288px,1fr));gap:14px;margin:18px 0}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
-.card .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--steel);margin-bottom:6px}
-.card h4{margin:0 0 6px}
-.card p{margin:0;font-size:13.8px;color:#3D4B55}
-.card ul{margin:6px 0 0;padding-left:1.2em;font-size:13.5px;color:#3D4B55}
-.card ul li{margin:3px 0}
+  .card { background: var(--card); border:1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(30,60,120,0.06); }
+  .card h3 { margin-top:0; font-size: 0.95em; display:flex; align-items:center; gap:8px; }
+  .card h3 i { color: var(--accent2); }
+  .card p, .card li { font-size: 0.62em; margin: 0.25em 0; }
 
-/* ---------- 表 ---------- */
-table{width:100%;border-collapse:collapse;margin:14px 0 6px;background:var(--card);font-size:13.8px}
-th{background:var(--ink);color:#F2F6F8;font-weight:700;text-align:left;padding:10px 13px;font-size:13px;letter-spacing:.03em}
-td{border:1px solid var(--line);padding:9px 13px;vertical-align:top}
-tbody tr:nth-child(even) td{background:#FAFAF6}
-td ul{margin:0;padding-left:1.1em}
-td .mono,td code{white-space:nowrap}
-.t-caption{font-size:12.5px;color:var(--muted);margin:4px 2px 0}
-.nowrap{white-space:nowrap}
+  .tab-card { background: var(--card); border:1px solid var(--line); border-radius: 14px; padding: 12px 8px; text-align:center; min-width:0; }
+  .tab-card .num { font-size: 1.6em; font-weight:900; color: var(--accent); }
+  .tab-card .ti { font-size: 0.62em; font-weight:700; margin: 6px 0 4px; }
+  .tab-card .de { font-size: 0.5em; color: var(--sub); }
+  .tab-card i { font-size: 1.3em; color: var(--accent2); margin-bottom: 6px; display:block; }
 
-/* ---------- フロー図 ---------- */
-.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:16px 0 8px}
-.fstep{flex:1 1 150px;min-width:150px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:10px;padding:12px 14px;position:relative}
-.fstep .fn{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--amber-d);font-weight:600;display:block;margin-bottom:4px}
-.fstep .ft{font-weight:900;font-size:14px;color:var(--ink);display:block}
-.fstep .fd{font-size:12.3px;color:#57656F;margin-top:4px;display:block;line-height:1.6}
-.fstep.dark{background:var(--ink-2);border-color:var(--ink-3);border-left-color:var(--amber)}
-.fstep.dark .ft{color:#fff}
-.fstep.dark .fd{color:#B9C7D0}
-.fstep.dark .fn{color:var(--amber)}
-.fstep.verd{border-left-color:var(--verd)}
-.fstep.verd .fn{color:var(--verd)}
-.fstep.verm{border-left-color:var(--verm)}
-.fstep.verm .fn{color:var(--verm)}
-.fstep.steel{border-left-color:var(--steel)}
-.fstep.steel .fn{color:var(--steel)}
-.farrow{flex:none;align-self:center;color:var(--amber-d);font-size:18px;font-weight:900;padding:0 2px}
-.fdown{display:flex;justify-content:center;color:var(--amber-d);font-size:20px;font-weight:900;margin:4px 0;line-height:1}
-.flowv{max-width:620px;margin:16px 0}
+  .pill { display:inline-block; background: #eef3fd; color: var(--accent); border-radius: 999px; padding: 3px 12px; font-size:0.55em; font-weight:700; margin: 2px 4px 2px 0; }
+  .pill.ok { background:#eafaf0; color: var(--ok); }
+  .pill.warn { background:#fff6e8; color: var(--warn); }
+  .pill.err { background:#fdecec; color: var(--err); }
 
-/* ---------- 同期図(GAS) ---------- */
-.syncdiag{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 20px;margin:18px 0}
-.syncgrid{display:grid;grid-template-columns:1fr 46px 1.15fr 46px 1fr;gap:0;align-items:center}
-.syncbox{background:var(--ink-2);border:1px solid var(--ink-3);border-radius:10px;padding:14px 14px;color:#E8EEF1;text-align:center}
-.syncbox .t{font-weight:900;font-size:14px;color:#fff;display:block}
-.syncbox .d{font-size:11.8px;color:#AFC0CB;display:block;margin-top:4px;line-height:1.6}
-.syncbox.lite{background:var(--card);color:var(--text);border-color:var(--line)}
-.syncbox.lite .t{color:var(--ink)}
-.syncbox.lite .d{color:var(--muted)}
-.syncbox.amber{border-color:var(--amber)}
-.syncbox .mono{background:#1B2E3B;color:#FFD98A}
-.syncbox.lite .mono{background:var(--code-bg);color:#3A4B56}
-.svarrow{color:var(--amber-d);font-weight:900;text-align:center;font-size:11px;line-height:1.35}
-.svarrow .a{font-size:20px;display:block;line-height:1}
-.syncfoot{font-size:12.5px;color:var(--muted);margin:14px 4px 0}
+  .flow { display:flex; align-items:center; justify-content:center; gap: 10px; flex-wrap:wrap; margin: 20px 0; }
+  .flow .box { background: var(--card); border:2px solid var(--accent2); border-radius: 12px; padding: 14px 18px; text-align:center; font-size:0.62em; font-weight:700; min-width: 140px; }
+  .flow .box.srv { border-color: var(--ok); color: var(--ok); }
+  .flow .box.warnbox { border-color: var(--warn); color: var(--warn); }
+  .flow .arrow { font-size: 1.4em; color: var(--sub); }
 
-/* ---------- 呼称・注意 ---------- */
-.note{background:#FDF6E7;border:1px solid #EED9A6;border-left:5px solid var(--amber);border-radius:10px;padding:13px 18px;margin:16px 0;font-size:13.8px}
-.note b{color:#8A6207}
-.warn{background:#FBEEE9;border:1px solid #EBC5B8;border-left:5px solid var(--verm);border-radius:10px;padding:13px 18px;margin:16px 0;font-size:13.8px}
-.warn b{color:#93361F}
-.ok{background:#EAF3F0;border:1px solid #BFD9D2;border-left:5px solid var(--verd);border-radius:10px;padding:13px 18px;margin:16px 0;font-size:13.8px}
-.ok b{color:#175E50}
-ul.tight{margin:6px 0;padding-left:1.25em}
-ul.tight li{margin:5px 0}
-.pill{display:inline-block;background:#E8EDE9;color:#3D4B55;border:1px solid var(--line);border-radius:99px;font-size:11.5px;padding:1px 10px;margin:0 2px 2px 0;white-space:nowrap}
-.pill.a{background:#FDF3DC;color:#8A6207;border-color:#EED9A6}
-.pill.v{background:#E6F1EE;color:#175E50;border-color:#BFD9D2}
-.pill.r{background:#F9E8E2;color:#93361F;border-color:#EBC5B8}
-.pill.s{background:#E7EDF3;color:#2C4A60;border-color:#C9D6E0}
+  .note-box { background:#fffbea; border-left:5px solid var(--warn); padding: 10px 16px; border-radius: 6px; margin-top: 14px; }
+  .note-box p { margin:0; font-size:0.58em; color:#78350f; }
 
-/* ---------- フッター ---------- */
-footer{margin-top:70px;padding-top:22px;border-top:2px solid var(--ink);color:var(--muted);font-size:12.5px}
-footer .fhead{font-weight:900;color:var(--ink);font-size:14px}
+  .ok-box { background:#f0fdf4; border-left:5px solid var(--ok); padding: 10px 16px; border-radius: 6px; margin-top: 14px; }
+  .ok-box p { margin:0; font-size:0.58em; color:#14532d; }
 
-@media (max-width:720px){
-  body{padding:24px 14px 56px}
-  .hero{padding:32px 22px 28px}
-  .syncgrid{grid-template-columns:1fr;gap:10px}
-  .svarrow .a{transform:rotate(90deg)}
-  .sechead{flex-wrap:wrap}
-  .sechead .sub{margin-left:0;text-align:left;width:100%}
-}
+  .step { display:flex; gap: 14px; align-items:flex-start; margin: 10px 0; }
+  .step .n { flex-shrink:0; width: 32px; height:32px; border-radius:50%; background: var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.65em; }
+  .step .c { font-size:0.62em; padding-top:4px; }
+  .step .c b { color: var(--accent); }
+
+  table.simple { width:100%; border-collapse: collapse; font-size: 0.58em; }
+  table.simple th { background: var(--accent); color:#fff; padding: 8px 10px; text-align:left; }
+  table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  table.simple tr:nth-child(even) { background: #f7faff; }
+
+  .footer-mini { position:absolute; bottom:8px; right:18px; font-size:0.4em; color:#9ca3af; }
+  .kicker { font-size:0.55em; color: var(--sub); font-weight:700; letter-spacing:0.05em; margin-bottom:6px; display:block; }
+
+  .lock-diagram { display:flex; justify-content:center; gap: 30px; margin: 20px 0; }
+  .lock-diagram .user { text-align:center; font-size:0.6em; }
+  .lock-diagram .user .av { width:50px; height:50px; border-radius:50%; background:var(--accent2); color:#fff; display:flex; align-items:center; justify-content:center; margin:0 auto 6px; font-size:1.2em;}
+
+  .two-col-img { display:flex; gap: 16px; }
 </style>
 </head>
 <body>
+<div class="reveal">
+<div class="slides">
 
-<!-- ================= ヒーロー ================= -->
-<header class="hero">
-  <div class="eyebrow">伊東電機販売社 様 / 案件管理ツール</div>
-  <h1>件名情報 登録・管理システム</h1>
-  <span class="ver">v7 ｜ 2026-07-10 時点の実データ搭載 ｜ README.md 整理・解説資料</span>
-  <p class="lead">
-    顧客の引き合い情報である<b>「件名（案件）」</b>と、それに紐づく<b>製品明細（ペットネーム／代表形式／数量／手配状況／発注形式種別）</b>を
-    登録・編集し、<b>需要集計</b>と<b>受注状況の分析ダッシュボード</b>として活用できる、単一 HTML ファイルの業務支援ツールです。
-    フレームワークを使わない静的サイトで、ブラウザの localStorage にデータを保持し、オプションで GAS（Google Apps Script）連携による複数人共有にも対応します。
-  </p>
-  <div class="plates" aria-label="画面構成">
-    <a class="plate" href="#screen"><span class="no">①</span><span class="lb">件名一覧・登録/修正</span></a>
-    <a class="plate" href="#screen"><span class="no">②</span><span class="lb">需要集計一覧表</span></a>
-    <a class="plate" href="#screen"><span class="no">③</span><span class="lb">分析ダッシュボード</span></a>
-    <a class="plate" href="#screen"><span class="no">④</span><span class="lb">サーバー連携設定</span></a>
-    <a class="plate" href="#screen"><span class="no">⑤</span><span class="lb">メンテナンス</span></a>
-  </div>
-  <div class="stats">
-    <div class="stat"><div class="n">232</div><div class="l">初期搭載の件名データ（実データ）</div></div>
-    <div class="stat"><div class="n">5</div><div class="l">画面タブ構成</div></div>
-    <div class="stat"><div class="n">8</div><div class="l">KPIカード種（ダッシュボード）</div></div>
-    <div class="stat"><div class="n">5</div><div class="l">グラフ種（ECharts 5）</div></div>
-    <div class="stat"><div class="n">1</div><div class="l">ファイルで動作（単一HTML）</div></div>
-  </div>
-  <nav class="toc" aria-label="目次">
-    <a href="#overview">主旨概要</a>
-    <a href="#screen">画面構成</a>
-    <a href="#flow">業務フロー</a>
-    <a href="#features">機能の要点</a>
-    <a href="#data">データの仕組み</a>
-    <a href="#gas">GASサーバー連携</a>
-    <a href="#ref">参考情報</a>
-  </nav>
-</header>
+  <!-- 1. タイトル -->
+  <section class="title-slide">
+    <div class="badge">伊東電機販売社 様</div>
+    <h1>件名情報 登録・管理システム v7</h1>
+    <p class="sub">はじめての方向け　概要・仕組みガイド</p>
+    <div style="margin-top:40px; font-size:3em; color:var(--accent2);">
+      <i class="fa-solid fa-clipboard-list"></i>
+    </div>
+    <p class="company">件名（案件）情報の登録・需要集計・分析・複数人共有をまとめて行う業務支援ツール</p>
+  </section>
 
-<!-- ================= 1. 主旨概要 ================= -->
-<section id="overview">
-  <div class="sechead"><span class="secno">01</span><h2>主旨概要</h2><span class="sub">このシステムは何のためにあるか</span></div>
-  <p class="seclead">伊東電機販売社様向けに試作されていた「件名情報（顧客引き合い情報）」の登録・管理 Web アプリを引き継ぎ、実データ（2026年7月10日時点）を組み込んだ状態で公開できるように整備したものです。</p>
+  <!-- 2. このシステムは何？ -->
+  <section>
+    <h2><i class="fa-solid fa-circle-info"></i> このシステムは何？</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-bullseye"></i> 目的</h3>
+        <ul>
+          <li>営業担当ごとの「件名（案件）」情報を一元管理</li>
+          <li>各件名に紐づく製品明細（ペットネーム・数量・手配状況）を管理</li>
+          <li>需要の集計・受注状況の分析を自動化</li>
+          <li>複数人での情報共有を可能にする（オプション機能）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-laptop-code"></i> 技術的な特徴</h3>
+        <ul>
+          <li>ブラウザだけで動く「静的Webアプリ」（単一HTMLファイル）</li>
+          <li>サーバー不要・インストール不要、URLを開くだけ</li>
+          <li>通常はブラウザの中にデータを保存（<b>localStorage</b>）</li>
+          <li>必要に応じて Google Apps Script（GAS）と連携し、複数人でデータ共有も可能</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
-  <div class="grid">
-    <div class="card">
-      <span class="tag">目的</span>
-      <h4>引き合い情報の一元管理</h4>
-      <p>営業担当ごとの案件（件名）と製品明細を 1 か所に登録・編集し、「誰が・いつ・何を・どれくらい」動いているかを社内で共有できる状態にします。</p>
+  <!-- 3. 全体構成：5つのタブ -->
+  <section>
+    <h2><i class="fa-solid fa-table-columns"></i> 全体構成：5つのタブ</h2>
+    <div class="grid5">
+      <div class="tab-card"><i class="fa-solid fa-list-check"></i><div class="num">①</div><div class="ti">件名一覧<br>登録/修正</div><div class="de">案件・明細の登録と編集</div></div>
+      <div class="tab-card"><i class="fa-solid fa-table-cells"></i><div class="num">②</div><div class="ti">需要集計<br>一覧表</div><div class="de">ペット×月のクロス集計</div></div>
+      <div class="tab-card"><i class="fa-solid fa-chart-pie"></i><div class="num">③</div><div class="ti">分析<br>ダッシュボード</div><div class="de">グラフ・KPI・要注意リスト</div></div>
+      <div class="tab-card"><i class="fa-solid fa-cloud-arrow-up"></i><div class="num">④</div><div class="ti">サーバー<br>連携設定</div><div class="de">複数人共有（GAS）の設定</div></div>
+      <div class="tab-card"><i class="fa-solid fa-screwdriver-wrench"></i><div class="num">⑤</div><div class="ti">メンテ<br>ナンス</div><div class="de">マスタ編集・削除・管理者設定</div></div>
     </div>
-    <div class="card">
-      <span class="tag">できること</span>
-      <h4>登録 → 集計 → 分析までをワンセット</h4>
-      <p>件名台帳（①）で入力したデータが、需要集計（②）のクロス表と分析ダッシュボード（③）の KPI・グラフにそのまま反映されます。</p>
+    <div class="note-box" style="margin-top:28px;">
+      <p><i class="fa-solid fa-lightbulb"></i> ①②③は同じ検索条件（担当・納入予定月・受注確率・手配状況）で絞り込み可能。同じデータを異なる切り口で見られます。</p>
     </div>
-    <div class="card">
-      <span class="tag">形態</span>
-      <h4>単一 HTML・静的サイト</h4>
-      <p><code>index.html</code> 1 ファイルで動作（URLパラメータ不使用）。サーバー側 DB は使わず、ブラウザの localStorage にデータを保存します。</p>
-    </div>
-    <div class="card">
-      <span class="tag">初回データ</span>
-      <h4>実データ 232 件を自動取込</h4>
-      <p><code>data/kenmei_data.json</code>（件名 232 件＋製品マスタ一式、2026年7月10日時点）を、localStorage にデータが無い初回アクセス時のみ自動で読み込みます。</p>
-    </div>
-    <div class="card">
-      <span class="tag">複数人共有</span>
-      <h4>GAS 連携（オプション）</h4>
-      <p>Google Apps Script を追加バックエンドに設定すると、Googleドライブ上の JSON ファイル 1 つを介して複数人で同一データを共有・更新できます。</p>
-    </div>
-    <div class="card">
-      <span class="tag">技術方針</span>
-      <h4>フレームワーク不使用</h4>
-      <p>HTML / CSS / Vanilla JavaScript のみ。グラフは ECharts 5（CDN: jsdelivr）。localStorage を主体にオフラインでも動作します。</p>
-    </div>
-  </div>
+  </section>
 
-  <h3>システムの位置づけ（3つの顔＋共有）</h3>
-  <div class="flow">
-    <div class="fstep steel"><span class="fn">入力の顔</span><span class="ft">① 件名一覧・登録/修正</span><span class="fd">案件と製品明細を台帳として登録・修正・検索する</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep steel"><span class="fn">集計の顔</span><span class="ft">② 需要集計一覧表</span><span class="fd">ペットネーム × 納入予定月の数量クロス集計</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep steel"><span class="fn">分析の顔</span><span class="ft">③ 分析ダッシュボード</span><span class="fd">KPI 8種・グラフ 5種で受注状況を可視化</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep verd"><span class="fn">共有の顔</span><span class="ft">④ GAS連携 ／ ⑤ メンテナンス</span><span class="fd">複数人でデータ共有・マスタ管理</span></div>
-  </div>
-</section>
+  <!-- 4. ①件名一覧・登録/修正 -->
+  <section>
+    <h2><span class="kicker">TAB ①</span>件名一覧・登録/修正</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-pen-to-square"></i> できること</h3>
+        <ul>
+          <li>件名（案件）の新規登録・修正・一覧表示</li>
+          <li>製品明細（ペットネーム・代表形式・数量・手配状況）を複数行登録</li>
+          <li>キーワード・納入予定月・担当・受注確率などで絞り込み</li>
+          <li>列ヘッダクリックで並び替え</li>
+          <li><b>件名複製</b>：似た案件を複製してから一部だけ修正、手早く新規登録</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-file-csv"></i> 書き出し機能</h3>
+        <ul>
+          <li>JSON書き出し（全件バックアップ）</li>
+          <li>CSV書き出し（明細展開・全件 / 絞込結果のみ）</li>
+          <li>納入予定月はExcelでも読みやすい「yyyy/mm/dd」形式で出力</li>
+          <li>JSONファイルの取込によるマージ（更新日時が新しい方を優先）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
-<!-- ================= 2. 画面構成 ================= -->
-<section id="screen">
-  <div class="sechead"><span class="secno">02</span><h2>画面構成（5つのタブ）</h2><span class="sub">index.html 単一ページアプリ</span></div>
-  <p class="seclead">アプリは単一ページ（<code>index.html</code>・URLパラメータ不使用）で、上部のタブで 5 つの画面を切り替えます。①〜③は同じ検索条件 UI（キーワード／納入予定月／担当／受注確率／手配状況）を共有しており、条件を変えると各画面の表示が連動して絞り込まれます。</p>
+  <!-- 5. ②需要集計一覧表 -->
+  <section>
+    <h2><span class="kicker">TAB ②</span>需要集計一覧表</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-table-cells"></i> 何が見える？</h3>
+        <ul>
+          <li>「ペットネーム × 納入予定月」でのクロス集計表</li>
+          <li>①と同じ絞り込み条件を適用可能</li>
+          <li>年度・半期・月別の切替表示</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-calendar-days"></i> 月ヘッダの工夫</h3>
+        <ul>
+          <li>データが存在する月の<b>最古〜最新まで歯抜けなく</b>連続表示</li>
+          <li>データのない月は「0」を表示（見た目の連続性を確保）</li>
+          <li>CSV出力時も同じ方針＋「yyyy/mm/dd」形式で統一</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ok-box">
+      <p><i class="fa-solid fa-circle-check"></i> 例：抽出結果が2026年3月と7月のデータしかなくても、3〜7月の5列が表示され、間の4〜6月は「0」として埋まります。</p>
+    </div>
+  </section>
 
-  <table>
-    <thead><tr><th class="nowrap">タブ</th><th>役割</th><th>主な内容</th></tr></thead>
-    <tbody>
+  <!-- 6. ③分析ダッシュボード -->
+  <section>
+    <h2><span class="kicker">TAB ③</span>分析ダッシュボード</h2>
+    <div class="grid3">
+      <div class="card">
+        <h3><i class="fa-solid fa-gauge-high"></i> KPIカード</h3>
+        <ul><li>件名数・合計数量</li><li>受注済件数・受注率</li><li>納品予定月超過の未納品数 等</li></ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-chart-column"></i> グラフ（ECharts）</h3>
+        <ul><li>受注確度別件名数（ドーナツ）</li><li>担当別数量（積み上げ棒）</li><li>納品予定月別数量推移（棒＋累積折れ線）</li><li>ペットネーム別TOP10 等</li></ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-triangle-exclamation"></i> 要注意リスト</h3>
+        <ul><li>納品予定月を<b>超過</b>している未納品の明細</li><li>対象：受注・A・B・Cのみ（失注・納品済は除外）</li><li>🖨 PDF出力で現在の絞込状態のまま印刷可能</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. データはどこに保存される？ -->
+  <section>
+    <h2><i class="fa-solid fa-database"></i> データはどこに保存される？（通常モード）</h2>
+    <div class="flow">
+      <div class="box"><i class="fa-solid fa-desktop"></i><br>ブラウザ操作<br>（登録・編集・削除）</div>
+      <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
+      <div class="box"><i class="fa-solid fa-hard-drive"></i><br>localStorage<br>（このブラウザの中だけ）</div>
+    </div>
+    <div class="note-box">
+      <p><i class="fa-solid fa-triangle-exclamation"></i> <b>重要</b>：localStorageは「ブラウザ＋端末ごと」に独立しています。他の人のパソコンや、別のブラウザからは<b>見えません</b>。複数人で同じデータを共有したい場合は、次ページの「サーバー連携（GAS）」の設定が必要です。</p>
+    </div>
+  </section>
+
+  <!-- 8. 複数人共有の必要性 -->
+  <section>
+    <h2><span class="kicker">TAB ④</span>サーバー連携設定（GAS）とは</h2>
+    <div class="card">
+      <h3><i class="fa-solid fa-users"></i> なぜ必要？</h3>
+      <p>標準の状態では、Aさんが登録した件名はAさんのブラウザにしか無く、Bさんの画面には表示されません。<br>
+      <b>Google Apps Script（GAS）</b>をバックエンドとして設定すると、Googleドライブ上のJSONファイル1つを介して、複数人が同じ件名データ・マスタ設定を参照・更新できるようになります。</p>
+    </div>
+    <div class="flow" style="margin-top:28px;">
+      <div class="box">Aさんのブラウザ<br>（localStorage）</div>
+      <div class="arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+      <div class="box srv"><i class="fa-brands fa-google"></i><br>GAS + Googleドライブ<br>（共有JSONファイル）</div>
+      <div class="arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+      <div class="box">Bさんのブラウザ<br>（localStorage）</div>
+    </div>
+  </section>
+
+  <!-- 9. 同期の3ステップ -->
+  <section>
+    <h2><i class="fa-solid fa-rotate"></i> 同期の基本動作</h2>
+    <div class="step"><div class="n">1</div><div class="c"><b>⇅ 今すぐサーバーへ送信・同期</b> — このブラウザの変更をサーバーへ送り、サーバー側の最新内容を統合して取得（双方向）</div></div>
+    <div class="step"><div class="n">2</div><div class="c"><b>⬇ サーバーの内容を取得して統合</b> — ローカルの未送信の変更は残したまま、サーバー側の内容を取り込みマージ</div></div>
+    <div class="step"><div class="n">3</div><div class="c"><b>🗑⬇ ローカルを全消去してサーバーから取得</b> — ローカルを完全に消去し、サーバーの最新データで上書き（マージしない）</div></div>
+    <div class="note-box">
+      <p><i class="fa-solid fa-circle-info"></i> 更新は「日時の新しい方」を優先して自動マージされます。削除は「削除記録（トゥームストーン）」で管理し、古いデータによる復活を防止します。</p>
+    </div>
+  </section>
+
+  <!-- 10. 二段階同期 -->
+  <section>
+    <h2><i class="fa-solid fa-layer-group"></i> こだわりの工夫：二段階同期</h2>
+    <div class="card">
+      <h3><i class="fa-solid fa-bolt"></i> どんな問題を防ぐ？</h3>
+      <p>複数人がほぼ同時刻に同期操作を行うと、通信の遅延により、後から操作した人の変更が先に処理されてしまうことがあります。この「タイミングのズレ」が原因で、片方の端末だけ古い状態のまま取り残されるケースがありました。</p>
+    </div>
+    <div class="lock-diagram">
+      <div class="user"><div class="av"><i class="fa-solid fa-user"></i></div>Aさん：削除操作</div>
+      <div class="user"><div class="av"><i class="fa-solid fa-user"></i></div>Bさん：ほぼ同時に同期</div>
+    </div>
+    <div class="ok-box">
+      <p><i class="fa-solid fa-circle-check"></i> <b>対策</b>：同期が成功した約4秒後に、もう一度静かにサーバー状態を確認・再取得する「確認取得」を自動実行。ほぼ同時の他者の変更も取りこぼしにくくなりました。</p>
+    </div>
+  </section>
+
+  <!-- 11. ⑤メンテナンス -->
+  <section>
+    <h2><span class="kicker">TAB ⑤</span>メンテナンス（管理者機能）</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3><i class="fa-solid fa-lock"></i> アクセス制限</h3>
+        <ul><li>管理者パスワードで保護（初期値あり、半角英数字6〜12文字）</li><li>パスワードはここで変更可能</li></ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-list-ul"></i> 主な機能</h3>
+        <ul>
+          <li>ドロップダウン項目（受注確率・手配状況・担当・ペットネーム対比表 等）の追加・編集・削除</li>
+          <li>件名データの削除（削除はここでのみ可能）・全案件削除</li>
+          <li>サーバー連携（GAS）の設定・同期も、④と同じ内容がここからも操作可能</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note-box">
+      <p><i class="fa-solid fa-circle-exclamation"></i> このパスワード保護はあくまで「誤操作防止」のための簡易的なものです。ブラウザの中で完結する静的サイトのため、本当の意味でのセキュリティ（なりすまし防止等）は提供できません。</p>
+    </div>
+  </section>
+
+  <!-- 12. 導入手順 -->
+  <section>
+    <h2><i class="fa-solid fa-rocket"></i> サーバー連携（GAS）導入の流れ</h2>
+    <div class="step"><div class="n">1</div><div class="c">⑤メンテナンス →「サーバー連携(GAS)」から、GASデプロイ用ファイル（<b>gas/Code.gs</b>）をダウンロード</div></div>
+    <div class="step"><div class="n">2</div><div class="c">Google Apps Scriptでプロジェクトを作成し、Code.gsの内容を貼り付けて<b>ウェブアプリとしてデプロイ</b></div></div>
+    <div class="step"><div class="n">3</div><div class="c">発行された<b>ウェブアプリURL</b>を、④サーバー連携設定の入力欄に貼り付けて「設定を保存」</div></div>
+    <div class="step"><div class="n">4</div><div class="c">「⇅ 今すぐサーバーへ送信・同期」を押して接続確認・初回同期を実施</div></div>
+    <div class="step"><div class="n">5</div><div class="c">他のメンバーにも同じウェブアプリURLを共有し、各自のブラウザで同じ設定を行う</div></div>
+  </section>
+
+  <!-- 13. 注意点・トラブルシューティング -->
+  <section>
+    <h2><i class="fa-solid fa-circle-question"></i> よくあるつまずきポイント</h2>
+    <table class="simple">
+      <tr><th>症状</th><th>よくある原因</th><th>対処</th></tr>
       <tr>
-        <td class="nowrap"><b>① 件名一覧・登録/修正</b></td>
-        <td>案件台帳（入力と一覧）</td>
-        <td>サブタブ「件名一覧/修正」「＋新規件名を登録」で切替。案件情報（親）＋製品明細（子）の登録・修正、検索・絞り込み、列ヘッダでの並び替え、JSON/CSV 書き出し・JSON 取込、件名複製。説明文付きの見出し表示。</td>
+        <td>設定保存ボタンを押しても<br>何も起きない</td>
+        <td>公開先に <code>js/gas-sync.js</code> が<br>配置されていない（404）</td>
+        <td>同じ階層構成（js/・data/フォルダ含む）で<br>必要ファイルを漏れなくアップロード</td>
       </tr>
       <tr>
-        <td class="nowrap"><b>② 需要集計一覧表</b></td>
-        <td>需要のクロス集計</td>
-        <td>①と同じ絞り込み条件で「ペットネーム × 納入予定月」の数量をクロス集計。年度・半期・月別のドロップダウン集計と CSV 出力に対応。</td>
+        <td>ファイルをダブルクリックで<br>直接開くと一部機能が不安定</td>
+        <td><code>file://</code>形式はブラウザの<br>セキュリティ制限を受けやすい</td>
+        <td>簡易Webサーバー（http://）や<br>公開済みURLを利用する</td>
       </tr>
       <tr>
-        <td class="nowrap"><b>③ 分析ダッシュボード</b></td>
-        <td>受注状況の可視化</td>
-        <td>KPI カード 8 種、ECharts によるグラフ 5 種、担当別実績サマリー、要注意リスト（納品予定月超過の未納品明細）。現在の絞込条件のまま PDF 出力が可能。</td>
+        <td>同期したのに他の人の<br>削除が反映されない</td>
+        <td>ほぼ同時刻の同期によるタイミングのズレ</td>
+        <td>二段階同期で自動的に数秒後に再確認<br>（本バージョンで対応済み）</td>
       </tr>
-      <tr>
-        <td class="nowrap"><b>④ サーバー連携設定</b></td>
-        <td>GAS 連携の入口</td>
-        <td>「① デプロイして発行されたウェブアプリURLを設定」「② 同期の実行」の 2 ステップ。ここで保存した設定は①の同期ボタン・⑤のサブタブと共通（どこで同期しても全箇所に反映）。</td>
-      </tr>
-      <tr>
-        <td class="nowrap"><b>⑤ メンテナンス</b></td>
-        <td>管理者機能</td>
-        <td>管理者パスワード保護。ドロップダウン項目マスタ（受注確率・手配状況・営業担当＋所属グループ・ペットネーム対比表など）の追加・編集・削除・並び替え、件名データの修正・削除（削除はここでのみ可能）、全案件削除、パスワード変更（初期値あり、半角英数字6〜12文字）。「サーバー連携(GAS)」サブタブあり。</td>
-      </tr>
-    </tbody>
-  </table>
-  <p class="t-caption">※ 初期データは <code>data/kenmei_data.json</code> をアプリから <code>fetch</code> で読み込みます。一度でも保存・削除等が行われた後は再読込されません（既存の編集内容を保護する安全策）。</p>
-</section>
+    </table>
+  </section>
 
-<!-- ================= 3. 業務フロー ================= -->
-<section id="flow">
-  <div class="sechead"><span class="secno">03</span><h2>業務フロー</h2><span class="sub">はじめて見る人のための流れ解説</span></div>
-  <p class="seclead">実際の運用は「案件の登録・更新 → 集計 → 分析 → 共有」のサイクルで回ります。以下、全体像と、個別の4つの流れ（案件登録・複製・初回導入・複数人同期）に分けて整理します。</p>
-
-  <h3>3-1. 全体業務フロー（日常運用のサイクル）</h3>
-  <div class="flow">
-    <div class="fstep"><span class="fn">STEP 1</span><span class="ft">登録・更新（①）</span><span class="fd">引き合いがあったら件名を新規登録。進捗に応じて納入予定月・受注確率・手配状況などを随時修正</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep"><span class="fn">STEP 2</span><span class="ft">一覧・絞込・書出（①）</span><span class="fd">キーワードや受注確率タブで絞り込み、CSV／JSONでExcel取り込み用データを書き出す</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep"><span class="fn">STEP 3</span><span class="ft">需要集計（②）</span><span class="fd">ペットネーム×納入予定月の数量を月別・半期・年度でクロス集計しCSV出力</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep"><span class="fn">STEP 4</span><span class="ft">分析・報告（③）</span><span class="fd">KPI・グラフで受注状況を確認し、絞込条件付きのままPDF出力して会議資料化</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep verd"><span class="fn">STEP 5</span><span class="ft">チーム共有（④）</span><span class="fd">GAS連携設定時は保存から約2.5秒後に自動でサーバーへ送信・同期</span></div>
-  </div>
-
-  <h3>3-2. 件名の登録フロー（親子構造の入力）</h3>
-  <p>1件名＝1レコードで、案件情報（親）と製品明細（子・複数行）を同じフォームから入力します。</p>
-  <div class="flow flowv" style="flex-direction:column;align-items:stretch">
-    <div class="fstep"><span class="fn">手順 1</span><span class="ft">「＋ 新規件名を登録」を開く</span><span class="fd">①のサブタブから新規登録フォームに切替</span></div>
-    <div class="fdown">▼</div>
-    <div class="fstep"><span class="fn">手順 2</span><span class="ft">① 案件情報（親）を入力</span><span class="fd">営業担当・納入予定月・受注確率・件名No.・件名名称・岩崎手配・備考</span></div>
-    <div class="fdown">▼</div>
-    <div class="fstep"><span class="fn">手順 3</span><span class="ft">② 納入明細（子）を複数行入力</span><span class="fd">ペットネーム・代表形式・数量・手配状況・発注形式種別・発注予定正式形式。<b>ペットネーム⇄代表形式は自動連携</b>、見込形式選択時は発注予定正式形式の候補が自動絞り込みされる</span></div>
-    <div class="fdown">▼</div>
-    <div class="fstep verd"><span class="fn">手順 4</span><span class="ft">「登録（保存）」</span><span class="fd">保存後もフォームに留まり入力内容を保持するため、類似件名を連続登録でき、その場で「⇅ 今すぐサーバーへ送信・同期」も可能。一覧へはサブタブ「件名一覧/修正」を押した時だけ遷移</span></div>
-  </div>
-
-  <h3>3-3. 件名複製のフロー（似た案件を連続登録）</h3>
-  <div class="flow">
-    <div class="fstep steel"><span class="fn">1</span><span class="ft">既存件名を「✏ 編集」で開く</span><span class="fd">見出し「修正：＊＊＊＊」の右に「📄 件名複製」ボタンが出現（新規フォームでは非表示）</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep steel"><span class="fn">2</span><span class="ft">「📄 件名複製」を押す</span><span class="fd">親・子の入力内容を保持したまま「新規」状態へ。見出しは「修正（複製）：＊＊＊＊」に変化。元データはこの時点では無変更</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep steel"><span class="fn">3</span><span class="ft">必要な箇所を修正して「登録（保存）」</span><span class="fd">件名No.・名称が同一でも元とは別の新しいID・別レコードとして保存（元データは残る）</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep verd"><span class="fn">4</span><span class="ft">自動的に「修正」状態へ切替</span><span class="fd">複製後の最初の保存直後からは、通常の修正（同じ管理IDへの上書き保存）に戻るため、押した回数だけ複製が増えることはない</span></div>
-  </div>
-
-  <h3>3-4. 初回導入フロー（実データの自動取込）</h3>
-  <div class="flow">
-    <div class="fstep"><span class="fn">1</span><span class="ft">公開URLにブラウザでアクセス</span><span class="fd">index.html が読み込まれる</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep"><span class="fn">2</span><span class="ft">localStorage のデータ有無を判定</span><span class="fd">ブラウザごとに独立した保存領域</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep"><span class="fn">3</span><span class="ft">空なら data/kenmei_data.json を自動取込</span><span class="fd">件名232件＋マスタ一式を初期搭載</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep verd"><span class="fn">4</span><span class="ft">編集・運用スタート</span><span class="fd">以後、このファイルは再読込されない（編集内容を上書きしないための安全策）</span></div>
-  </div>
-
-  <h3>3-5. 複数人での共有フロー（GASサーバー連携時）</h3>
-  <p>localStorage は端末・ブラウザごとに独立しているため、GAS を「追加の同期レイヤー」として利用します。オフライン動作（localStorage主体）は維持したまま、Googleドライブ上の JSON ファイル 1 つを介して全員のデータが合流します。</p>
-  <div class="syncdiag">
-    <div class="syncgrid">
-      <div class="syncbox lite"><span class="t">端末 A のブラウザ</span><span class="d">①〜⑤で編集<br><code>localStorage</code> に保存</span></div>
-      <div class="svarrow"><span class="a">▶</span>保存から約2.5秒後に<br>自動送信 / 手動同期</div>
-      <div class="syncbox amber"><span class="t">GAS ウェブアプリ</span><span class="d"><code>gas/Code.gs</code><br>LockService で同時実行制御・マージ処理</span></div>
-      <div class="svarrow"><span class="a">▶</span>読み書き</div>
-      <div class="syncbox"><span class="t">Googleドライブ</span><span class="d"><code>kenmei_data_v7.json</code> 1ファイル<br>（件名・マスタ・パスワード・削除記録を保存）</span></div>
+  <!-- 14. まとめ -->
+  <section class="title-slide">
+    <h2 style="border:none;"><i class="fa-solid fa-flag-checkered"></i> まとめ</h2>
+    <div class="grid2" style="text-align:left; margin-top: 20px;">
+      <div class="card">
+        <h3><i class="fa-solid fa-check"></i> 覚えておきたいこと</h3>
+        <ul>
+          <li>通常はブラウザの<b>localStorage</b>にデータ保存（端末ごとに独立）</li>
+          <li>複数人で共有したい時は<b>④サーバー連携設定（GAS）</b>を使う</li>
+          <li>削除は⑤メンテナンスでのみ可能</li>
+          <li>①②③は同じ条件で絞り込み・横断的に確認できる</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><i class="fa-solid fa-circle-info"></i> 困ったときは</h3>
+        <ul>
+          <li>公開先にファイルの配置漏れがないか確認</li>
+          <li><code>file://</code>直接実行ではなく公開URLを利用</li>
+          <li>設定・同期の状況は④・⑤どちらからでも確認可能</li>
+        </ul>
+      </div>
     </div>
-    <div class="syncfoot">▶ 他の端末 B・C も同じ経路で同期：各端末は「サーバーへ送信・統合」または「サーバーの内容を取得して統合」で同一データに合流します。同期完了の約4秒後に、もう一度静かにサーバーを確認し直す「二段階同期」で、ほぼ同時刻の他メンバーの変更の取りこぼしを減らします。</div>
-  </div>
-  <div class="note"><b>GAS未設定でも利用可能。</b>既定では localStorage のみで動作します。その場合の複数人共有は「各自が①で JSON 書き出し（全件）→ 誰か1人が⑤のデータ取込（マージ）で集約」の運用を想定（<code>updatedAt</code> が新しい方を採用）。</div>
-</section>
+    <p class="sub" style="margin-top:30px;">ご不明点があれば開発担当までお気軽にお問い合わせください。</p>
+  </section>
 
-<!-- ================= 4. 機能の要点 ================= -->
-<section id="features">
-  <div class="sechead"><span class="secno">04</span><h2>機能の要点</h2><span class="sub">各画面が持つ具体的な力</span></div>
-  <p class="seclead">README に記載の「現在完了している機能」を、画面別に整理したものです。</p>
+</div>
+</div>
 
-  <h3>4-1. ① 件名一覧・登録/修正 — 台帳機能一覧</h3>
-  <table>
-    <thead><tr><th class="nowrap">機能</th><th>内容</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><b>登録・修正フォーム</b></td><td>案件情報（親）＋製品明細（子）の複数行登録。保存後もフォームに留まり入力内容を保持（連続登録に対応）。一覧への遷移はサブタブ操作時のみ。</td></tr>
-      <tr><td class="nowrap"><b>入力支援</b></td><td>ペットネーム⇄代表形式の自動連携、見込形式選択時の発注予定正式形式候補の自動絞り込み。</td></tr>
-      <tr><td class="nowrap"><b>検索・絞り込み</b></td><td>キーワード／納入予定月／担当／受注確率／手配状況の各ドロップダウン＋受注確率の複数選択タブ（すべて/受注/A/B/C/失注/納品済）。</td></tr>
-      <tr><td class="nowrap"><b>並び替え</b></td><td>列ヘッダのクリックで並び替え（営業担当・納入予定月・受注確率・件名No.）。</td></tr>
-      <tr><td class="nowrap"><b>書き出し／取込</b></td><td>JSON書き出し（全件）／CSV書き出し（明細展開・全件）／CSV書き出し（明細展開・絞込結果のみ）／JSON取込によるマージ（<code>updatedAt</code> 優先）。「絞込結果のみ」は一覧画面で現在適用中の絞込・並び替え条件に一致する件名のみ対象。0件ならエラー表示。</td></tr>
-      <tr><td class="nowrap"><b>CSV列見出し</b></td><td>管理ID／件名名称／件名No./担当者／受注確率／備考／アンダーバー／最終更新日時／納入予定月／ペットネーム／代表形式／数量／手配状況／発注形式種別／発注予定正式形式。<span class="nowrap">（「アンダーバー」列＝岩崎手配(キーイン)フラグの 0/1）</span></td></tr>
-      <tr><td class="nowrap"><b>納入予定月の出力形式</b></td><td><b>「YYYY/MM/01」形式</b>（例：2026/04/01）で出力。「YYYY-MM」のままだと Excel が自動で日付解釈して「Apr-26」のようなロケール依存の英語月表記になってしまう問題の不具合修正。</td></tr>
-      <tr><td class="nowrap"><b>件名複製</b></td><td>修正画面から親・子の内容を保持したまま「新規」状態へ切替→別ID・別レコードとして保存。複製後の最初の保存で自動的に「修正」状態へ戻るため、連打で複製が増え続ける不具合は解消済み。</td></tr>
-    </tbody>
-  </table>
-
-  <h3>4-2. ② 需要集計一覧表 — クロス集計の仕様</h3>
-  <div class="grid">
-    <div class="card">
-      <span class="tag">集計軸</span>
-      <h4>ペットネーム × 納入予定月</h4>
-      <p>①と同じ絞り込み条件を適用した上で、数量をクロス集計。年度・半期・月別のドロップダウン集計と CSV 出力に対応。</p>
-    </div>
-    <div class="card">
-      <span class="tag">月列のルール</span>
-      <h4>歯抜けなく連続した列見出し</h4>
-      <p>抽出結果に含まれる納入予定月の最古月〜最新月まで、月単位で連続した列を表示・出力。データが存在しない月は <b>0</b> を記載（例：2026-03 と 2026-07 のみの結果でも、2026-03〜07 の 5 列を表示）。</p>
-    </div>
-    <div class="card">
-      <span class="tag">CSV出力</span>
-      <h4>ヘッダは「YYYY/MM/01」形式</h4>
-      <p>CSVの列見出しのみ ① と同じ方針で「YYYY/MM/01」に変換（画面表示のヘッダは従来どおり「YYYY-MM」）。</p>
-    </div>
-    <div class="card">
-      <span class="tag">見た目の統一</span>
-      <h4>ページヘッダ形式</h4>
-      <p>タイトル・説明文を①③と同じ見た目（ページヘッダ形式）に統一。</p>
-    </div>
-  </div>
-
-  <h3>4-3. ③ 分析ダッシュボード — 可視化の内容</h3>
-  <table>
-    <thead><tr><th class="nowrap" style="width:34%">要素</th><th>内容</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><b>KPIカード 8種</b></td><td>件名数・合計数量・受注済件数・受注率・納品予定月超過の未納品明細数 など。</td></tr>
-      <tr><td class="nowrap"><b>グラフ 5種（ECharts 5・CDN読込）</b></td><td>
-        <ul class="tight">
-          <li>受注確度別 件名数 — ドーナツ図</li>
-          <li>担当別 数量 — 積み上げ棒グラフ</li>
-          <li>手配状況別 明細件数 — ローズ図</li>
-          <li>納品予定月別 数量推移 — 棒＋累積折れ線</li>
-          <li>ペットネーム別 数量ランキング TOP10</li>
-        </ul></td></tr>
-      <tr><td class="nowrap"><b>共通フィルタ</b></td><td>①②と同じ検索条件 UI（検索ボックス／納入予定月／担当／受注確率／手配状況＋受注確率複数選択タブ）をページ上部に追加。条件変更のたびに自動再集計。納入予定月ドロップダウン（月次/半期/年度グルーピング）と担当ドロップダウン（グループ＋担当者のoptgroup）で絞り込み。</td></tr>
-      <tr><td class="nowrap"><b>月軸のルール</b></td><td>「納品予定月別 数量の推移」の横軸も②と同じく最古月〜最新月を歯抜けなく連続表示。欠損月は数量 0（棒は0、累積折れ線は前月値を保持）で描画し、グラフの連続性を維持。</td></tr>
-      <tr><td class="nowrap"><b>要注意リスト</b></td><td>抽出条件：<b>現在日付が納品予定月を超過</b> かつ 受注確率が「受注/A/B/C」のいずれか（<b>失注・納品済は除外</b>）。KPIカード「▲ 納品予定月超過の未納品明細数」と同じ条件で集計し、表示件数と数値が必ず一致するよう統一（旧仕様では KPI 側が「失注」を含めてずれることがあった不整合を解消）。</td></tr>
-      <tr><td class="nowrap"><b>レイアウト</b></td><td>「担当別 実績サマリー」と「▲ 要注意リスト」は縦積み（全幅）で見やすく配置。</td></tr>
-      <tr><td class="nowrap"><b>PDF出力</b></td><td>ツールバーの「🖨 PDF出力（現在の絞込結果）」で、絞込条件のサマリー（検索文字／各ドロップダウン／受注確率タブの選択状態／出力日時）を印刷用ページ上部に付与し、ブラウザ標準の印刷ダイアログを起動。印刷時はタブ・検索条件 UI・操作ボタン等を自動非表示にし、レポート向きのレイアウトで出力。</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- ================= 5. データの仕組み ================= -->
-<section id="data">
-  <div class="sechead"><span class="secno">05</span><h2>データの仕組み</h2><span class="sub">どこに・何を・どう保存するか</span></div>
-  <p class="seclead">サーバー側 DB は使わず、<b>静的サイト + ブラウザの localStorage</b> で動作します。保存領域は 5 つのキーに分かれています。</p>
-
-  <h3>5-1. localStorage のキー一覧</h3>
-  <table>
-    <thead><tr><th class="nowrap">キー</th><th>保存内容</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><code>kenmei_cases_v7</code></td><td>件名（案件）データ本体</td></tr>
-      <tr><td class="nowrap"><code>kenmei_master_v7</code></td><td>ドロップダウン・マスタ（担当／受注確率／手配状況／ペットネーム対比表 等）</td></tr>
-      <tr><td class="nowrap"><code>kenmei_pw_v7</code></td><td>メンテナンス画面の管理者パスワード（初期値あり・変更可能）</td></tr>
-      <tr><td class="nowrap"><code>kenmei_deleted_v7</code></td><td>件名データの削除トゥームストーン（GAS同期用、id→削除日）</td></tr>
-      <tr><td class="nowrap"><code>kenmei_master_deleted_v7</code></td><td>マスタ項目の削除トゥームストーン（フィールド名→識別子→削除日）</td></tr>
-    </tbody>
-  </table>
-
-  <h3>5-2. データモデル</h3>
-  <h4>MASTER（マスタ情報）</h4>
-  <table>
-    <thead><tr><th class="nowrap">フィールド</th><th class="nowrap">型</th><th>内容</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><code>owners</code></td><td>array&lt;string&gt;</td><td>営業担当一覧</td></tr>
-      <tr><td class="nowrap"><code>prob</code></td><td>array&lt;string&gt;</td><td>受注確率区分（受注/A/B/C/失注/納品済）</td></tr>
-      <tr><td class="nowrap"><code>status</code></td><td>array&lt;string&gt;</td><td>手配状況区分</td></tr>
-      <tr><td class="nowrap"><code>pairs</code></td><td>array&lt;object&gt;</td><td>ペットネーム⇄代表形式の1:1対応表</td></tr>
-      <tr><td class="nowrap"><code>forms</code></td><td>array&lt;string&gt;</td><td>発注予定正式形式の候補一覧</td></tr>
-      <tr><td class="nowrap"><code>formMap</code></td><td>array&lt;object&gt;</td><td>ペットネーム⇄発注予定正式形式⇄種別の対比表</td></tr>
-      <tr><td class="nowrap"><code>groups</code></td><td>array&lt;string&gt;</td><td>営業担当の所属グループ（1G/2G）</td></tr>
-      <tr><td class="nowrap"><code>ownerGroups</code></td><td>array&lt;object&gt;</td><td>営業担当と所属グループの紐付け</td></tr>
-    </tbody>
-  </table>
-  <h4>CASES（件名データ、1件名＝1レコード）</h4>
-  <table>
-    <thead><tr><th class="nowrap">フィールド</th><th class="nowrap">型</th><th>内容</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><code>id</code></td><td>string</td><td>件名の一意ID</td></tr>
-      <tr><td class="nowrap"><code>kenmei</code></td><td>string</td><td>件名名称</td></tr>
-      <tr><td class="nowrap"><code>kenmeiNo</code></td><td>string</td><td>件名No.（任意）</td></tr>
-      <tr><td class="nowrap"><code>owner</code></td><td>string</td><td>営業担当</td></tr>
-      <tr><td class="nowrap"><code>prob</code></td><td>string</td><td>受注確率</td></tr>
-      <tr><td class="nowrap"><code>memo</code></td><td>string</td><td>備考</td></tr>
-      <tr><td class="nowrap"><code>iwasaki</code></td><td>bool</td><td>岩崎手配(キーイン)フラグ</td></tr>
-      <tr><td class="nowrap"><code>mon</code></td><td>string</td><td>納入予定月（YYYY-MM）</td></tr>
-      <tr><td class="nowrap"><code>updatedAt</code></td><td>string</td><td>最終更新日時（日本時間・分秒まで。形式："YYYY-MM-DD HH:mm:ss"）</td></tr>
-      <tr><td class="nowrap"><code>details</code></td><td>array&lt;object&gt;</td><td>製品明細（pet/rep/qty/sts/htyp/form）</td></tr>
-    </tbody>
-  </table>
-  <div class="ok"><b>updatedAt の精度向上（JST・分秒まで）。</b>従来は UTC 基準の「日付のみ」だったため、①日本時間の深夜0:00〜8:59の保存が前日扱いに見える、②同日に複数人が編集するとマージ判定が「後からサーバーに届いた方」で上書きして片方の変更が消える — の2つの問題がありました。<code>nowJstStr()</code> により「YYYY-MM-DD HH:mm:ss」（Asia/Tokyo・固定桁）に変更し、マージ判定は固定桁の文字列比較のまま、削除記録との前後判定のみ先頭10文字（日付部）で比較することで、旧形式データとも共存できます。CSV の列見出しも「最終更新日」→「最終更新日時」に変更済み。</div>
-</section>
-
-<!-- ================= 6. GASサーバー連携 ================= -->
-<section id="gas">
-  <div class="sechead"><span class="secno">06</span><h2>GASサーバー連携（複数人でのデータ共有）</h2><span class="sub">オプションの追加バックエンド</span></div>
-  <p class="seclead">既定では localStorage のみで動作しますが、<b>Google Apps Script（GAS）を追加バックエンド</b>として設定すると、複数人が同じデータ（Googleドライブ上の JSON ファイル 1 つ）にアクセス・更新できます。localStorage を主体としたオフライン動作を維持しつつ、GAS を「追加の同期レイヤー」として利用する構成です。</p>
-
-  <h3>6-1. 設定場所と必要ファイル</h3>
-  <div class="grid">
-    <div class="card">
-      <span class="tag">設定場所（設定・同期状態は共通）</span>
-      <ul>
-        <li><b>④ サーバー連携設定</b>（専用タブ）</li>
-        <li><b>① 新規登録フォーム最下部</b> —「⇅ 今すぐサーバーへ送信・同期」ボタンのみ（フォームを離れずその場で送信）</li>
-        <li><b>⑤ メンテナンス →「サーバー連携(GAS)」サブタブ</b> —「④サーバー全消去→ローカル取得」はここにのみ設置</li>
-      </ul>
-      <p style="margin-top:8px">どこで設定・同期しても全箇所に反映されます。基本の流れは「① URL設定 → ② 同期の実行」の2ステップ。</p>
-    </div>
-    <div class="card">
-      <span class="tag">必要なファイル（アプリ内からダウンロード可能）</span>
-      <ul>
-        <li><code>gas/Code.gs</code> — GASウェブアプリ本体（doGet/doPost、Googleドライブへの読み書き、マージ処理）</li>
-        <li><code>gas/appsscript.json</code> — GASのマニフェスト（デプロイ設定）</li>
-        <li><code>gas/README_DEPLOY.md</code> — 作成からデプロイ・設定までの手順書（日本語）</li>
-      </ul>
-    </div>
-  </div>
-
-  <h3>6-2. 同期・マージの仕組み</h3>
-  <table>
-    <thead><tr><th class="nowrap" style="width:24%">仕組み</th><th>内容</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><b>マージの基本ルール</b></td><td>競合時は <code>updatedAt</code>（最終更新日時・JST分秒まで）が新しい方を採用。既存の JSON 手動取込マージと同じ考え方。固定桁の文字列比較で時系列順序が保たれます。</td></tr>
-      <tr><td class="nowrap"><b>削除の管理（トゥームストーン）</b></td><td>件名は <code>deletedIds</code>、マスタ項目は <code>masterDeletedIds</code> に削除日を記録。他端末の古いデータの再送信で、削除済みレコードが復活しないようにしています。項目を再登録・編集した場合は削除記録が自動解除、「初期値（共有エクセル由来）に戻す」は一括復元として削除記録を全クリア。</td></tr>
-      <tr><td class="nowrap"><b>自己修復ロジック</b></td><td>サーバー側・端末側の<b>両方</b>が同じ ID のデータを「現存データ」として送ってきている場合、「本当は削除されていない」という強い証拠とみなして削除記録を自動的に無効化し、データを保持（片方にしか存在しない ID は従来どおり正しく削除が反映）。件名データ（CASES）とマスタ（MASTER）の両方に実装済み。</td></tr>
-      <tr><td class="nowrap"><b>安全装置（同期の自動ブロック）</b></td><td>同期結果の統合後件数が、同期前のサーバー側件数・この端末の送信件数のどちらより<b>大幅（50%以上）に少ない</b>場合は、書き込み自体を中止（サーバー・ローカルとも変更されません）。「⚠ 安全装置により同期を中止しました」のアラートと診断情報（サーバー側件数／送信件数／統合予定件数／消えかけていた件名の例）を表示。</td></tr>
-      <tr><td class="nowrap"><b>自動同期</b></td><td>「保存操作のたびに自動送信する」を有効にすると、件名登録・削除・マスタ編集・パスワード変更などの操作から<b>約2.5秒後</b>に自動送信（<code>afterLocalSave()</code> フック経由）。</td></tr>
-      <tr><td class="nowrap"><b>手動同期・接続テスト</b></td><td>「今すぐサーバーへ送信・同期」「サーバーの内容を取得して統合」ボタン、「接続テスト」ボタンでURL設定の動作確認が可能。</td></tr>
-      <tr><td class="nowrap"><b>二段階同期（レースコンディション対策）</b></td><td>GAS は <code>LockService</code> で同時実行を防げても「先に操作した人が必ず先に完了する」までは保証しません。ほぼ同時刻に複数人が同期すると、ネットワーク遅延により後の操作が先に処理され、先の操作側が古いサーバー状態を受け取ることがあります。これを軽減するため、同期が正常完了した<b>約4秒後にもう一度静かに確認・再取得</b>する二段階同期を導入（確認取得が次の確認取得を予約しないため無限ループにはなりません）。<code>js/gas-sync.js</code> のみの変更のため再デプロイ不要。</td></tr>
-    </tbody>
-  </table>
-
-  <h3>6-3. 上書き同期（マージしない 2 つの専用ボタン）</h3>
-  <div class="flow">
-    <div class="fstep verm"><span class="fn">③ ローカル全消去 → サーバー取得</span><span class="ft">この端末をサーバーの内容で完全置換</span><span class="fd">マージせず、ブラウザの localStorage（件名・マスタ・削除トゥームストーン等）を一旦全消去し、サーバー上の最新データのみで置き換え。④タブ・⑤サブタブ両方に設置。<b>流れ：</b>①接続テスト → 必要なローカル変更を先に②で送信 → この③を実行（未送信のローカル変更は失われる旨を警告）</span></div>
-    <div class="fstep verm"><span class="fn">④ サーバー全消去 → ローカル取得</span><span class="ft">サーバーをこの端末の内容で完全置換</span><span class="fd">③の逆方向。サーバー上のデータを全消去しローカルで上書き（<code>action:"overwrite"</code> エンドポイント）。他利用者の未送信変更も失われるため、確認ダイアログで警告の上で実行。<b>⑤メンテナンスのサブタブにのみ設置</b>。既存GAS利用時は <code>gas/Code.gs</code> の最新版への更新・再デプロイが必要</span></div>
-  </div>
-
-  <h3>6-4. 対応済みの不具合（同期編）</h3>
-  <table>
-    <thead><tr><th class="nowrap" style="width:34%">問題</th><th>対応</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><b>「②同期の実行」でサーバー側データが消えたように見える</b></td><td>Googleドライブは同名ファイル（<code>kenmei_data_v7.json</code>）の重複作成を許可するため、再デプロイ繰り返しの中で重複ファイルができ、空／少量データの重複ファイルを参照することがあった。<code>gas/Code.gs</code> を修正し、①特定したファイルIDをスクリプトプロパティに固定保存、②初回のみ重複ファイルから <code>cases</code> 件数が最も多いものを正として選択。<b>反映には再デプロイが必要</b>（手順は <code>gas/README_DEPLOY.md</code> のトラブルシューティング参照）。</td></tr>
-      <tr><td class="nowrap"><b>364件が正しく存在するのに統合結果が0件になる</b></td><td>真の原因は「削除記録（トゥームストーン）に、実際には削除されていない件名IDが誤って記録され続けていたこと」（「全案件削除」後のバックアップ復元データの更新日が削除記録より古い経緯など）。マージロジックが「削除記録にあるIDは、更新日が削除日より新しくない限り除外する」と判定し、両側に正常に存在するデータまで除外していた。→ 上記 6-2 の自己修復ロジックで解消（<code>gas/Code.gs</code>・<code>js/gas-sync.js</code> 更新、再デプロイ必要）。</td></tr>
-      <tr><td class="nowrap"><b>担当者ごとにドロップダウンリストだけ更新されない</b></td><td>自己修復ロジックが当初件名データ（CASES）のみ適用で、マスタ（MASTER）に未反映だった問題。ある端末の古いマスタ削除記録が、他の担当者の追加・復元を同期時に再び除外する恐れ。→ <code>mergeMaster_()</code> / <code>mergeMasterClient()</code> にも同じ自己修復ロジックを追加（再デプロイ必要）。</td></tr>
-      <tr><td class="nowrap"><b>削除した件名が他の端末に残り続ける</b></td><td>レースコンディション（前述）。→ 約4秒後の二段階同期で解消（<code>js/gas-sync.js</code> のみの変更、再デプロイ不要・サイト再公開のみで反映）。</td></tr>
-    </tbody>
-  </table>
-
-  <div class="warn"><b>制限・注意事項。</b>GASプロジェクトの作成・ウェブアプリのデプロイ（Googleアカウントでの操作）はご自身で行う必要があり、本サービス側からのデプロイ代行はできません。ライブのGAS環境での動作確認は開発側では実施できないため、デプロイ後に「接続テスト」ボタンでご自身での確認をお願いします。保存形式は現時点で JSON ファイル 1 つです。</div>
-</section>
-
-<!-- ================= 7. 参考情報 ================= -->
-<section id="ref">
-  <div class="sechead"><span class="secno">07</span><h2>参考情報</h2><span class="sub">実装ファイル・技術・今後の計画</span></div>
-
-  <h3>7-1. 実装ファイル構成</h3>
-  <table>
-    <thead><tr><th class="nowrap" style="width:38%">ファイル</th><th>役割</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><code>index.html</code></td><td>本体。単一ページアプリ（URLパラメータ不使用）。日本時間の日時生成関数 <code>nowJstStr()</code> を内蔵。</td></tr>
-      <tr><td class="nowrap"><code>data/kenmei_data.json</code></td><td>初期データ（件名232件、マスタ一式・2026年7月10日時点）。アプリから <code>fetch</code> で読み込み。</td></tr>
-      <tr><td class="nowrap"><code>js/gas-sync.js</code></td><td>クライアント側の同期モジュール（設定管理、クライアント側マージ、サーバー送受信、UIイベント配線）。本体スクリプトより後に読み込み、<code>MASTER</code>/<code>CASES</code>/<code>saveMaster()</code>/<code>saveCases()</code> 等のグローバルをそのまま利用。</td></tr>
-      <tr><td class="nowrap"><code>gas/Code.gs</code></td><td>GASウェブアプリ本体（読み書き・マージ・上書きエンドポイント・安全装置）。</td></tr>
-      <tr><td class="nowrap"><code>gas/appsscript.json</code></td><td>GASのマニフェスト。</td></tr>
-      <tr><td class="nowrap"><code>gas/README_DEPLOY.md</code></td><td>GASのデプロイ手順書（日本語・トラブルシューティング含む）。</td></tr>
-    </tbody>
-  </table>
-
-  <h3>7-2. 使用技術</h3>
-  <p>
-    <span class="pill s">HTML / CSS / Vanilla JavaScript（フレームワーク不使用）</span>
-    <span class="pill a">localStorage によるデータ永続化（メイン）</span>
-    <span class="pill v">GAS ＋ Googleドライブ上のJSON（オプション機能）</span>
-    <span class="pill">ECharts 5（CDN: jsdelivr）によるグラフ描画</span>
-  </p>
-
-  <h3>7-3. 参考ファイル（本体には未反映・上書き禁止）</h3>
-  <table>
-    <thead><tr><th class="nowrap" style="width:38%">ファイル</th><th>内容</th></tr></thead>
-    <tbody>
-      <tr><td class="nowrap"><code>reference_new_app/</code></td><td>分析ダッシュボードのブラッシュアップの参考としてアップロードいただいた別プロトタイプ（汎用CRM、cases/case_items・ECharts構成）。ユーザー指示により、本体 <code>index.html</code> を含む既存ファイルへの上書きは一切行っておらず、今後の改善の参考資料として保管。</td></tr>
-      <tr><td class="nowrap"><code>imported/kenmei_form.html</code></td><td>アップロードされたプロトタイプの原本バックアップ（未編集・ロールバック用参照）。</td></tr>
-    </tbody>
-  </table>
-
-  <h3>7-4. 未実装・今後の検討事項</h3>
-  <ul class="tight">
-    <li><b>Googleスプレッドシート形式での保存</b> — 現状は Googleドライブ上の JSON ファイル 1 つ方式。スプレッドシートを直接開いて確認・編集したい要望があれば、行・列に展開する改修を別途検討（ご相談中）。</li>
-    <li><b>件名データの削除履歴・監査ログ</b> — 現状は削除時の確認ダイアログと、GAS同期用の削除記録（日付のみ）。</li>
-    <li><b>管理者パスワードの多要素化・複数管理者対応</b> — 現状は単一パスワードでの簡易ロック。</li>
-    <li><b>添付ファイル（見積書・図面等）の紐付け</b> — 現状は文字情報のみの管理。</li>
-    <li><b>GAS本番環境での動作確認</b> — 実際にデプロイした環境での接続・同期テストはユーザー側での実施が必要。</li>
-  </ul>
-
-  <h3>7-5. 次の開発ステップ（提案）</h3>
-  <div class="flow">
-    <div class="fstep"><span class="fn">STEP 1</span><span class="ft">公開して運用感を確認</span><span class="fd">まずは現状のまま「Publishタブ」から公開し、実際の運用感を確認する</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep"><span class="fn">STEP 2</span><span class="ft">GAS連携を導入（必要な場合）</span><span class="fd"><code>gas/README_DEPLOY.md</code> の手順でデプロイ→「接続テスト」で動作確認→関係者全員に同じウェブアプリURLを設定</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep"><span class="fn">STEP 3</span><span class="ft">保存形式を検討</span><span class="fd">Googleスプレッドシート形式での保存に変更するかどうかを検討・決定</span></div>
-    <div class="farrow">▶</div>
-    <div class="fstep"><span class="fn">STEP 4</span><span class="ft">一括インポートを検討</span><span class="fd">必要であれば、件名データの CSV/Excel 一括インポート機能（現状はJSON取込のみ）を追加</span></div>
-  </div>
-
-  <div class="note"><b>本資料について。</b>伊東電機販売社「件名情報 登録・管理システム v7」の README.md（337行）を整理・分類して作成した解説資料です。仕様の詳細・正確な文言は README.md 本体および <code>gas/README_DEPLOY.md</code> を参照してください。</div>
-</section>
-
-<footer>
-  <div class="fhead">件名情報 登録・管理システム v7 — システム紹介資料</div>
-  <div>出典：README.md（伊東電機販売社 件名情報登録・管理システム）／ 整理・構成：2026-10-15</div>
-</footer>
-
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    width: 1280,
+    height: 720,
+    margin: 0.06,
+    controls: true,
+    progress: true,
+    center: false,
+    transition: 'slide',
+    plugins: [ RevealNotes, RevealHighlight ]
+  });
+</script>
 </body>
 </html>

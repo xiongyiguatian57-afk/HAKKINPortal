@@ -346,15 +346,18 @@ function doPost(e) {
     if (action === "save") {
       var current = readData_();
       var mergedDeletedPre = mergeDeletedIds_(current.deletedIds, body.deletedIds || {});
-      var mergedMasterDeleted = mergeMasterDeletedIds_(current.masterDeletedIds, body.masterDeletedIds || {});
       var caseMergeResult = mergeCases_(current.cases || [], body.cases || [], mergedDeletedPre);
       var mergedCases = caseMergeResult.cases;
       // 自己修復（サーバー・端末の両方が現存データとして持っているIDの削除記録を無効化）後の削除記録
       var mergedDeleted = caseMergeResult.deletedIds;
-      var masterMergeResult = mergeMaster_(current.master, body.master || null, mergedMasterDeleted);
-      var mergedMaster = masterMergeResult.master;
-      // 自己修復（サーバー・端末の両方が現存しているマスタ項目の削除記録を無効化）後の削除記録
-      mergedMasterDeleted = masterMergeResult.masterDeletedIds;
+      // ★ プロトタイプ変更: ドロップダウン項目マスタ（MASTER）は、通常の「同期（save）」では
+      //   一切変更しない（クライアントから送られてきた master は無視する）。
+      //   理由: 一般ユーザーの同期は「サーバー側マスタが常に正」として扱いたいため、
+      //   ユーザー端末の（古いかもしれない）マスタ内容がサーバーへ反映されては困る。
+      //   マスタの更新は、管理者専用の action:"save_master"（このファイル内、別ブロック）
+      //   でのみ行う。masterDeletedIds（削除トゥームストーン）もこの経路では更新しない。
+      var mergedMaster = current.master;
+      var mergedMasterDeleted = current.masterDeletedIds || {};
 
       // ---- 安全装置：統合後の件名件数が、サーバー側・送信内容のどちらよりも大幅に
       // 減っている場合は、原因不明の異常な減少とみなして書き込みを中止する。
@@ -410,6 +413,25 @@ function doPost(e) {
       };
       writeData_(overwriteResult);
       return jsonOutput_({ ok: true, data: overwriteResult });
+    }
+    // action === "save_master": ドロップダウン項目マスタ（MASTER）の管理者専用更新。
+    // ⑤メンテナンス（パスワード認証済みの管理者画面）からのみ呼び出される想定。
+    // 通常の action:"save" とは異なり、マージは一切行わず、送信された master で
+    // サーバー側のマスタを完全に置き換える（= 管理者の編集内容がそのままサーバーの正となる）。
+    // cases・deletedIds には一切触れない（件名データへの影響はゼロ）。
+    if (action === "save_master") {
+      var currentForMaster = readData_();
+      var masterSaveResult = {
+        cases: currentForMaster.cases || [],
+        master: body.master || null,
+        pw: currentForMaster.pw,
+        deletedIds: currentForMaster.deletedIds || {},
+        // マージ経路を使わないため、masterDeletedIds（マスタ削除トゥームストーン）は
+        // この管理者専用更新に合わせて、送信された内容（通常は空でよい）でリセットする。
+        masterDeletedIds: body.masterDeletedIds || {}
+      };
+      writeData_(masterSaveResult);
+      return jsonOutput_({ ok: true, data: masterSaveResult });
     }
     return jsonOutput_({ ok: false, error: "unknown action: " + action });
   } catch (err) {

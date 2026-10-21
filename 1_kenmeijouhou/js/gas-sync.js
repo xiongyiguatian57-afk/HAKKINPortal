@@ -343,13 +343,17 @@
       if(!res || !res.ok) throw new Error((res && res.error) || "不明なエラー");
       var d = res.data || {};
       var mergedDeletedPre = mergeDeletedIdsClient(DELETED_IDS, d.deletedIds || {});
-      var mergedMasterDeleted = mergeMasterDeletedIdsClient(MASTER_DELETED_IDS, d.masterDeletedIds || {});
       var caseMergeResult = mergeCasesClient(CASES, d.cases || [], mergedDeletedPre);
       var mergedCases = caseMergeResult.cases;
       var mergedDeleted = caseMergeResult.deletedIds; // 自己修復後の削除記録
-      var masterMergeResult = mergeMasterClient(MASTER, d.master || null, mergedMasterDeleted);
-      var mergedMaster = masterMergeResult.master;
-      mergedMasterDeleted = masterMergeResult.masterDeletedIds; // 自己修復後の削除記録
+      // ★ プロトタイプ変更: ドロップダウン項目マスタ（MASTER）は、通常の取得・同期では
+      //   マージせず、サーバー側の内容をそのまま丸ごと採用する（＝サーバーが常に正）。
+      //   理由: マスタのメンテナンスは管理者のみが行う運用とし、一般ユーザーの端末に
+      //   残っているかもしれない古い・未反映のマスタ内容が、サーバーへ波及したり、
+      //   取得結果に混ざったりしないようにするため。管理者がマスタを更新する場合は、
+      //   ⑤メンテナンス専用の「サーバーへマスタを反映」ボタン（gasSaveMasterToServer）を使う。
+      var mergedMaster = d.master || MASTER;
+      var mergedMasterDeleted = d.masterDeletedIds || {};
 
       // サーバー側と同じ安全装置：統合結果がサーバー側・ローカル側どちらよりも
       // 大幅に少ない場合は、この端末のデータを書き換えずに中止する。
@@ -381,6 +385,10 @@
   }
 
   // サーバーへ送信（ローカル→サーバーへpush、サーバー側でマージ後の確定データを受け取って採用＝双方向同期）
+  // ★ プロトタイプ変更: ドロップダウン項目マスタ（MASTER）はここでは送信しない。
+  //   一般ユーザーの同期操作でマスタがサーバーへ反映されることはなく、サーバー側の
+  //   マスタ（管理者が専用ボタンで更新したもの）が常に正として扱われる。
+  //   件名データ（CASES）は従来通り双方向マージされる。
   window.gasSaveToServer = function(silent){
     var cfg = gasConfig();
     if(!cfg.url){ if(!silent) setMsg("サーバーURLが設定されていません。先に「サーバー連携(GAS)」で設定してください。", "err"); return Promise.resolve(false); }
@@ -389,10 +397,8 @@
       action: "save",
       token: cfg.token,
       cases: CASES,
-      master: MASTER,
       pw: getPassword(),
-      deletedIds: DELETED_IDS,
-      masterDeletedIds: MASTER_DELETED_IDS
+      deletedIds: DELETED_IDS
     };
     return gasFetch(cfg.url, {
       method: "POST",
@@ -488,6 +494,42 @@
       return true;
     }).catch(function(err){
       setMsg("送信に失敗しました: " + err.message, "err");
+      return false;
+    });
+  };
+
+  // ---------------- 管理者専用：ドロップダウン項目マスタ（MASTER）のサーバー反映 ----------------
+  // ★ プロトタイプ機能: 通常の同期（gasSaveToServer/gasLoadFromServer）はMASTERに一切触れない
+  //   （常にサーバー側が正）設計にしたため、管理者がマスタを編集した内容をサーバーへ反映する
+  //   唯一の経路としてこの関数を新設する。マージは行わず、送信したMASTERでサーバー側を
+  //   完全に置き換える（= 管理者の最新編集内容がそのままサーバーの正となる）。
+  //   件名データ（CASES）・削除トゥームストーン（deletedIds）には一切触れない。
+  window.gasSaveMasterToServer = function(){
+    var cfg = gasConfig();
+    if(!cfg.url){ setMsg("サーバーURLが設定されていません。先に「サーバー連携(GAS)」で設定してください。", "err"); return Promise.resolve(false); }
+    setMsg("マスタをサーバーへ反映中...", "");
+    var body = {
+      action: "save_master",
+      token: cfg.token,
+      master: MASTER,
+      masterDeletedIds: {} // マージ経路を使わないため、送信時点でマスタ削除トゥームストーンはリセットする
+    };
+    return gasFetch(cfg.url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body)
+    }).then(function(res){
+      if(!res || !res.ok) throw new Error((res && res.error) || "不明なエラー");
+      // サーバー側にMASTERを送っただけで、ローカルのMASTERは変更しない
+      // （自分が今まさに編集した内容を送ったので、ローカルと一致しているはず）。
+      // マスタ削除トゥームストーンだけは、サーバー側の実態（空）に合わせてローカルも消去しておく。
+      MASTER_DELETED_IDS = {};
+      saveMasterDeleted();
+      setLastSync();
+      setMsg("ドロップダウン項目リストをサーバーへ反映しました。", "ok");
+      return true;
+    }).catch(function(err){
+      setMsg("サーバーへの反映に失敗しました: " + err.message, "err");
       return false;
     });
   };
