@@ -147,11 +147,12 @@ input:focus,select:focus{outline:2px solid var(--accent2);outline-offset:0}
 small.note{color:var(--sub);font-size:11px}
 .unreg{background:#fef9c3!important;border-color:#eab308!important}
 
-/* 発注形式種別 ラジオ */
+/* 発注形式種別 ラジオ（★プロトタイプ: ①画面では非表示。データ項目としては維持） */
 .htyp-box{display:flex;gap:12px;flex-wrap:wrap;padding:4px 0}
 .htyp-box label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;
   border:1px solid var(--line);border-radius:6px;padding:5px 12px;white-space:nowrap;transition:all .15s}
 .htyp-box label:has(input:checked){background:#eef3fb;border-color:var(--accent);color:var(--accent);font-weight:600}
+.col-htyp-hidden{display:none!important}
 
 /* チェックボックス行 */
 .chk-row{display:flex;align-items:center;gap:6px}
@@ -163,7 +164,11 @@ small.note{color:var(--sub);font-size:11px}
 .dform .pet,.dform .rep{width:180px}
 .dform .qty{width:60px}
 .dform .form{width:160px}
+.dform .tsurigu,.dform .tsurigu-free{width:140px}
+.dform .tsurigu-free{display:none}
 .dform .sts{width:130px}
+.tsurigu-mode-toggle{font-weight:normal;font-size:11px;display:flex;gap:8px;margin-top:3px}
+.tsurigu-mode-toggle label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap}
 .dform .htyp-box{flex-direction:column;gap:3px;padding:0}
 .dform .htyp-box label{font-size:12px}
 .badge-htyp-混在{background:#fef3c7;color:#92400e}
@@ -196,6 +201,17 @@ button.danger{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
 .pair-pet{width:300px;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:5px}
 .pair-rep{width:180px;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:5px}
 #mgReset{margin-top:12px}
+.mg-io-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.mg-io-row button.secondary{background:#eef3f8;color:#2a5c86;border:1px solid #bcd4e8;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer}
+.mg-io-row button.secondary:hover{background:#dcebf7}
+.mg-io-hint{font-size:11px;color:#5b7489;margin-top:6px;line-height:1.6}
+.mg-server-box{border:1px solid #f0c36d;background:#fff8e8;border-radius:8px;padding:12px 14px;margin-top:18px}
+.mg-server-box h4{margin:0 0 6px;font-size:13px;color:#8a5a00}
+.mg-server-box .hint{font-size:11px;line-height:1.7}
+#mgSaveMasterBtn{margin-top:4px}
+.mg-io-msg{font-size:12px;margin-top:6px;min-height:1.4em}
+.mg-io-msg.ok{color:#1a7a33}
+.mg-io-msg.err{color:#c0392b}
 
 /* パスワード画面 */
 .pw-overlay{background:var(--card);border:1px solid var(--line);border-radius:12px;
@@ -448,8 +464,14 @@ button.danger{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
               <th>代表形式<b class="req">*</b></th>
               <th>数量<b class="req">*</b></th>
               <th>手配状況</th>
-              <th>発注形式種別</th>
-              <th>発注予定正式形式</th>
+              <th class="col-htyp-hidden">発注形式種別</th>
+              <th>発注予定仕様見込品型番</th>
+              <th>吊具
+                <div class="tsurigu-mode-toggle">
+                  <label><input type="radio" name="tsuriguMode" id="tsuriguModeList" value="list" checked> 選択</label>
+                  <label><input type="radio" name="tsuriguMode" id="tsuriguModeFree" value="free"> 自由入力</label>
+                </div>
+              </th>
               <th></th>
             </tr></thead>
             <tbody id="rows"></tbody>
@@ -680,6 +702,29 @@ button.danger{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
         <!-- ドロップダウン項目メンテ -->
         <div id="sub-mg-dropdown" class="sub-panel on">
           <div id="mgContainer"></div>
+          <div class="mg-io-row">
+            <button id="mgExportBtn" class="secondary">📤 項目リストをファイルに出力</button>
+            <button id="mgImportMergeBtn" class="secondary">🔀 ファイルを読込（マージ）</button>
+            <button id="mgImportReplaceBtn" class="secondary">♻️ ファイルを読込（差し替え）</button>
+            <input type="file" id="mgImportFile" accept=".json,application/json" style="display:none">
+          </div>
+          <div class="mg-io-hint">
+            <b>🔀 マージ</b>：現在のリストにファイルの内容を統合します。既存データは残り、同じ項目（同じペットネーム等）があればファイル側の値で上書きされます。<br>
+            <b>♻️ 差し替え</b>：ファイルに含まれる項目を現在のリストと完全に置き換えます（含まれない項目は変更しません）。
+          </div>
+          <div class="mg-io-msg" id="mgIoMsg"></div>
+
+          <div class="mg-server-box">
+            <h4>👑 サーバーへの反映（管理者専用・ドロップダウン項目リストのみ）</h4>
+            <p class="hint" style="margin-top:0">
+              上記で編集・インポートしたドロップダウン項目リスト（担当・受注確率・手配状況・ペットネーム対比表・発注予定仕様見込品番・吸具等）を、<b>マージせず完全に置き換えて</b>サーバーへ送信します。<br>
+              · 一般ユーザーが④サーバー連携設定・①件名一覧画面等で「サーバーへ送信・同期」を行っても、ドロップダウン項目リストは一切送信されず、常に<b>サーバー側の内容が正</b>として扱われます（ユーザー端末の古いマスタがサーバーへ流入する心配はありません）。<br>
+              · このボタンを押すと、<b>現在のローカルのリストでサーバー側を完全に上書き</b>します。他の管理者がこれより後に別の内容でこのボタンを押すと、先の内容は消えます（マージされません）。マスタ編集は基本的に単一の管理者が行う運用を想定しています。
+            </p>
+            <button id="mgSaveMasterBtn" class="primary">⬆ このドロップダウン項目リストをサーバーへ反映（置き換え）</button>
+            <div class="gas-msg" id="mgSaveMasterMsg"></div>
+          </div>
+
           <button id="mgReset" class="danger">共有エクセル由来の初期値に戻す</button>
         </div>
 
@@ -1105,8 +1150,11 @@ function newRow(d){
   const stsOptsArr=sts.filter(Boolean);
   if(stsVal && !stsOptsArr.includes(stsVal)) stsOptsArr.push(stsVal);  // 旧データの手配状況値を保持（選択肢から消えた値でも表示維持）
   const stsOpts=stsOptsArr.map(s=>`<option value="${esc(s)}"${s===stsVal?' selected':''}>${s}</option>`).join("");
-  const htypVal=d?(d.htyp||"不明"):"不明";
+  // ★ プロトタイプ変更: 発注形式種別のUIは非表示とし、常に「見込形式」として保存する
+  //   （データ項目としては残すが、ユーザーが選択できる操作UIは無くす）
+  const htypVal=d?(d.htyp||"見込形式"):"見込形式";
   const formVal=d?(d.form||""):"";
+  const tsuriguVal=d?(d.tsurigu||""):"";
 
   const tr=document.createElement("tr");
   tr.dataset.id=id;
@@ -1116,7 +1164,7 @@ function newRow(d){
 
     <td><input class="qty" type="number" min="1" step="1" placeholder="0" value="${esc(d?d.qty:'')}"></td>
     <td><select class="sts">${stsOpts}</select></td>
-    <td>
+    <td class="col-htyp-hidden">
       <div class="htyp-box">
         <label><input type="radio" class="htyp" name="htyp-${id}" value="不明"${htypVal==='不明'?' checked':''}><span>1. 不明</span></label>
         <label><input type="radio" class="htyp" name="htyp-${id}" value="見込形式"${htypVal==='見込形式'?' checked':''}><span>2. 見込形式</span></label>
@@ -1126,7 +1174,11 @@ function newRow(d){
     <td>
       <input class="form" list="dlForm${id}" placeholder="任意" value="${esc(formVal)}">
       <datalist id="dlForm${id}"></datalist>
-      <div id="formErr${id}" style="color:#b91c1c;font-size:11px;display:none">見込形式の候補から選択してください</div>
+      <div id="formErr${id}" style="color:#b91c1c;font-size:11px;display:none">候補から選択してください</div>
+    </td>
+    <td>
+      <select class="tsurigu"><option value="">-- 選択なし --</option></select>
+      <input class="tsurigu-free" type="text" placeholder="吊具を自由入力" value="${esc(tsuriguVal)}">
     </td>
     <td><button class="btn-del" title="この行を削除">✕</button></td>`;
   tr.querySelector(".btn-del").addEventListener("click",()=>{ tr.remove(); updateCount(); });
@@ -1134,25 +1186,48 @@ function newRow(d){
   const repEl=tr.querySelector(".rep");
   function setPetList(arr,selVal){ petEl.innerHTML=buildPetRepOptHTML(arr,selVal); }
   function setRepList(arr,selVal){ repEl.innerHTML=buildPetRepOptHTML(arr,selVal); }
-  function curHtyp(){ const r=tr.querySelector("input.htyp:checked"); return r?r.value:"不明"; }
+  function curHtyp(){ const r=tr.querySelector("input.htyp:checked"); return r?r.value:"見込形式"; }
   const formEl=tr.querySelector(".form");
   const formErrEl=tr.querySelector("#formErr"+id);
   const dlForm=tr.querySelector("#dlForm"+id);
+  const tsuriguEl=tr.querySelector(".tsurigu");
+  const tsuriguFreeEl=tr.querySelector(".tsurigu-free");
+  // ★ 吊具入力欄の表示モード（選択/自由入力）は、表のヘッダー横のラジオボタンで全行共通に切り替える
+  function isTsuriguFreeMode(){
+    const r=document.getElementById("tsuriguModeFree");
+    return !!(r && r.checked);
+  }
+  function applyTsuriguMode(){
+    const free=isTsuriguFreeMode();
+    tsuriguEl.style.display = free ? "none" : "inline-block";
+    tsuriguFreeEl.style.display = free ? "inline-block" : "none";
+  }
+  tr._applyTsuriguMode = applyTsuriguMode;
+  // ★ プロトタイプ変更: 発注形式種別のUIが非表示になったため、従来「見込形式」の時だけ
+  //   有効化していた候補ドロップダウンを、常時有効化する。
   function syncFormCands(){
-    const isMikomi=curHtyp()==="見込形式";
-    const cands=isMikomi?formMapFor(petEl.value):[]; // ★ 非見込形式ではドロップダウン候補を出さない
+    const cands=formMapFor(petEl.value);
     dlForm.innerHTML=cands.map(f=>`<option value="${esc(f)}"></option>`).join("");
-    // ★ 見込形式のときだけドロップダウンを有効化。それ以外は list 属性を外して非表示
-    if(isMikomi) formEl.setAttribute("list","dlForm"+id); else formEl.removeAttribute("list");
+    formEl.setAttribute("list","dlForm"+id);
     const v=formEl.value.trim();
     let bad=false;
-    if(isMikomi){
-      if(!petEl.value.trim()) bad=true;
-      else if(!cands.length) bad=true;
-      else if(v&&!cands.some(f=>nk(f)===nk(v))) bad=true;
-    }
+    if(!petEl.value.trim()) bad=true;
+    else if(!cands.length) bad=true;
+    else if(v&&!cands.some(f=>nk(f)===nk(v))) bad=true;
     formErrEl.style.display=bad?"":"none";
     formEl.style.borderColor=bad?"#b91c1c":"";
+    syncTsuriguCands();
+  }
+  // ★ 発注予定仕様見込品型番（pet+form）に応じた吊具１〜３候補をドロップダウンに反映する。
+  //   候補に無い値（発注予定仕様見込品型番を変更した後など）は「（旧登録値）」のような特別表示を
+  //   せず、単純に未選択（空欄）に戻す。
+  function syncTsuriguCands(keepVal){
+    const prevVal = keepVal!==undefined ? keepVal : tsuriguEl.value;
+    const fmRow = (MASTER.formMap||[]).find(e=>nk(e.pet)===nk(petEl.value) && nk(e.form)===nk(formEl.value.trim()));
+    const cands = fmRow ? [fmRow.tsurigu1,fmRow.tsurigu2,fmRow.tsurigu3].filter(v=>v&&String(v).trim()) : [];
+    const selVal = cands.includes(prevVal) ? prevVal : "";
+    tsuriguEl.innerHTML = '<option value="">-- 選択なし --</option>' +
+      cands.map(v=>`<option value="${esc(v)}"${v===selVal?' selected':''}>${esc(v)}</option>`).join("");
   }
   // 初期表示：保存済みの相手値があればそれに応じて候補を絞り込み、未登録値も保持
   const initPet=d?(d.pet||''):'';
@@ -1189,11 +1264,33 @@ function newRow(d){
     syncFormCands();
   });
   formEl.addEventListener("input",syncFormCands);
+  // ★ 修正: <input list="..."> はブラウザの標準仕様として、入力欄に既に値がある状態で
+  //   ドロップダウンを開くと、その値に部分一致する候補だけに絞り込まれてしまう（納入予定月と
+  //   同じ現象）。これにより「一度選択すると次にクリックしても他の候補が出ない」不具合が
+  //   発生するため、フォーカス時に一旦値を空にして全候補を表示させ、何も選択・入力されずに
+  //   フォーカスが外れた場合のみ元の値に戻す。
+  let formPrevValue = "";
+  formEl.addEventListener("focus",function(){
+    formPrevValue = this.value;
+    this.value = "";
+    syncFormCands();
+  });
+  formEl.addEventListener("blur",function(){
+    const v = this.value.trim();
+    if(v === ""){
+      this.value = formPrevValue;
+      syncFormCands();
+    }
+  });
   tr.querySelectorAll("input.htyp").forEach(r=>r.addEventListener("change",()=>{
     // ★ 見込形式以外へ切り替え: ドロップダウン候補由来の値をクリアし、ドロップダウン非表示にする
     if(r.checked && r.value!=="見込形式") formEl.value="";
     syncFormCands();
   }));
+  tsuriguEl.addEventListener("change",()=>{ /* 選択値はcollectCase()で読み取るため、特別な処理は不要 */ });
+  // 初期表示：保存済みの吊具値を候補に反映（候補が確定するsyncFormCands実行前に一旦セット）
+  syncTsuriguCands(tsuriguVal);
+  applyTsuriguMode();
   tr._syncForm=syncFormCands;
   tr._syncPetRep=function(){
     const pv=petEl.value, rv=repEl.value;
@@ -1233,8 +1330,12 @@ function initForm(){
   document.getElementById("iwasaki").checked=false;
   fillSelectBlank(document.getElementById("owner"),MASTER.owners);
   fillSelectBlank(document.getElementById("prob"),MASTER.prob);
+  // 新規登録時は吊具入力モードを基本の「選択」にリセットする
+  const listRadio0=document.getElementById("tsuriguModeList");
+  if(listRadio0) listRadio0.checked=true;
   document.getElementById("rows").innerHTML="";
   document.getElementById("rows").appendChild(newRow());
+  document.querySelectorAll("#rows tr").forEach(tr=>{ if(tr._applyTsuriguMode) tr._applyTsuriguMode(); });
   updateCount();
   document.getElementById("msg").className="";
   document.getElementById("msg").textContent="";
@@ -1258,9 +1359,23 @@ function loadCase(c){
   fillSelectBlank(document.getElementById("prob"),MASTER.prob,c.prob);      // 修正：保存値を復元
   const tbody=document.getElementById("rows");
   tbody.innerHTML="";
+  // ★ 吊具モードは基本「選択」に戻すが、保存済みデータの吊具値が候補（⑤メンテ登録済み吊具１〜３）に
+  //   含まれない場合（＝自由入力で保存されたデータ等）は、値が見えなくならないよう自動的に
+  //   「自由入力」モードへ切り替える。
+  const listRadio=document.getElementById("tsuriguModeList");
+  const freeRadio=document.getElementById("tsuriguModeFree");
+  if(listRadio) listRadio.checked=true;
+  const needsFreeMode=(c.details||[]).some(d=>{
+    if(!d||!d.tsurigu) return false;
+    const fmRow=(MASTER.formMap||[]).find(e=>nk(e.pet)===nk(d.pet||"") && nk(e.form)===nk(d.form||""));
+    const cands=fmRow?[fmRow.tsurigu1,fmRow.tsurigu2,fmRow.tsurigu3].filter(v=>v&&String(v).trim()):[];
+    return !cands.includes(d.tsurigu);
+  });
+  if(needsFreeMode && freeRadio) freeRadio.checked=true;
   (c.details||[{pet:"",rep:"",qty:"",sts:"未手配",form:""}]).forEach(d=>{
     tbody.appendChild(newRow(d));
   });
+  document.querySelectorAll("#rows tr").forEach(tr=>{ if(tr._applyTsuriguMode) tr._applyTsuriguMode(); });
   updateCount();
   document.getElementById("msg").className="";
   showSubInList("list-form");
@@ -1312,15 +1427,12 @@ function validate(){
     if(!pet) errs.push(`明細行${n}: ペットネームは必須`);
     if(!rep) errs.push(`明細行${n}: 代表形式は必須`);
     if(!qty||Number(qty)<1) errs.push(`明細行${n}: 数量は1以上の整数`);
-    const htypEl=tr.querySelector("input.htyp:checked");
-    const htyp=htypEl?htypEl.value:"不明";
-    if(htyp==="見込形式"){
-      const cands=formMapFor(pet);
-      if(!pet) errs.push(`明細行${n}: 見込形式の場合はペットネームを選択してください`);
-      else if(!cands.length) errs.push(`明細行${n}: ペットネーム「${pet}」の対比表データがありません`);
-      if(!form) errs.push(`明細行${n}: 見込形式の場合は発注予定正式形式を選択してください`);
-      else if(pet&&cands.length&&!cands.some(f=>nk(f)===nk(form))) errs.push(`明細行${n}: 発注予定正式形式は「${pet}」の候補から選択してください（入力値: ${form}）`);
-    }
+    // ★ プロトタイプ変更: 発注形式種別UIを非表示化し、常に「見込形式」相当の検証を行う
+    const cands=formMapFor(pet);
+    if(!pet) errs.push(`明細行${n}: ペットネームを選択してください`);
+    else if(!cands.length) errs.push(`明細行${n}: ペットネーム「${pet}」の対比表データがありません`);
+    if(!form) errs.push(`明細行${n}: 発注予定仕様見込品番を選択してください`);
+    else if(pet&&cands.length&&!cands.some(f=>nk(f)===nk(form))) errs.push(`明細行${n}: 発注予定仕様見込品番は「${pet}」の候補から選択してください（入力値: ${form}）`);
   });
   return errs;
 }
@@ -1328,14 +1440,19 @@ function validate(){
 // ================================================================
 // 保存
 // ================================================================
+// ★ 吊具列は「選択（ドロップダウン）」「自由入力（テキスト）」のどちらのモードかによって
+//   読み取る入力欄が変わる（モードはヘッダー横のラジオボタンで全行共通）。
+const isTsuriguFreeModeGlobal=()=>{ const r=document.getElementById("tsuriguModeFree"); return !!(r && r.checked); };
 function collectCase(){
+  const freeMode=isTsuriguFreeModeGlobal();
   const details=[...document.querySelectorAll("#rows tr")].map(tr=>({
     pet: tr.querySelector(".pet").value.trim(),
     rep: tr.querySelector(".rep").value.trim(),
     qty: tr.querySelector(".qty").value.trim(),
     sts: tr.querySelector(".sts").value,
-    htyp: (tr.querySelector("input.htyp:checked")||{value:"不明"}).value,
+    htyp: (tr.querySelector("input.htyp:checked")||{value:"見込形式"}).value,
     form: tr.querySelector(".form").value.trim(),
+    tsurigu: (freeMode ? tr.querySelector(".tsurigu-free").value : tr.querySelector(".tsurigu").value).trim(),
   }));
   return {
     kenmei:   document.getElementById("kenmei").value.trim(),
@@ -1470,6 +1587,14 @@ document.getElementById("btnCancel").addEventListener("click",()=>{
 });
 document.getElementById("addRow").addEventListener("click",()=>{
   document.getElementById("rows").appendChild(newRow()); updateCount();
+});
+// ★ 吊具入力モード切替（選択／自由入力）：ヘッダー横のラジオボタンは全明細行共通。
+//   切替時は既存の全行の表示モード（.tsurigu ⇔ .tsurigu-free の表示切替）を一括更新する。
+["tsuriguModeList","tsuriguModeFree"].forEach(radioId=>{
+  const el=document.getElementById(radioId);
+  if(el) el.addEventListener("change",()=>{
+    document.querySelectorAll("#rows tr").forEach(tr=>{ if(tr._applyTsuriguMode) tr._applyTsuriguMode(); });
+  });
 });
 document.getElementById("subBtnForm").addEventListener("click",()=>{
   initForm();
@@ -1911,8 +2036,8 @@ function renderPairGroup(){
 function renderFormMapGroup(){
   const div=document.createElement("div");
   div.className="mg pairwrap";
-  div.innerHTML=`<h3>ペットネーム ⇄ 発注予定正式形式（見込形式） <small>（対比表: ペットネーム×形式×種別）</small></h3>
-    <table><thead><tr><th>ペットネーム</th><th>発注予定正式形式</th><th>種別</th><th></th><th></th></tr></thead><tbody></tbody></table>
+  div.innerHTML=`<h3>ペットネーム ⇄ 発注予定見込品番 <small>（対比表: ペットネーム×形式×種別×吊具）</small></h3>
+    <table><thead><tr><th>ペットネーム</th><th>発注予定仕様見込品型番</th><th>種別</th><th>吊具１</th><th>吊具２</th><th>吊具３</th><th></th><th></th></tr></thead><tbody></tbody></table>
     <button data-add>＋ 対応を追加</button>`;
   const tbody=div.querySelector("tbody");
   const rebuild=()=>{
@@ -1923,6 +2048,9 @@ function renderFormMapGroup(){
         <td><input class="fm-pet" type="text" value="${esc(p.pet||"")}"></td>
         <td><input class="fm-form" type="text" value="${esc(p.form||"")}"></td>
         <td><input class="fm-type" type="text" value="${esc(p.type||"")}" placeholder="LED灯具/NON"></td>
+        <td><input class="fm-tsurigu1" type="text" value="${esc(p.tsurigu1||"")}"></td>
+        <td><input class="fm-tsurigu2" type="text" value="${esc(p.tsurigu2||"")}"></td>
+        <td><input class="fm-tsurigu3" type="text" value="${esc(p.tsurigu3||"")}"></td>
         <td><button data-up title="上へ">↑</button> <button data-down title="下へ">↓</button></td>
         <td><button data-del title="削除">✕</button></td>`;
       tr.querySelector(".fm-pet").addEventListener("input",e=>{
@@ -1936,6 +2064,9 @@ function renderFormMapGroup(){
         saveMaster(); rebuildAll();
       });
       tr.querySelector(".fm-type").addEventListener("input",e=>{ MASTER.formMap[i].type=e.target.value; saveMaster(); rebuildAll(); });
+      tr.querySelector(".fm-tsurigu1").addEventListener("input",e=>{ MASTER.formMap[i].tsurigu1=e.target.value; saveMaster(); rebuildAll(); });
+      tr.querySelector(".fm-tsurigu2").addEventListener("input",e=>{ MASTER.formMap[i].tsurigu2=e.target.value; saveMaster(); rebuildAll(); });
+      tr.querySelector(".fm-tsurigu3").addEventListener("input",e=>{ MASTER.formMap[i].tsurigu3=e.target.value; saveMaster(); rebuildAll(); });
       tr.querySelector("[data-del]").addEventListener("click",()=>{
         const fm=MASTER.formMap[i];
         if(typeof window.markMasterDeleted==="function") window.markMasterDeleted("formMap", (fm&&fm.pet||"")+"\u0000"+(fm&&fm.form||""));
@@ -1954,10 +2085,156 @@ function renderFormMapGroup(){
   };
   rebuild();
   div.querySelector("[data-add]").addEventListener("click",()=>{
-    MASTER.formMap.push({pet:"",form:"",type:""}); saveMaster(); rebuildAll(); rebuild();
+    MASTER.formMap.push({pet:"",form:"",type:"",tsurigu1:"",tsurigu2:"",tsurigu3:""}); saveMaster(); rebuildAll(); rebuild();
   });
   return div;
 }
+
+// ================================================================
+// ドロップダウン項目リスト（MASTER）の外部ファイル入出力
+// ※ 件名データ（CASES）・パスワード・GAS連携設定は対象外。MASTERのみ。
+// ================================================================
+const MG_IO_FIELDS = ["owners","prob","status","pairs","forms","formMap","groups","ownerGroups"];
+
+function mgIoMsg(text, cls){
+  const el=document.getElementById("mgIoMsg");
+  if(!el) return;
+  el.textContent=text||"";
+  el.className="mg-io-msg"+(cls?(" "+cls):"");
+}
+
+function exportMasterToFile(){
+  const out={ _type:"kenmei_master_v7_export", _exportedAt:new Date().toISOString() };
+  MG_IO_FIELDS.forEach(k=>{ out[k]=MASTER[k]!==undefined?MASTER[k]:(Array.isArray(MASTER_INIT[k])?[]:MASTER_INIT[k]); });
+  const json=JSON.stringify(out,null,2);
+  const blob=new Blob([json],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  const ymd=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download=`kenmei_master_dropdown_${ymd}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  mgIoMsg("ドロップダウン項目リストをファイルに出力しました。","ok");
+}
+
+function validateMasterImportShape(obj){
+  if(!obj || typeof obj!=="object") return "ファイルの内容がJSONオブジェクトではありません。";
+  const arrFields=["owners","prob","status","pairs","forms","formMap","groups","ownerGroups"];
+  for(const k of arrFields){
+    if(obj[k]!==undefined && !Array.isArray(obj[k])) return `項目「${k}」の形式が不正です（配列である必要があります）。`;
+  }
+  if(Array.isArray(obj.pairs)){
+    for(const p of obj.pairs){ if(typeof p!=="object"||p===null) return "pairsの要素が不正です。"; }
+  }
+  if(Array.isArray(obj.formMap)){
+    for(const f of obj.formMap){ if(typeof f!=="object"||f===null) return "formMapの要素が不正です。"; }
+  }
+  if(Array.isArray(obj.ownerGroups)){
+    for(const g of obj.ownerGroups){ if(typeof g!=="object"||g===null) return "ownerGroupsの要素が不正です。"; }
+  }
+  const hasAny = arrFields.some(k=>obj[k]!==undefined);
+  if(!hasAny) return "ドロップダウン項目データが見つかりません。";
+  return null;
+}
+
+// ---- 「差し替え」：ファイルに含まれる項目を、現在のMASTERの同項目と完全に置き換える。
+//      （ファイルに無い項目には触れない。従来どおりの単純置換。）
+function applyMasterReplace(parsed){
+  MG_IO_FIELDS.forEach(k=>{
+    if(parsed[k]!==undefined) MASTER[k]=parsed[k];
+  });
+}
+
+// ---- 「マージ」：ファイルの内容と現在のMASTERを統合する。
+//      単純配列系（owners/prob/status/forms/groups）は和集合（両方の値を保持）。
+//      対応表系（pairs/formMap/ownerGroups）はキー単位で突き合わせ、
+//      ファイル側の値が同じキーの既存データを上書きする（サーバー同期のマージと同じ考え方）。
+//      既存データは消えず、ファイルの内容が追加・上書きされるだけ。
+function applyMasterMerge(parsed){
+  ["owners","prob","status","forms","groups"].forEach(k=>{
+    if(parsed[k]===undefined) return;
+    const set={};
+    (MASTER[k]||[]).forEach(v=>{ if(v) set[v]=true; });
+    (parsed[k]||[]).forEach(v=>{ if(v) set[v]=true; });
+    MASTER[k]=Object.keys(set);
+  });
+  if(Array.isArray(parsed.pairs)){
+    const map={};
+    (MASTER.pairs||[]).forEach(p=>{ if(p&&p.pet) map[p.pet]=p; });
+    parsed.pairs.forEach(p=>{ if(p&&p.pet) map[p.pet]=p; });
+    MASTER.pairs=Object.keys(map).map(k=>map[k]);
+  }
+  if(Array.isArray(parsed.formMap)){
+    const map={};
+    (MASTER.formMap||[]).forEach(p=>{ if(p&&p.pet&&p.form) map[p.pet+"\u0000"+p.form]=p; });
+    parsed.formMap.forEach(p=>{ if(p&&p.pet&&p.form) map[p.pet+"\u0000"+p.form]=p; });
+    MASTER.formMap=Object.keys(map).map(k=>map[k]);
+  }
+  if(Array.isArray(parsed.ownerGroups)){
+    const map={};
+    (MASTER.ownerGroups||[]).forEach(x=>{ if(x&&x.owner) map[x.owner]=x; });
+    parsed.ownerGroups.forEach(x=>{ if(x&&x.owner) map[x.owner]=x; });
+    MASTER.ownerGroups=Object.keys(map).map(k=>map[k]);
+  }
+}
+
+function importMasterFromFile(file, mode){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    let parsed;
+    try{ parsed=JSON.parse(e.target.result); }
+    catch(err){ mgIoMsg("ファイルの読み込みに失敗しました（JSON形式ではありません）。","err"); return; }
+    const errMsg=validateMasterImportShape(parsed);
+    if(errMsg){ mgIoMsg("インポート失敗: "+errMsg,"err"); return; }
+    const isMerge = mode==="merge";
+    const confirmMsg = isMerge
+      ? "読み込んだファイルの内容を現在のドロップダウン項目リストにマージ（統合）します。\n既存データは残り、同じ項目（同じペットネーム等）はファイル側の値で上書きされます。よろしいですか？"
+      : "読み込んだファイルの内容でドロップダウン項目リストを置き換えます（ファイルに含まれる項目のみ）。現在の該当項目の編集内容は失われます。よろしいですか？";
+    if(!confirm(confirmMsg)) return;
+    if(isMerge) applyMasterMerge(parsed); else applyMasterReplace(parsed);
+    if(typeof window.clearAllMasterDeleted==="function") window.clearAllMasterDeleted();
+    saveMaster(); rebuildAll(); renderMg();
+    mgIoMsg(isMerge
+      ? "ファイルの内容をドロップダウン項目リストにマージしました。"
+      : "ファイルの内容でドロップダウン項目リストを差し替えました。","ok");
+  };
+  reader.onerror=function(){ mgIoMsg("ファイルの読み込み中にエラーが発生しました。","err"); };
+  reader.readAsText(file,"UTF-8");
+}
+
+document.getElementById("mgExportBtn").addEventListener("click",exportMasterToFile);
+let _mgImportMode="replace";
+document.getElementById("mgImportMergeBtn").addEventListener("click",()=>{
+  _mgImportMode="merge";
+  document.getElementById("mgImportFile").click();
+});
+document.getElementById("mgImportReplaceBtn").addEventListener("click",()=>{
+  _mgImportMode="replace";
+  document.getElementById("mgImportFile").click();
+});
+document.getElementById("mgImportFile").addEventListener("change",(e)=>{
+  const file=e.target.files&&e.target.files[0];
+  importMasterFromFile(file, _mgImportMode);
+  e.target.value="";
+});
+
+// ---- 管理者専用：編集・インポート済みのドロップダウン項目リスト（MASTER）をサーバーへ反映 ----
+// ★ プロトタイプ変更: 通常の「④サーバー連携設定」の同期（送信・取得）はMASTERに一切触れない
+//   （サーバー側マスタが常に正）仕様としたため、管理者がマスタをサーバーへ反映する唯一の
+//   経路としてこのボタンを新設した。js/gas-sync.js の gasSaveMasterToServer()（マージなし・
+//   サーバー側を完全に置き換え）を呼び出す。
+document.getElementById("mgSaveMasterBtn").addEventListener("click",()=>{
+  if(typeof window.gasSaveMasterToServer!=="function"){
+    alert("サーバー連携モジュール（js/gas-sync.js）が読み込まれていません。");
+    return;
+  }
+  if(!confirm("現在のドロップダウン項目リストの内容で、サーバー側のマスタを完全に置き換えます。\nマージは行われません（サーバー側の既存内容は消え、この内容に差し替わります）。\nよろしいですか？")) return;
+  window.gasSaveMasterToServer();
+});
 
 document.getElementById("mgReset").addEventListener("click",()=>{
   if(!confirm("初期値（共有エクセル由来）に戻します。現在の編集は失われます。よろしいですか？")) return;
@@ -2097,7 +2374,9 @@ function monToCsvDate(mon){
   if(!mon || !/^\d{4}-\d{2}$/.test(mon)) return mon||"";
   return mon.replace(/^(\d{4})-(\d{2})$/, "$1/$2/01");
 }
-const CSV_DETAIL_HEAD=["管理ID","件名名称","件名No.","担当者","受注確率","備考","アンダーバー","最終更新日時","納入予定月","ペットネーム","代表形式","数量","手配状況","発注形式種別","発注予定正式形式"];
+// ★ プロトタイプ変更: ②明細の見出し名変更（「発注予定正式形式」→「発注予定仕様見込品型番」）・
+//   吊具列の追加に合わせてCSV出力の列構成も更新。
+const CSV_DETAIL_HEAD=["管理ID","件名名称","件名No.","担当者","受注確率","備考","アンダーバー","最終更新日時","納入予定月","ペットネーム","代表形式","数量","手配状況","発注形式種別","発注予定仕様見込品型番","吊具"];
 // casesArr（件名配列）を、既存の「CSV書き出し（明細展開）」と同じ列構成で「1行=1明細・親情報付き」のCSV文字列（BOM付き）に変換する共通関数
 function casesToDetailsCsvText(casesArr){
   const rows=[CSV_DETAIL_HEAD.map(csvCell).join(",")];
@@ -2105,7 +2384,7 @@ function casesToDetailsCsvText(casesArr){
     const base=[c.id,c.kenmei,c.kenmeiNo,c.owner,c.prob,c.memo,c.iwasaki?1:0,c.updatedAt,monToCsvDate(c.mon)];
     const arr=(c.details&&c.details.length)?c.details:[{}];
     arr.forEach(d=>{
-      rows.push(base.concat([d.pet,d.rep,d.qty,d.sts,d.htyp||"",d.form]).map(csvCell).join(","));
+      rows.push(base.concat([d.pet,d.rep,d.qty,d.sts,d.htyp||"",d.form,d.tsurigu||""]).map(csvCell).join(","));
     });
   });
   return "\uFEFF"+rows.join("\r\n");
@@ -2924,6 +3203,18 @@ window.__ks7 = {
   todayYM,
   monthCandidates,
   validYM,
+  formMapFor,
+  validate,
+  collectCase,
+  renderMg,
+  exportMasterToFile,
+  importMasterFromFile,
+  validateMasterImportShape,
+  applyMasterMerge,
+  applyMasterReplace,
+  MG_IO_FIELDS,
+  casesToDetailsCsvText,
+  CSV_DETAIL_HEAD,
 };
 </script>
 <script src="js/gas-sync.js"></script>
