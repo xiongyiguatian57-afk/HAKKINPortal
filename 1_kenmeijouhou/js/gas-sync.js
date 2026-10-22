@@ -504,10 +504,24 @@
   //   唯一の経路としてこの関数を新設する。マージは行わず、送信したMASTERでサーバー側を
   //   完全に置き換える（= 管理者の最新編集内容がそのままサーバーの正となる）。
   //   件名データ（CASES）・削除トゥームストーン（deletedIds）には一切触れない。
+  // 専用メッセージ欄（#mgSaveMasterMsg）への表示。
+  // ★ 不具合修正（2026-10-22）：このボタンは共有の setMsg()（data-gas-role="msg" を持つ
+  //   要素全部に一括表示する仕組み）を使っていたが、⑤メンテナンスに新設したメッセージ欄
+  //   <div id="mgSaveMasterMsg"> にはその属性が付いておらず、結果（成功/失敗）がどこにも
+  //   表示されないため「ボタンを押しても何も起きない＝機能していないように見える」状態に
+  //   なっていた。setMsg と混ぜると今度は④の通常同期メッセージまでここに混入して紛らわしく
+  //   なるため、専用の表示関数を分離した。
+  function setMasterMsg(text, kind){
+    var el = document.getElementById("mgSaveMasterMsg");
+    if(el){
+      el.className = "gas-msg" + (kind ? " " + kind : "");
+      el.textContent = text;
+    }
+  }
   window.gasSaveMasterToServer = function(){
     var cfg = gasConfig();
-    if(!cfg.url){ setMsg("サーバーURLが設定されていません。先に「サーバー連携(GAS)」で設定してください。", "err"); return Promise.resolve(false); }
-    setMsg("マスタをサーバーへ反映中...", "");
+    if(!cfg.url){ setMasterMsg("サーバーURLが設定されていません。先に「サーバー連携(GAS)」で設定してください。", "err"); return Promise.resolve(false); }
+    setMasterMsg("マスタをサーバーへ反映中...", "");
     var body = {
       action: "save_master",
       token: cfg.token,
@@ -526,10 +540,10 @@
       MASTER_DELETED_IDS = {};
       saveMasterDeleted();
       setLastSync();
-      setMsg("ドロップダウン項目リストをサーバーへ反映しました。", "ok");
+      setMasterMsg("✅ ドロップダウン項目リストをサーバーへ反映しました（" + new Date().toLocaleString("ja-JP") + "）。", "ok");
       return true;
     }).catch(function(err){
-      setMsg("サーバーへの反映に失敗しました: " + err.message, "err");
+      setMasterMsg("❌ サーバーへの反映に失敗しました: " + err.message, "err");
       return false;
     });
   };
