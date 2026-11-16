@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>7020製品在庫集計ワークフロー(スタンドアロン版)</title>
+<title>7020製品在庫集計ワークフロー v1.1(スタンドアロン版)</title>
 <!-- xlsx.full.min.js embedded below -->
 <style>
   :root {
@@ -673,6 +673,7 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
     } catch (e) {
       console.warn('localStorage save failed:', e);
       // 容量オーバー等 → 永続化は諦めるが、メモリ上のDBは維持
+      if (typeof window._onSaveFailed === 'function') window._onSaveFailed(e);
     }
   }
 
@@ -691,7 +692,7 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
     }
     // 常にDDLはIF NOT EXISTSなので実行
     db.exec(DDL);
-    saveToLocalStorage();
+    if (!persisted) saveToLocalStorage();
   }
 
   // sql.js の結果を row-object 配列に変換
@@ -770,17 +771,67 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
       rows = execPositional(q.sql, args);
     }
 
-    // 書き込み系の後は永続化
+    // 書き込み系の後は遅延保存(毎回の全体保存はフリーズの原因になるため)
     const isMutation = /^\s*(INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i.test(q.sql);
-    if (isMutation) saveToLocalStorage();
+    if (isMutation) scheduleSave();
 
     return { rows: rows, row_count: rows.length };
+  }
+
+  // ---- 遅延保存 ----
+  let saveTimer = null, dirty = false;
+  function scheduleSave() {
+    dirty = true;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 1500);
+  }
+  function flushSave() {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    if (!dirty) return;
+    dirty = false;
+    saveToLocalStorage();
+  }
+  // タブを閉じる・別画面へ移るときは未保存分を書き出す
+  window.addEventListener('pagehide', flushSave);
+  window.addEventListener('beforeunload', flushSave);
+
+  // ---- 一括挿入: 1 回の prepare + 1 トランザクションで複数行 ----
+  async function executeBatch(name, paramObjs) {
+    if (!db) await init();
+    const q = QUERIES[name];
+    if (!q) throw new Error('Unknown query: ' + name);
+    if (!paramObjs || paramObjs.length === 0) return { rows: [], row_count: 0 };
+    const names = q.params || [];
+    const stmt = db.prepare(q.sql);
+    db.exec('BEGIN');
+    try {
+      for (const p of paramObjs) {
+        stmt.run(names.map(n => (p[n] === undefined ? null : p[n])));
+      }
+      db.exec('COMMIT');
+    } catch (e) {
+      try { db.exec('ROLLBACK'); } catch (_) {}
+      throw e;
+    } finally {
+      stmt.free();
+    }
+    scheduleSave();
+    return { rows: [], row_count: paramObjs.length };
   }
 
   // Bridge SDK 互換API
   window.agentdb = {
     executeQuery,
-    _clearLocalDB: () => { localStorage.removeItem(LS_KEY); location.reload(); },
+    executeBatch,
+    _flushSave: () => { dirty = true; flushSave(); },
+    _clearLocalDB: () => {
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      dirty = false;
+      window.removeEventListener('pagehide', flushSave);
+      window.removeEventListener('beforeunload', flushSave);
+      localStorage.removeItem(LS_KEY);
+      location.reload();
+    },
     _exportDB: () => {
       if (!db) return null;
       const data = db.export();
@@ -963,6 +1014,12 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
     log(msg, 'err');
   }
   function hideError() { $('error-banner').style.display = 'none'; }
+  // 重い処理の合間に描画を挟み、ブラウザの「応答なし」を防ぐ
+  const yieldUI = () => new Promise(r => setTimeout(r, 0));
+  window._onSaveFailed = (e) => {
+    log('ブラウザへの保存に失敗しました(容量不足の可能性)。集計結果は画面上では使えますが、閉じると消えます。'
+        + '「DBをバックアップ」で保存してください: ' + (e && e.message || e), 'warn');
+  };
   function escapeHTML(s) {
     const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
   }
@@ -983,14 +1040,19 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
     hideError();
     try {
       log(`${kind === 'master' ? 'マスター' : '在庫'}ファイル読込中: ${file.name} (${(file.size/1024).toFixed(1)}KB)`);
+      await yieldUI();
       const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: 'array' });
+      const wb = XLSX.read(buf, {
+        type: 'array', cellFormula: false, cellHTML: false, cellStyles: false,
+        cellText: false, cellDates: false, sheetStubs: false,
+      });
+      await yieldUI();
       if (kind === 'master') {
         // 「全型番とペットネーム」シートのみ読み込む
         if (!wb.SheetNames.includes('全型番とペットネーム')) {
           throw new Error('「全型番とペットネーム」シートが見つかりません');
         }
-        const zenRows = XLSX.utils.sheet_to_json(wb.Sheets['全型番とペットネーム'], { header: 1, defval: null });
+        const zenRows = XLSX.utils.sheet_to_json(wb.Sheets['全型番とペットネーム'], { header: 1, defval: null, blankrows: false });
         const zenData = zenRows.slice(1).filter(r => r && r[1]);
         // 見込マスターは全型番のうち販売区分='見込'の行だけを抽出して自動生成
         const mikData = zenData.filter(r => String(r[5] || '').trim() === '見込');
@@ -1001,7 +1063,7 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
       } else {
         const sheetName = wb.SheetNames.includes('7020ZAI') ? '7020ZAI' : wb.SheetNames[0];
         const ws = wb.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, blankrows: false });
         const dataRows = rows.slice(1).filter(r => r && r[0] && r[1]);
         state.zaikoFile = { name: file.name, rows: dataRows };
         $('fi-zaiko').textContent = `✓ ${file.name}  (${dataRows.length} 行)`;
@@ -1048,22 +1110,21 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
       }
       const dupEntries = [...dupMap.entries()].filter(([, v]) => v.count > 1);
       log(`重複型番: ${dupEntries.length} 型番`, dupEntries.length > 0 ? 'warn' : 'ok');
-      for (const [k, v] of dupEntries) {
-        await window.agentdb.executeQuery('insert_duplicate', {
-          keishiki: k, occurrences: v.count, petnames_distinct: v.petnames.size,
-          petnames_sample: [...v.petnames].join(' / '),
-          shubetsu_sample: [...v.shubetsu].join(' / '),
-        });
-      }
+      await window.agentdb.executeBatch('insert_duplicate', dupEntries.map(([k, v]) => ({
+        keishiki: k, occurrences: v.count, petnames_distinct: v.petnames.size,
+        petnames_sample: [...v.petnames].join(' / '),
+        shubetsu_sample: [...v.shubetsu].join(' / '),
+      })));
+      await yieldUI();
 
       // 全型番マスター投入(重複含む全行、sort_orderで元順序保持)
-      const M_BATCH = 100;
+      const M_BATCH = 500;
       let mDone = 0;
       for (let i = 0; i < mrows.length; i += M_BATCH) {
         const batch = mrows.slice(i, i + M_BATCH);
-        await Promise.all(batch.map((r, bi) => {
+        await window.agentdb.executeBatch('insert_master_row', batch.map((r, bi) => {
           const keishiki = String(r[1] || '').trim();
-          if (!keishiki) return Promise.resolve();
+          if (!keishiki) return null;
           const no_col = (typeof r[0] === 'number') ? r[0] : null;
           const eye_ito = r[2] ? String(r[2]) : null;
           const petname = r[3] ? String(r[3]) : 'その他';
@@ -1072,13 +1133,14 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
           if (hanbai === '#N/A') hanbai = '#N/A';
           else if (hanbai === null || hanbai === undefined || hanbai === '') hanbai = null;
           else hanbai = String(hanbai);
-          return window.agentdb.executeQuery('insert_master_row', {
+          return {
             no_col, keishiki, eye_ito, petname, shubetsu, hanbai_kubun: hanbai,
             sort_order: i + bi + 1,
-          });
-        }));
+          };
+        }).filter(Boolean));
         mDone += batch.length;
         setProg(2 + Math.round(28 * mDone / mrows.length), `全型番投入 ${mDone}/${mrows.length}`);
+        await yieldUI();
       }
       log(`全型番 ${mDone} 行 投入完了`, 'ok');
 
@@ -1086,21 +1148,22 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
       let kDone = 0;
       for (let i = 0; i < mikrows.length; i += M_BATCH) {
         const batch = mikrows.slice(i, i + M_BATCH);
-        await Promise.all(batch.map((r, bi) => {
+        await window.agentdb.executeBatch('insert_mikomi_row', batch.map((r, bi) => {
           const keishiki = String(r[1] || '').trim();
-          if (!keishiki) return Promise.resolve();
+          if (!keishiki) return null;
           const no_col = (typeof r[0] === 'number') ? r[0] : null;
           const eye_ito = r[2] ? String(r[2]) : null;
           const petname = r[3] ? String(r[3]) : null;
           const shubetsu = r[4] ? String(r[4]) : null;
           const hanbai = r[5] ? String(r[5]) : null;
-          return window.agentdb.executeQuery('insert_mikomi_row', {
+          return {
             no_col, keishiki, eye_ito, petname, shubetsu, hanbai_kubun: hanbai,
             sort_order: i + bi + 1,
-          });
-        }));
+          };
+        }).filter(Boolean));
         kDone += batch.length;
         setProg(30 + Math.round(10 * kDone / Math.max(1, mikrows.length)), `見込抽出投入 ${kDone}/${mikrows.length}`);
+        await yieldUI();
       }
       log(`見込抽出 ${kDone} 行 投入完了`, 'ok');
 
@@ -1110,14 +1173,19 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
       await window.agentdb.executeQuery('clear_ng', {});
       const zrows = state.zaikoFile.rows;
       log(`在庫 ${zrows.length} 行を投入中…`);
-      const Z_BATCH = 100;
+      const Z_BATCH = 500;
       let zDone = 0;
+      // 数値でない値(「-」など)は NaN になり集計を壊すため null 扱いにする
+      const toInt = (v) => {
+        if (v === null || v === undefined || v === '') return null;
+        const n = Number(String(v).replace(/,/g, ''));
+        return Number.isFinite(n) ? n : null;
+      };
+      const toStr = (v) => v === null || v === undefined ? null : String(v).trim();
       for (let i = 0; i < zrows.length; i += Z_BATCH) {
         const batch = zrows.slice(i, i + Z_BATCH);
-        await Promise.all(batch.map((r, bi) => {
-          const toInt = (v) => v === null || v === undefined || v === '' ? null : Number(v);
-          const toStr = (v) => v === null || v === undefined ? null : String(v);
-          return window.agentdb.executeQuery('insert_zaiko_row', {
+        await window.agentdb.executeBatch('insert_zaiko_row', batch.map((r, bi) => {
+          return {
             seihin_code: toStr(r[0]) || '',
             seihin_mei: toStr(r[1]) || '',
             zaiko_jigyosho: toInt(r[2]),
@@ -1132,15 +1200,17 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
             daihyou_nyuko: toInt(r[11]),
             seizou_bumon_code: toStr(r[12]),
             sort_order: i + bi + 1,
-          });
+          };
         }));
         zDone += batch.length;
         setProg(42 + Math.round(48 * zDone / zrows.length), `在庫投入 ${zDone}/${zrows.length}`);
+        await yieldUI();
       }
       log(`在庫 ${zDone} 行 投入完了`, 'ok');
 
       // Lookup / NG rebuild
       setProg(92, 'マスター照合中…');
+      await yieldUI();
       await window.agentdb.executeQuery('apply_lookups', {});
       await window.agentdb.executeQuery('fill_unmatched', {});
       await window.agentdb.executeQuery('rebuild_ng_list', {});
@@ -1151,6 +1221,9 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
       await window.agentdb.executeQuery('log_run', {
         zaiko_file: state.zaikoFile.name, master_file: state.masterFile.name, output_file: outName,
       });
+      setProg(97, 'ブラウザに保存中…');
+      await yieldUI();
+      window.agentdb._flushSave();
       setProg(100, '完了');
       log('集計完了 ✓', 'ok');
       $('btn-download').disabled = false;
@@ -1301,7 +1374,11 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
   // ---- Download result Excel (4 sheets, formula-based like the sample) ----
   async function downloadResult() {
     hideError();
-    log('結果Excel生成中…');
+    const dlBtn = $('btn-download');
+    if (dlBtn.dataset.busy === '1') return;
+    dlBtn.dataset.busy = '1'; dlBtn.disabled = true;
+    log('結果Excel生成中…(数秒かかります)');
+    await yieldUI();
     try {
       const [detailR, masterR, mikomiR, ngR, dupR] = await Promise.all([
         window.agentdb.executeQuery('load_zaiko_detail', {}),
@@ -1453,6 +1530,8 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
     } catch (e) {
       showError(e.message || String(e));
       console.error(e);
+    } finally {
+      dlBtn.dataset.busy = ''; dlBtn.disabled = false;
     }
   }
 
@@ -1478,6 +1557,6 @@ window._SQL_WASM_URL = 'data:application/wasm;base64,AGFzbQEAAAABoARFYAJ/fwF/YAF
   console.log('[init] starting');
   window._localDbReady.then(() => refresh()).then(() => console.log('[init] done'));
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
