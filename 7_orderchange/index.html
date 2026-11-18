@@ -90,6 +90,26 @@
   .result-head{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px}
   .small{font-size:14px; color:var(--muted)}
   #resultEmpty{color:var(--muted); font-size:15px}
+  .nochange{
+    display:none; margin:18px 0 6px; padding:30px 20px; border-radius:14px;
+    background:#fef3c7; border:2px solid #fcd34d; color:#92400e;
+    font-size:30px; font-weight:800; letter-spacing:.06em; text-align:center;
+  }
+  .nochange.show{display:block}
+  .busy{
+    position:fixed; inset:0; background:rgba(15,23,42,.45);
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+    gap:16px; z-index:999; backdrop-filter:blur(1px);
+  }
+  .busy.show{display:flex}
+  .busy .spinner{
+    width:56px; height:56px; border-radius:50%;
+    border:6px solid rgba(255,255,255,.35); border-top-color:#fff;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
+  .busy .msg{ color:#fff; font-size:18px; font-weight:700; letter-spacing:.05em }
+  .busy .sub{ color:rgba(255,255,255,.85); font-size:14px }
 </style>
 </head>
 <body>
@@ -165,10 +185,17 @@
       </div>
     </div>
     <div class="hint">出力ファイルには、1行目（青背景・太字・中央）固定＋オートフィルタが自動で付きます。</div>
+    <div id="noChange" class="nochange">オーダーステータス変更無し</div>
     <div class="preview" id="resultPrev" style="display:none; margin-top:14px"></div>
     <div id="resultEmpty" style="margin-top:12px">ファイルAとBを読み込むと、抽出結果のプレビューが表示されます。</div>
   </section>
 </main>
+
+<div class="busy" id="busy" aria-live="polite" aria-busy="true">
+  <div class="spinner"></div>
+  <div class="msg" id="busyMsg">突合処理中…</div>
+  <div class="sub">しばらくお待ちください（すべてブラウザ内で処理しています）</div>
+</div>
 
 <script>
 "use strict";
@@ -279,8 +306,26 @@ function buildTable(headers, rows){
 }
 
 /* ---------- UI 更新 ---------- */
+function showBusy(on, msg){
+  const el = $("busy");
+  if(!el) return;
+  el.classList.toggle("show", !!on);
+  el.setAttribute("aria-busy", on ? "true" : "false");
+  document.body.style.overflow = on ? "hidden" : "";
+  if(on && msg) $("busyMsg").textContent = msg;
+}
+
 function refreshAll(){
-  compute();
+  if(state.A && state.B){
+    showBusy(true, "突合処理中…");
+    /* インジケーターを描画させてから同期処理を実行する */
+    setTimeout(()=>{
+      try{ compute(); }
+      finally{ showBusy(false); }
+    }, 40);
+  }else{
+    compute();
+  }
 }
 
 /* ---------- 突合・抽出（決め打ち） ---------- */
@@ -372,6 +417,7 @@ function showResult(out, emptyMsg, label){
   badge.textContent = count.toLocaleString() + " 件";
   badge.className = "badge " + (count>0 ? "ok" : "no");
 
+  const noChange = $("noChange");
   if(emptyMsg && count===0){
     $("resultInfo").textContent = "";
     $("resultPrev").style.display = "none";
@@ -379,8 +425,20 @@ function showResult(out, emptyMsg, label){
     $("resultEmpty").textContent = emptyMsg;
     $("exportBtn").disabled = true;
     $("exportShortBtn").disabled = true;
+    noChange.classList.remove("show");
     return;
   }
+  const shortCount = (out.short || []).length;
+  if(count===0 && shortCount===0 && state.A && state.B){
+    $("resultInfo").textContent = "";
+    $("resultEmpty").style.display = "none";
+    $("resultPrev").style.display = "none";
+    noChange.classList.add("show");
+    $("exportBtn").disabled = true;
+    $("exportShortBtn").disabled = true;
+    return;
+  }
+  noChange.classList.remove("show");
   $("resultInfo").textContent = label ? `対象: ${label}` : "";
   $("resultEmpty").style.display = "none";
   const prev = $("resultPrev");
