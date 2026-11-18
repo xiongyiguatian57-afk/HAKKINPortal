@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>オーダーステータス変更分抽出システム｜操作ガイド</title>
+<style>
+  :root{
+    --brand:#2563eb; --brand2:#1d4ed8; --ink:#0f172a; --muted:#64748b;
+    --line:#e2e8f0; --bg:#f8fafc; --soft:#f1f5f9;
+    --ok:#16a34a; --warn:#d97706; --err:#dc2626; --blue-soft:#eff6ff;
+    --amber:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; color:var(--ink); background:var(--bg);
+    font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+    line-height:1.75; font-size:16px;
+  }
+  a{color:var(--brand); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 20px 90px}
+
+  .hero{
+    background:linear-gradient(135deg,#065f46 0%,#0d9488 55%,#14b8a6 100%);
+    color:#fff; padding:54px 20px 46px;
+  }
+  .hero .inner{max-width:1040px; margin:0 auto}
+  .hero .kicker{display:inline-block; font-size:13px; letter-spacing:.14em; font-weight:700;
+    background:rgba(255,255,255,.16); padding:5px 12px; border-radius:999px; margin-bottom:18px}
+  .hero h1{margin:0 0 14px; font-size:34px; line-height:1.3}
+  .hero p.lead{margin:0 0 22px; font-size:18px; color:#d1fae5; max-width:760px}
+  .tags{display:flex; flex-wrap:wrap; gap:10px}
+  .tag{background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35);
+    padding:7px 14px; border-radius:999px; font-size:14px; font-weight:600}
+
+  nav.toc{position:sticky; top:0; z-index:20; background:rgba(255,255,255,.95);
+    backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 0}
+  nav.toc .inner{max-width:1040px; margin:0 auto; padding:0 20px; display:flex; gap:16px; flex-wrap:wrap; font-size:14px}
+  nav.toc a{color:#334155; font-weight:600}
+  nav.toc a:hover{color:var(--brand)}
+
+  section{margin-top:52px; scroll-margin-top:64px}
+  h2.sec{font-size:25px; margin:0 0 6px; display:flex; align-items:center; gap:12px}
+  h2.sec .n{display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px;
+    border-radius:10px; background:#0d9488; color:#fff; font-size:17px; font-weight:800; flex:none}
+  .sec-sub{color:var(--muted); margin:0 0 22px; font-size:15px}
+  h3{font-size:19px; margin:30px 0 10px}
+  p{margin:0 0 14px}
+
+  .card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px 24px;
+    box-shadow:0 1px 2px rgba(15,23,42,.04); margin-bottom:18px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  .callout{border-left:5px solid var(--brand); background:var(--blue-soft);
+    border-radius:10px; padding:14px 18px; margin:16px 0}
+  .callout.warn{border-color:var(--warn); background:#fffbeb}
+  .callout.ok{border-color:var(--ok); background:#f0fdf4}
+  .callout b{display:block; margin-bottom:4px}
+
+  table{width:100%; border-collapse:collapse; font-size:15px; margin:12px 0 18px; background:#fff}
+  th,td{border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top}
+  thead th{background:var(--soft); font-weight:700; color:#334155}
+  tbody tr:nth-child(even){background:#fafcff}
+  .nowrap{white-space:nowrap}
+  td.center,th.center{text-align:center}
+
+  .pill{display:inline-block; padding:2px 10px; border-radius:999px; font-size:13px; font-weight:700}
+  .pill.b{background:#dbeafe; color:#1e40af}
+  .pill.g{background:#dcfce7; color:#166534}
+  .pill.y{background:#fef3c7; color:#92400e}
+  .pill.r{background:#fee2e2; color:#991b1b}
+
+  /* Step flow */
+  .steps{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin:10px 0 6px}
+  @media(max-width:820px){.steps{grid-template-columns:1fr 1fr}}
+  .stepbox{position:relative; background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center}
+  .stepbox .sn{display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px;
+    border-radius:50%; background:#0d9488; color:#fff; font-weight:800; margin-bottom:8px}
+  .stepbox .st{font-weight:700; font-size:15px}
+  .stepbox .sd{font-size:12.5px; color:var(--muted)}
+
+  /* Screen mockups */
+  .shot{border:1px solid #cbd5e1; border-radius:14px; overflow:hidden; background:#fff;
+    box-shadow:0 14px 34px rgba(15,23,42,.14); margin:18px 0 8px}
+  .shot .bar{display:flex; align-items:center; gap:9px; padding:10px 14px; background:#eef2f7;
+    border-bottom:1px solid #dbe2ea}
+  .shot .dot{width:11px; height:11px; border-radius:50%; flex:none}
+  .shot .dot.r{background:#ef4444}.shot .dot.y{background:#f59e0b}.shot .dot.g{background:#22c55e}
+  .shot .url{flex:1; background:#fff; border:1px solid #dbe2ea; border-radius:999px;
+    padding:4px 12px; font-size:12px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .shot .screen{position:relative; padding:16px; background:linear-gradient(180deg,#eef2ff 0%,#f8fafc 140px,#f8fafc 100%)}
+  .cap{font-size:13px; color:var(--muted); text-align:center; margin:6px 0 4px}
+
+  .mk-header{background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:12px}
+  .mk-header h4{margin:0; font-size:16px}
+  .mk-header p{margin:3px 0 0; font-size:11px; color:#64748b}
+  .mk-card{background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; margin-bottom:10px}
+  .mk-card .ttl{font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; margin-bottom:10px}
+  .mk-step{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
+    border-radius:50%; background:#2563eb; color:#fff; font-size:11px; font-weight:700; flex:none}
+  .mk-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .mk-filebox{border:1.5px dashed #cbd5e1; border-radius:9px; padding:10px; background:#f8fafc}
+  .mk-filebox h5{margin:0 0 5px; font-size:11.5px; color:#334155}
+  .mk-filebox .note{font-size:10px; color:#94a3b8; margin-bottom:6px}
+  .mk-input{height:22px; border:1px solid #cbd5e1; border-radius:5px; background:#fff;
+    display:flex; align-items:center; padding:0 8px; font-size:10px; color:#94a3b8}
+  .mk-select{height:20px; border:1px solid #cbd5e1; border-radius:5px; background:#fff;
+    display:flex; align-items:center; justify-content:space-between; padding:0 8px; font-size:10px; color:#475569}
+  .mk-meta{margin-top:6px; font-size:10px; color:#64748b}
+  .mk-badge{display:inline-block; padding:1px 7px; border-radius:999px; font-size:9.5px; font-weight:700}
+  .mk-badge.ok{background:#dcfce7; color:#166534}
+  .mk-badge.no{background:#fef3c7; color:#92400e}
+  .mk-btn{display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700;
+    padding:5px 10px; border-radius:6px; border:1px solid #2563eb; background:#2563eb; color:#fff}
+  .mk-btn.ghost{background:#fff; color:#2563eb}
+  .mk-btn.green{background:#16a34a; border-color:#16a34a}
+  .mk-btn.dis{opacity:.45}
+  .mk-table{width:100%; border-collapse:collapse; font-size:10px; background:#fff}
+  .mk-table th,.mk-table td{border-bottom:1px solid #eef2f7; padding:4px 7px; text-align:left; white-space:nowrap}
+  .mk-table thead th{background:#f1f5f9; font-weight:600}
+  .mk-table thead th.blue{background:#4472c4; color:#fff}
+  .mk-table thead th.red{background:#c00000; color:#fff}
+  .mk-table td.red{background:#fde8e8; color:#991b1b; font-weight:700}
+  .mk-table tr.alt td{background:#fafcff}
+
+  .hl{position:relative; outline:2.5px solid var(--amber); outline-offset:3px; border-radius:8px}
+  .hl::after{content:attr(data-n); position:absolute; top:-13px; left:-11px; width:22px; height:22px;
+    background:var(--amber); color:#fff; border-radius:50%; font-size:12px; font-weight:800;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(245,158,11,.5); z-index:3}
+  .legend{list-style:none; padding:0; margin:10px 0 0; display:grid; gap:7px}
+  .legend li{display:flex; gap:10px; align-items:flex-start; font-size:14.5px}
+  .legend .ln{flex:none; width:22px; height:22px; border-radius:50%; background:var(--amber); color:#fff;
+    font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:2px}
+
+  .mk-busy{position:absolute; inset:0; background:rgba(15,23,42,.5); display:flex;
+    flex-direction:column; align-items:center; justify-content:center; gap:10px; border-radius:14px}
+  .mk-spin{width:46px; height:46px; border-radius:50%; border:5px solid rgba(255,255,255,.35);
+    border-top-color:#fff; animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .mk-busy .t{color:#fff; font-size:14px; font-weight:800}
+  .mk-busy .s{color:#dbeafe; font-size:10px}
+  .mk-nochange{background:#fef3c7; border:2px solid #fcd34d; color:#92400e; border-radius:10px;
+    padding:18px; text-align:center; font-size:20px; font-weight:800; letter-spacing:.06em}
+
+  .result-3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  @media(max-width:820px){.result-3{grid-template-columns:1fr}}
+  .resbox{border:1px solid var(--line); border-radius:12px; padding:16px; background:#fff}
+  .resbox h4{margin:0 0 8px; font-size:16px}
+  .resbox ul{margin:0; padding-left:20px; font-size:14px}
+
+  details{background:#fff; border:1px solid var(--line); border-radius:10px; padding:0 16px; margin-bottom:10px}
+  details summary{cursor:pointer; font-weight:700; padding:13px 0; list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"＋"; color:var(--brand); font-weight:800; margin-right:10px}
+  details[open] summary::before{content:"－"}
+  details .ans{padding:0 0 14px; font-size:15px; color:#334155}
+
+  .footnote{font-size:13px; color:var(--muted)}
+  footer{margin-top:64px; border-top:1px solid var(--line); padding-top:22px; color:var(--muted); font-size:13px}
+
+  @media print{
+    nav.toc{display:none}
+    .hero{padding:24px 0}
+    section{page-break-inside:avoid}
+    body{font-size:12pt}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="inner">
+    <span class="kicker">OPERATION GUIDE</span>
+    <h1>オーダーステータス変更分抽出システム 操作ガイド</h1>
+    <p class="lead">はじめて使う方でも、この資料の順番どおりに進めれば「入庫日が変わった行の抽出」まで完了できます。画面のどこを操作するかを図で示します。</p>
+    <div class="tags">
+      <span class="tag">所要時間：約3分</span>
+      <span class="tag">必要なもの：変更前後のExcel 2つ</span>
+      <span class="tag">保存先：任意のフォルダ</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="inner">
+    <a href="#g1">1. はじめに</a>
+    <a href="#g2">2. 使う前の準備</a>
+    <a href="#g3">3. 全体の流れ</a>
+    <a href="#step1">4. STEP1 読込</a>
+    <a href="#step2">5. STEP2 前処理</a>
+    <a href="#step3">6. STEP3 結果・保存</a>
+    <a href="#scenario">7. 1日の使い方</a>
+    <a href="#trouble">8. 困ったとき</a>
+    <a href="#faq">9. よくある質問</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- 1 -->
+  <section id="g1">
+    <h2 class="sec"><span class="n">1</span>はじめに</h2>
+    <p class="sec-sub">このガイドで行うこと</p>
+    <div class="card">
+      <p class="lead-p" style="margin-bottom:10px">「変更前の受注データ」と「入庫日を変更した後の受注データ」の2つのExcelを読み込むと、<b>入庫日が変わった行だけ</b>を自動で抜き出し、Excelとして保存してくれます。</p>
+      <div class="grid3">
+        <div><b>やること</b><p class="footnote" style="margin:4px 0 0">ファイルを2つ読み込むだけ</p></div>
+        <div><b>わかること</b><p class="footnote" style="margin:4px 0 0">どの製品の納期が、いつからいつに変わったか</p></div>
+        <div><b>できること</b><p class="footnote" style="margin:4px 0 0">変更分・納期短縮分をExcelで保存</p></div>
+      </div>
+    </div>
+    <div class="callout ok">
+      <b>むずかしい設定はありません</b>
+      HTMLファイルをダブルクリックしてブラウザで開くだけ。インストールやログインは不要です。
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="g2">
+    <h2 class="sec"><span class="n">2</span>使う前の準備</h2>
+    <p class="sec-sub">開始前に、次の3点を確認してください。</p>
+    <div class="grid3">
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">① 2つのExcel</h3>
+        <p class="footnote" style="margin-bottom:0">・<b>ファイルA</b>＝変更前の受注データ<br>・<b>ファイルB</b>＝入庫日変更後の受注データ<br>形式は .xlsx / .xls / .csv に対応。</p>
+      </div>
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">2. ブラウザ</h3>
+        <p class="footnote" style="margin-bottom:0">Microsoft Edge または Google Chrome の最新版を推奨。初回はインターネット接続が必要です。</p>
+      </div>
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">3. 保存先</h3>
+        <p class="footnote" style="margin-bottom:0">結果のExcelを保存するフォルダを決めておくとスムーズです（ダウンロードフォルダでも可）。</p>
+      </div>
+    </div>
+    <div class="callout warn">
+      <b>ファイルAとファイルBを取り違えないでください</b>
+      Aが「変更前（元）」、Bが「変更後（新しい）」です。逆にすると、納期短縮の判定が反対になります。
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="g3">
+    <h2 class="sec"><span class="n">3</span>全体の流れ</h2>
+    <p class="sec-sub">5つのステップで完了します。</p>
+    <div class="steps">
+      <div class="stepbox"><div class="sn">1</div><div class="st">開く</div><div class="sd">HTMLをブラウザで開く</div></div>
+      <div class="stepbox"><div class="sn">2</div><div class="st">Aを読込</div><div class="sd">変更前のExcelを選択</div></div>
+      <div class="stepbox"><div class="sn">3</div><div class="st">Bを読込</div><div class="sd">変更後のExcelを選択</div></div>
+      <div class="stepbox"><div class="sn">4</div><div class="st">結果確認</div><div class="sd">変更行を画面で確認</div></div>
+      <div class="stepbox"><div class="sn">5</div><div class="st">保存</div><div class="sd">Excelで保存</div></div>
+    </div>
+    <p class="footnote">※ ステップ2・3は順番が逆でもかまいません。両方読み込んだ時点で自動的に突合が始まります。</p>
+  </section>
+
+  <!-- STEP1 -->
+  <section id="step1">
+    <h2 class="sec"><span class="n">4</span>STEP 1 ─ ファイルを読み込む</h2>
+    <p class="sec-sub">「ファイルを読み込む」欄の左右2つのボックスに、AとBを読み込みます。</p>
+
+    <div class="shot">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">file:///…/オーダーステータス変更分抽出システム_v1b.html</span></div>
+      <div class="screen">
+        <div class="mk-header"><h4>オーダーステータス変更分抽出システム</h4><p>同じ形式のExcelを2つ読み込み、キーで突合し、入庫日が変わった行だけを出力します。</p></div>
+        <div class="mk-card">
+          <div class="ttl"><span class="mk-step">1</span>ファイルを読み込む</div>
+          <div class="mk-grid">
+            <div class="mk-filebox hl" data-n="1">
+              <h5>📄 ファイル A</h5><div class="note">【以前の受注データを読み込んでください】</div>
+              <div class="mk-input">ファイルを選択…</div>
+              <div class="mk-meta"><span class="mk-badge ok">受注データ261012.xls</span> ／ シート「Sheet1」 ／ 1,240 行 × 16 列</div>
+            </div>
+            <div class="mk-filebox hl" data-n="2">
+              <h5>📄 ファイル B</h5><div class="note">【入庫日変更後の受注データを読み込んでください】</div>
+              <div class="mk-input">ファイルを選択…</div>
+              <div class="mk-meta"><span class="mk-badge ok">受注データ261013.xls</span> ／ シート「Sheet1」 ／ 1,255 行 × 16 列</div>
+            </div>
+          </div>
+          <div style="margin-top:12px; max-width:240px" class="hl" data-n="3">
+            <div style="font-size:10px; color:#475569; margin-bottom:3px">シート</div>
+            <div class="mk-select"><span>Sheet1</span><span style="color:#94a3b8">▾</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">▲ ファイル読込エリア（読み込み後の状態）</p>
+    <ul class="legend">
+      <li><span class="ln">1</span><div><b>ファイルA</b>の「ファイルを選択」をクリックし、<b>変更前</b>の受注データを選びます。</div></li>
+      <li><span class="ln">2</span><div><b>ファイルB</b>の「ファイルを選択」をクリックし、<b>変更後</b>の受注データを選びます。</div></li>
+      <li><span class="ln">3</span><div>必要なら「シート」で対象シートを切り替えます（通常は最初のシートが自動選択されます）。</div></li>
+    </ul>
+
+    <h3>操作手順</h3>
+    <div class="card">
+      <ol style="margin:0; padding-left:22px">
+        <li>ブラウザで本システムのHTMLを開きます。</li>
+        <li>「📄 ファイル A」の<b>ファイルを選択</b>を押し、変更前のExcelを指定します。</li>
+        <li>「📄 ファイル B」の<b>ファイルを選択</b>を押し、変更後のExcelを指定します。</li>
+        <li>各ボックスに <span class="pill g">ファイル名・シート・行×列</span> が表示されれば読み込み成功です。</li>
+      </ol>
+      <div class="callout" style="margin-bottom:0">
+        <b>ドラッグ＆ドロップでもOK</b>
+        エクスプローラーからExcelファイルを、各ボックスへ直接ドラッグしても読み込めます。
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP2 -->
+  <section id="step2">
+    <h2 class="sec"><span class="n">5</span>STEP 2 ─ 前処理を確認する（任意）</h2>
+    <p class="sec-sub">読み込むと前処理（見出し置換・空白削除）が自動で行われます。必要なら前処理後のデータを保存できます。</p>
+
+    <div class="shot">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">file:///…/オーダーステータス変更分抽出システム_v1b.html</span></div>
+      <div class="screen">
+        <div class="mk-card">
+          <div class="ttl"><span class="mk-step">2</span>前処理</div>
+          <p style="font-size:10.5px; color:#64748b; margin:0 0 10px">
+            ① 1行目を所定のヘッダー（ＮＯ／担当／製品コード／製品名／…）に置き換える　② 全セルから半角・全角スペースを削除
+          </p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <span class="mk-btn ghost hl" data-n="1">⬇ ファイルA（前処理後）をダウンロード</span>
+            <span class="mk-btn ghost">⬇ ファイルB（前処理後）をダウンロード</span>
+          </div>
+        </div>
+        <div class="mk-card" style="margin-bottom:0">
+          <div class="ttl"><span class="mk-step">3</span>結果と書き出し</div>
+          <div class="mk-meta">プレビュー（先頭15行）が各ボックス下部に表示されます。</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">▲ 前処理の確認とダウンロード</p>
+    <ul class="legend">
+      <li><span class="ln">1</span><div>前処理後のA/BをExcelで保存したいときだけ押します（<b>通常の抽出だけなら不要</b>）。</div></li>
+    </ul>
+
+    <div class="callout">
+      <b>前処理で行われること</b>
+      元ファイルの1行目は使わず、決まった16列の見出しに置き換えます。また全セルのスペースを削除するため、「製品名の表記ゆれ」による突合ずれを減らせます。
+    </div>
+    <div class="callout warn">
+      <b>「列数不一致」の表示が出たとき</b>
+      元ファイルの列数が想定（16列）と違う場合に黄色いバッジが出ます。抽出自体は続行できますが、列の並びが想定どおりか確認してください。
+    </div>
+  </section>
+
+  <!-- STEP3 -->
+  <section id="step3">
+    <h2 class="sec"><span class="n">6</span>STEP 3 ─ 結果を確認して保存する</h2>
+    <p class="sec-sub">両方読み込むと自動で突合が始まります。結果は3パターンです。</p>
+
+    <h3>6-1. 処理中の表示</h3>
+    <p>突合中は画面全体が半透明になり、スピナーと「突合処理中…」が表示されます。終わると自動で消えます。</p>
+    <div class="shot">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">file:///…/オーダーステータス変更分抽出システム_v1b.html</span></div>
+      <div class="screen" style="min-height:170px">
+        <div class="mk-card" style="margin-bottom:0"><div class="ttl"><span class="mk-step">3</span>結果と書き出し</div><div style="height:52px"></div></div>
+        <div class="mk-busy">
+          <div class="mk-spin"></div>
+          <div class="t">突合処理中…</div>
+          <div class="s">しばらくお待ちください（すべてブラウザ内で処理しています）</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">▲ 処理中インジケーター</p>
+
+    <h3>6-2. 結果の3パターン</h3>
+    <div class="result-3">
+      <div class="resbox">
+        <h4><span class="pill g">A. 変更あり</span></h4>
+        <p class="footnote" style="margin:0 0 8px">入庫日が変わった行がある</p>
+        <ul>
+          <li>件数バッジが緑「N 件」</li>
+          <li>表に変更行が表示される</li>
+          <li>保存ボタンが押せる</li>
+        </ul>
+      </div>
+      <div class="resbox">
+        <h4><span class="pill y">B. 納期短縮のみ</span></h4>
+        <p class="footnote" style="margin:0 0 8px">早まった行だけがある</p>
+        <ul>
+          <li>「納期短縮」ボタンが押せる</li>
+          <li>短縮分を別ファイルで保存</li>
+          <li>通常結果が0件でも可</li>
+        </ul>
+      </div>
+      <div class="resbox">
+        <h4><span class="pill r">C. 変更なし</span></h4>
+        <p class="footnote" style="margin:0 0 8px">変わった行が1件も無い</p>
+        <ul>
+          <li>「オーダーステータス変更無し」と大きく表示</li>
+          <li>保存ボタンは押せない</li>
+          <li>出力の必要なし</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>6-3. 「変更あり」の画面と保存</h3>
+    <div class="shot">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">file:///…/オーダーステータス変更分抽出システム_v1b.html</span></div>
+      <div class="screen">
+        <div class="mk-card">
+          <div class="ttl"><span class="mk-step">3</span>結果と書き出し</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px">
+            <div><span class="mk-badge ok">2 件</span></div>
+            <div style="display:flex; gap:6px">
+              <span class="mk-btn green hl" data-n="1">⬇ 納期短縮抽出結果をExcelで保存</span>
+              <span class="mk-btn hl" data-n="2">⬇ 抽出結果をExcelで保存</span>
+            </div>
+          </div>
+          <div style="overflow:auto">
+            <table class="mk-table">
+              <thead>
+                <tr><th class="blue">ＮＯ</th><th class="blue">製品コード</th><th class="blue">製品名</th><th class="blue">当初入庫予定日</th><th class="red">変更後入庫予定日</th><th class="blue">生産数</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>1</td><td>P-1001</td><td>モーターA</td><td>2026/11/20</td><td class="red">2026/11/25</td><td>120</td></tr>
+                <tr class="alt"><td>2</td><td>P-2045</td><td>ギアB</td><td>2026/12/01</td><td class="red">2026/12/03</td><td>80</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="mk-meta">上位50件を表示しています。全件は保存したExcelで確認してください。</p>
+        </div>
+      </div>
+    </div>
+    <p class="cap">▲ 変更ありの結果画面（表の「変更後入庫予定日」が赤で強調）</p>
+    <ul class="legend">
+      <li><span class="ln">1</span><div><b>納期短縮抽出結果を保存</b>：入庫日が<b>早まった</b>行だけを保存します。</div></li>
+      <li><span class="ln">2</span><div><b>抽出結果を保存</b>：入庫日が変わった行（主に遅延分）を保存します。</div></li>
+    </ul>
+
+    <h3>6-4. 変更が無かった場合</h3>
+    <div class="shot">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">file:///…/オーダーステータス変更分抽出システム_v1b.html</span></div>
+      <div class="screen">
+        <div class="mk-card" style="margin-bottom:0">
+          <div class="ttl"><span class="mk-step">3</span>結果と書き出し</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px">
+            <span class="mk-badge no">0 件</span>
+            <div style="display:flex; gap:6px">
+              <span class="mk-btn green dis">⬇ 納期短縮抽出結果をExcelで保存</span>
+              <span class="mk-btn dis">⬇ 抽出結果をExcelで保存</span>
+            </div>
+          </div>
+          <div class="mk-nochange">オーダーステータス変更無し</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">▲ 変更0件の表示。このメッセージが出たら保存作業は不要です。</p>
+
+    <div class="callout ok">
+      <b>保存ファイルの見分け方</b>
+      通常：<code>伊東電機製品オーダーステータス変更情報_＜日時＞.xlsx</code><br>
+      短縮：<code>伊東電機製品オーダーステータス変更情報【納期短縮】_＜日時＞.xlsx</code>
+    </div>
+  </section>
+
+  <!-- scenario -->
+  <section id="scenario">
+    <h2 class="sec"><span class="n">7</span>典型的な1日の使い方</h2>
+    <p class="sec-sub">毎朝の受注データ更新チェックを例にした流れです。</p>
+    <div class="card">
+      <table>
+        <thead><tr><th style="width:90px" class="center">手順</th><th style="width:150px">操作</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td class="center">1</td><td>前日分を用意</td><td>昨日の受注データを<b>ファイルA</b>にする。</td></tr>
+          <tr><td class="center">2</td><td>当日分を用意</td><td>今朝更新された受注データを<b>ファイルB</b>にする。</td></tr>
+          <tr><td class="center">3</td><td>A・Bを読み込み</td><td>本システムに2つを読み込む（自動で突合）。</td></tr>
+          <tr><td class="center">4</td><td>件数を確認</td><td>緑「N 件」なら変更あり。0件なら「変更無し」表示。</td></tr>
+          <tr><td class="center">5</td><td>短縮を確認</td><td>「納期短縮」ボタンが押せる場合は、短縮分も保存。</td></tr>
+          <tr><td class="center">6</td><td>保存・共有</td><td>保存したExcelを所定フォルダへ。必要に応じて関係者へ共有。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <b>ポイント</b>
+      前日＝A、当日＝B を守るのがコツです。ファイル名に日付を入れておくと取り違えを防げます。
+    </div>
+  </section>
+
+  <!-- trouble -->
+  <section id="trouble">
+    <h2 class="sec"><span class="n">8</span>うまくいかないとき</h2>
+    <p class="sec-sub">症状から原因と対処を探してください。</p>
+    <table>
+      <thead><tr><th style="width:26%">症状</th><th style="width:30%">考えられる原因</th><th>対処</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>「ファイルAとBを両方読み込んでください」と出る</td>
+          <td>片方しか読み込んでいない</td>
+          <td>もう片方のファイルを読み込みます。</td>
+        </tr>
+        <tr>
+          <td>「読み込みに失敗しました」と出る</td>
+          <td>対応外の形式／壊れたファイル</td>
+          <td>.xlsx / .xls / .csv か確認し、Excelで開き直して保存し直します。</td>
+        </tr>
+        <tr>
+          <td>件数が0件で「変更無し」になる</td>
+          <td>入庫日に変更が無い／AとBが同一ファイル</td>
+          <td>本当に変更が無いか、AとBが正しい組み合わせか確認します。</td>
+        </tr>
+        <tr>
+          <td>納期短縮の判定が逆に感じる</td>
+          <td>AとBを取り違えている</td>
+          <td>A＝変更前、B＝変更後 になるよう入れ替えます。</td>
+        </tr>
+        <tr>
+          <td>「列数不一致」の黄色バッジが出る</td>
+          <td>元ファイルの列数が想定（16列）と違う</td>
+          <td>列の並びが所定どおりか確認します。抽出は続行できます。</td>
+        </tr>
+        <tr>
+          <td>思った行が抽出されない</td>
+          <td>キー（製品名・受注ＮＯ）の空白や不一致</td>
+          <td>該当行の製品名・受注ＮＯが両ファイルで一致しているか確認します。</td>
+        </tr>
+        <tr>
+          <td>画面が真っ白／動かない</td>
+          <td>初回のライブラリ読込に失敗（オフライン等）</td>
+          <td>インターネット接続を確認し、ページを再読み込みします。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- faq -->
+  <section id="faq">
+    <h2 class="sec"><span class="n">9</span>よくある質問</h2>
+    <p class="sec-sub">クリックで回答が開きます。</p>
+
+    <details>
+      <summary>データは外部に送信されますか？</summary>
+      <div class="ans">いいえ。受注データはすべてブラウザ内で処理され、サーバーへ送信されません。ただし初回表示時に処理ライブラリを取得するため、インターネット接続が必要です。</div>
+    </details>
+    <details>
+      <summary>インストールは必要ですか？</summary>
+      <div class="ans">不要です。HTMLファイルをブラウザで開くだけで使えます。専用アプリの導入はありません。</div>
+    </details>
+    <details>
+      <summary>同じ製品・受注ＮＯの行が複数ある場合は？</summary>
+      <div class="ans">キーが一致する行同士を、出現順に1対1で比較します。重複がある場合は、元データの並び順が結果に影響します。</div>
+    </details>
+    <details>
+      <summary>件数が多いと時間がかかりますか？</summary>
+      <div class="ans">データ量とPC性能によります。処理中はスピナーが表示されます。数秒待っても終わらない場合は、ページを再読み込みしてやり直してください。</div>
+    </details>
+    <details>
+      <summary>出力したExcelに書式は付きますか？</summary>
+      <div class="ans">1行目は青背景・白文字・太字・中央揃え、対象列「変更後入庫予定日」の見出しは赤背景になります。さらに1行目固定とオートフィルタが自動で付きます。</div>
+    </details>
+    <details>
+      <summary>前処理後のデータだけ欲しい</summary>
+      <div class="ans">STEP2の「ファイルA/B（前処理後）をダウンロード」から保存できます。見出し置換と空白削除を済ませた状態のExcelが得られます。</div>
+    </details>
+  </section>
+
+  <section id="note">
+    <h2 class="sec"><span class="n">!</span>注意事項</h2>
+    <div class="card">
+      <ul style="margin:0">
+        <li>ページを再読み込み・閉じると、読み込んだデータは消えます（自動保存されません）。</li>
+        <li>ファイルAとBは必ず「変更前＝A／変更後＝B」で読み込んでください。</li>
+        <li>初回表示にはインターネット接続が必要です。</li>
+        <li>出力ファイル名の末尾は保存日時です。同じ分に複数回保存すると上書きされる場合があるため、必要に応じて名前を変えて保存してください。</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p>オーダーステータス変更分抽出システム 操作ガイド ／ 対象バージョン: v1b 系（変更無し表示・処理中インジケーター対応版）</p>
+    <p>本資料の画面は説明用のイメージです。実際の表示はブラウザ環境により多少異なる場合があります。</p>
+  </footer>
+</main>
+</body>
+</html>

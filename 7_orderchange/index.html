@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>オーダーステータス変更分抽出システム</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#ffffff; --line:#e2e8f0; --muted:#64748b;
+    --brand:#2563eb; --brand-2:#1d4ed8; --ok:#16a34a; --warn:#d97706;
+    --err:#dc2626; --soft:#f8fafc;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+    background:linear-gradient(180deg,#eef2ff 0%,#f8fafc 220px,#f8fafc 100%);
+    color:#0f172a; line-height:1.6; font-size:17px;
+  }
+  header{
+    padding:26px 32px 18px; border-bottom:1px solid var(--line); background:#fff;
+  }
+  header h1{margin:0; font-size:24px; letter-spacing:.02em}
+  header p{margin:6px 0 0; color:var(--muted); font-size:15px}
+  main{max-width:1180px; margin:0 auto; padding:24px 20px 80px}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:20px 22px; margin-bottom:20px; box-shadow:0 1px 2px rgba(15,23,42,.04);
+  }
+  .card h2{font-size:17px; margin:0 0 14px; display:flex; align-items:center; gap:9px}
+  .step{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:50%; background:var(--brand); color:#fff;
+    font-size:14px; font-weight:700; flex:none;
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  .filebox{
+    border:1.5px dashed #cbd5e1; border-radius:12px; padding:16px; background:var(--soft);
+    transition:.15s;
+  }
+  .filebox.dragover{border-color:var(--brand); background:#eff6ff}
+  .filebox h3{margin:0 0 10px; font-size:15px; color:#334155}
+  .filebox .meta{font-size:14px; color:var(--muted); margin-top:8px; min-height:18px}
+  input[type=file]{font-size:14px; width:100%}
+  select,input[type=text],input[type=number]{
+    font:inherit; font-size:15px; padding:7px 9px; border:1px solid #cbd5e1;
+    border-radius:8px; background:#fff; color:inherit; width:100%;
+  }
+  select:focus,input:focus{outline:2px solid #bfdbfe; border-color:var(--brand)}
+  label.fld{display:block; font-size:14px; color:#475569; margin-bottom:4px}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end}
+  .row > .f{flex:1; min-width:150px}
+  .preview{margin-top:12px; max-height:230px; overflow:auto; border:1px solid var(--line); border-radius:8px}
+  table{border-collapse:collapse; width:100%; font-size:14px}
+  th,td{border-bottom:1px solid #eef2f7; padding:5px 8px; text-align:left; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis}
+  thead th{background:#f1f5f9; position:sticky; top:0; font-weight:600}
+  tbody tr:nth-child(even){background:#fafcff}
+  button{
+    font:inherit; font-size:15px; font-weight:600; padding:9px 16px; border-radius:9px;
+    border:1px solid var(--brand); background:var(--brand); color:#fff; cursor:pointer;
+  }
+  button:hover{background:var(--brand-2)}
+  button.ghost{background:#fff; color:var(--brand)}
+  button.ghost:hover{background:#eff6ff}
+  button.soft{background:#f1f5f9; color:#334155; border-color:#cbd5e1}
+  button.soft:hover{background:#e2e8f0}
+  button.savegreen{background:var(--ok); border-color:var(--ok)}
+  button.savegreen:hover{background:#15803d}
+  button:disabled{opacity:.45; cursor:not-allowed}
+  .cond{display:grid; grid-template-columns:1.4fr 1fr 1.4fr auto; gap:10px; margin-bottom:10px; align-items:center}
+  @media(max-width:700px){.cond{grid-template-columns:1fr 1fr}}
+  .cond .val-wrap{display:flex}
+  .del{background:#fff; color:var(--err); border:1px solid #fecaca; padding:7px 11px}
+  .del:hover{background:#fef2f2}
+  .seg{display:flex; gap:0; flex-wrap:wrap; border:1px solid #cbd5e1; border-radius:9px; overflow:hidden; width:fit-content}
+  .seg button{border:0; border-radius:0; background:#fff; color:#475569; font-weight:500; padding:8px 14px}
+  .seg button + button{border-left:1px solid #e2e8f0}
+  .seg button.active{background:var(--brand); color:#fff}
+  .seg button.active:hover{background:var(--brand-2)}
+  .hint{font-size:14px; color:var(--muted); margin-top:8px}
+  .banner{
+    padding:12px 14px; border-radius:10px; font-size:15px; margin-bottom:14px; display:none;
+  }
+  .banner.err{display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca}
+  .badge{display:inline-block; padding:2px 9px; border-radius:999px; font-size:14px; font-weight:700}
+  .badge.ok{background:#dcfce7; color:#166534}
+  .badge.no{background:#fef3c7; color:#92400e}
+  .result-head{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px}
+  .small{font-size:14px; color:var(--muted)}
+  #resultEmpty{color:var(--muted); font-size:15px}
+</style>
+</head>
+<body>
+<header>
+  <h1>オーダーステータス変更分抽出システム</h1>
+  <p>同じ形式のExcelを2つ読み込み、キー列で突合し、条件に合った行だけを新しいExcelとして出力します。すべてブラウザ内で処理され、ファイルは外部に送信されません。</p>
+</header>
+
+<main>
+  <!-- STEP 1 -->
+  <section class="card">
+    <h2><span class="step">1</span>ファイルを読み込む</h2>
+    <div class="grid2">
+      <div class="filebox" id="box_A">
+        <h3>📄 ファイル A</h3>
+        <div class="small" style="margin-bottom:8px">【以前の受注データを読み込んでください】</div>
+        <input type="file" id="file_A" accept=".xlsx,.xls,.csv">
+        <div class="row" style="margin-top:10px">
+          <div class="f">
+            <label class="fld">シート</label>
+            <select id="sheet_A" disabled></select>
+          </div>
+        </div>
+        <div class="meta" id="meta_A">未読み込み</div>
+        <div class="preview" id="prev_A" style="display:none"></div>
+      </div>
+      <div class="filebox" id="box_B">
+        <h3>📄 ファイル B</h3>
+        <div class="small" style="margin-bottom:8px">【入庫日変更後の受注データを読み込んでください】</div>
+        <input type="file" id="file_B" accept=".xlsx,.xls,.csv">
+        <div class="row" style="margin-top:10px">
+          <div class="f">
+            <label class="fld">シート</label>
+            <select id="sheet_B" disabled></select>
+          </div>
+        </div>
+        <div class="meta" id="meta_B">未読み込み</div>
+        <div class="preview" id="prev_B" style="display:none"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2: 前処理 -->
+  <section class="card">
+    <h2><span class="step">2</span>前処理</h2>
+    <div class="hint" style="margin-bottom:14px">
+      読み込んだ各ファイルに、次の前処理を自動で適用します。<br>
+      ① 1行目を所定のヘッダー（ＮＯ／担当／製品コード／製品名／…）に置き換える　② 全セルから半角・全角スペースを削除
+    </div>
+    <div class="row">
+      <button class="ghost" id="dl_A" disabled>⬇ ファイルA（前処理後）をダウンロード</button>
+      <button class="ghost" id="dl_B" disabled>⬇ ファイルB（前処理後）をダウンロード</button>
+    </div>
+    <div class="hint">前処理後のデータを、1行目（青背景・太字・中央）固定＋オートフィルタ付きの .xlsx で保存します。</div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card">
+    <h2><span class="step">3</span>結果と書き出し</h2>
+    <div class="hint" style="margin-bottom:14px">
+      2つのファイルを照合し、<b>製品名(D列)＋受注ＮＯ(K列)</b> が一致する行のうち、<b>入庫日(E列)</b> が異なる行を抽出します。<br>
+      ただし、<b>ファイルBの入庫日がファイルAの入庫日より古い（小さい）行は除外</b>します。
+    </div>
+    <div class="banner err" id="banner"></div>
+    <div class="result-head">
+      <div>
+        <span id="resultCount" class="badge no">0 件</span>
+        <span class="small" id="resultInfo" style="margin-left:8px"></span>
+      </div>
+      <div class="row" style="align-items:center">
+        <button id="exportShortBtn" class="savegreen" disabled>⬇ 納期短縮抽出結果をExcel(.xlsx)で保存</button>
+        <button id="exportBtn" disabled>⬇ 抽出結果をExcel(.xlsx)で保存</button>
+      </div>
+    </div>
+    <div class="hint">出力ファイルには、1行目（青背景・太字・中央）固定＋オートフィルタが自動で付きます。</div>
+    <div class="preview" id="resultPrev" style="display:none; margin-top:14px"></div>
+    <div id="resultEmpty" style="margin-top:12px">ファイルAとBを読み込むと、抽出結果のプレビューが表示されます。</div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+const state = {
+  A: null,          // {name, workbook, sheetNames, headers, rows}
+  B: null,
+};
+
+/* ---------- ファイル読み込み ---------- */
+function readFileInto(file, which){
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:"array", cellDates:true});
+      state[which] = { name:file.name, workbook:wb, sheetNames:wb.SheetNames, headers:[], rows:[] };
+      const sel = $("sheet_"+which);
+      sel.innerHTML = "";
+      wb.SheetNames.forEach(n=>{
+        const o = document.createElement("option");
+        o.value = n; o.textContent = n;
+        sel.appendChild(o);
+      });
+      sel.disabled = false;
+      sel.value = wb.SheetNames[0];
+      parseSheet(which, wb.SheetNames[0]);
+    }catch(err){
+      showBanner("読み込みに失敗しました: "+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseSheet(which, sheetName){
+  const s = state[which];
+  const ws = s.workbook.Sheets[sheetName];
+  const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:"", blankrows:false});
+  const srcCols = aoa.length ? aoa[0].length : 0;
+  const proc = preprocess(aoa);
+  s.headers = proc.headers;
+  s.rows = proc.rows;
+  const warn = proc.headerMismatch
+    ? ` <span class="badge no">列数不一致: 元${srcCols}列 / ヘッダー${proc.headers.length}列</span>`
+    : "";
+  $("meta_"+which).innerHTML =
+    `<span class="badge ok">${s.name}</span> ／ シート「${sheetName}」 ／ ${proc.rows.length} 行 × ${proc.headers.length} 列${warn}`;
+  $("dl_"+which).disabled = false;
+  renderPreview(which);
+  refreshAll();
+}
+
+/* ---------- 前処理（決め打ち） ---------- */
+const REPLACE_HEADER = true;
+const REMOVE_SPACES = true;
+const HEADER_TEXT = "ＮＯ\t担当\t製品コード\t製品名\t入庫日\t生産数\t登録日\t希望日\t営Ｃ\t向先名\t受注ＮＯ\t完了数\t製造部門コード\t代表入庫場所\t最新販売原価\t関連購入単価";
+
+function parseHeaderText(t){
+  return String(t||"").split(/[\t,\n\r]+/).map(x=>x.trim()).filter(x=>x!=="");
+}
+function cleanSpace(v){
+  if(typeof v === "string") return v.replace(/[ \u3000\u00A0]+/g,"");
+  return v;
+}
+function preprocess(rawAoa){
+  const first = rawAoa.length ? rawAoa[0] : [];
+  let headers, dataRows, headerMismatch = false;
+
+  if(REPLACE_HEADER){
+    headers = parseHeaderText(HEADER_TEXT);
+    if(headers.length && first.length && headers.length !== first.length) headerMismatch = true;
+    dataRows = rawAoa.slice(1);
+  }else{
+    headers = first.map((h,i)=> (h===""||h==null) ? ("列"+(i+1)) : String(h));
+    dataRows = rawAoa.slice(1);
+  }
+  if(REMOVE_SPACES){
+    headers = headers.map(cleanSpace);
+    dataRows = dataRows.map(r=> r.map(cleanSpace));
+  }
+  dataRows = dataRows.filter(r=> r.some(c=> c!=="" && c!=null));
+  const width = headers.length || (dataRows[0] ? dataRows[0].length : 0);
+  dataRows = dataRows.map(r=>{
+    const a = r.slice(0, width);
+    while(a.length < width) a.push("");
+    return a;
+  });
+  if(!headers.length && width) headers = Array.from({length:width},(_,i)=>"列"+(i+1));
+  return { headers, rows: dataRows, headerMismatch };
+}
+
+function renderPreview(which){
+  const s = state[which];
+  const el = $("prev_"+which);
+  if(!s || !s.headers.length){ el.style.display="none"; return; }
+  el.style.display = "block";
+  el.innerHTML = buildTable(s.headers, s.rows.slice(0,15));
+}
+
+function buildTable(headers, rows){
+  let html = "<table><thead><tr>" + headers.map(h=>`<th>${esc(h)}</th>`).join("") + "</tr></thead><tbody>";
+  for(const r of rows){
+    html += "<tr>" + headers.map((_,i)=>`<td>${esc(fmtCell(r[i]))}</td>`).join("") + "</tr>";
+  }
+  if(!rows.length) html += `<tr><td colspan="${headers.length||1}" style="color:#94a3b8">該当なし</td></tr>`;
+  html += "</tbody></table>";
+  return html;
+}
+
+/* ---------- UI 更新 ---------- */
+function refreshAll(){
+  compute();
+}
+
+/* ---------- 突合・抽出（決め打ち） ---------- */
+/* キー: 製品名(D列) + 受注ＮＯ(K列) / 比較: 入庫日(E列) が異なる行を抽出
+   ただし B の入庫日が A より古い（小さい）行は除外 */
+const KEY_COLS = ["製品名", "受注ＮＯ"];
+const CMP_COL = "入庫日";
+const EXCLUDE_BLANK_KEY = true;
+
+function isBlank(v){ return v==null || String(v).trim()===""; }
+
+/* 日付値を比較用のミリ秒に変換（Date/数値/文字列に対応、不可なら null） */
+function toTime(v){
+  if(v instanceof Date){ const t = v.getTime(); return isNaN(t) ? null : t; }
+  if(typeof v === "number") return v;
+  const s = String(v==null ? "" : v).trim();
+  if(!s) return null;
+  const m = s.match(/(\d{4})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]).getTime();
+  const t = Date.parse(s);
+  return isNaN(t) ? null : t;
+}
+
+/* 入庫日の変更抽出（専用出力レイアウト） */
+const DIFF_HEADERS = ["ＮＯ","製品コード","製品名","当初入庫予定日","変更後入庫予定日","生産数","登録日","希望日","営Ｃ","向先名","受注ＮＯ"];
+const DIFF_TAIL = ["生産数","登録日","希望日","営Ｃ","向先名","受注ＮＯ"];
+
+function computeDiff(out){
+  if(!state.A || !state.B){ showResult(out, "ファイルAとBを両方読み込んでください。"); return; }
+  const hA = state.A.headers, hB = state.B.headers;
+  const cmpA = hA.indexOf(CMP_COL), cmpB = hB.indexOf(CMP_COL);
+
+  const group = (rows, headers)=>{
+    const m = new Map();
+    for(const r of rows){
+      if(EXCLUDE_BLANK_KEY && KEY_COLS.some(k=> isBlank(r[headers.indexOf(k)]))) continue;
+      const k = KEY_COLS.map(x=> String(r[headers.indexOf(x)] ?? "").trim()).join("\u0001");
+      if(!m.has(k)) m.set(k, []);
+      m.get(k).push(r);
+    }
+    return m;
+  };
+  const gA = group(state.A.rows, hA);
+  const gB = group(state.B.rows, hB);
+
+  const val = (r, ix)=> ix>=0 ? (r[ix] ?? "") : "";
+  const aIdx = n => hA.indexOf(n);
+
+  const rows = [];
+  const shortRows = [];
+  let seq = 0, seqS = 0;
+  for(const [k, ars] of gA){
+    const brs = gB.get(k);
+    if(!brs) continue;
+    const n = Math.min(ars.length, brs.length);
+    for(let i=0;i<n;i++){
+      const a = ars[i], b = brs[i];
+      const av = val(a, cmpA), bv = val(b, cmpB);
+      if(String(av) === String(bv)) continue;
+      const ta = toTime(av), tb = toTime(bv);
+      const base = [val(a, aIdx("製品コード")), val(a, aIdx("製品名")), av, bv]
+        .concat(DIFF_TAIL.map(nm=> val(a, aIdx(nm))));
+      if(ta != null && tb != null && tb < ta){ seqS++; shortRows.push([seqS].concat(base)); continue; }
+      seq++;
+      rows.push([seq].concat(base));
+    }
+  }
+  out.headers = DIFF_HEADERS.slice();
+  out.rows = rows;
+  out.short = shortRows;
+}
+
+function compute(){
+  const out = { headers:[], rows:[], short:[] };
+  try{
+    if(!state.A && !state.B){ showResult(out, "ファイルAとBを読み込んでください。"); return; }
+    computeDiff(out);
+  }catch(err){
+    showResult({headers:[],rows:[], short:[]}, "エラー: "+err.message);
+    return;
+  }
+  showResult(out, null, null);
+}
+
+function showResult(out, emptyMsg, label){
+  state._result = out;
+  const count = out.rows.length;
+  const badge = $("resultCount");
+  badge.textContent = count.toLocaleString() + " 件";
+  badge.className = "badge " + (count>0 ? "ok" : "no");
+
+  if(emptyMsg && count===0){
+    $("resultInfo").textContent = "";
+    $("resultPrev").style.display = "none";
+    $("resultEmpty").style.display = "block";
+    $("resultEmpty").textContent = emptyMsg;
+    $("exportBtn").disabled = true;
+    $("exportShortBtn").disabled = true;
+    return;
+  }
+  $("resultInfo").textContent = label ? `対象: ${label}` : "";
+  $("resultEmpty").style.display = "none";
+  const prev = $("resultPrev");
+  prev.style.display = "block";
+  prev.innerHTML = buildTable(out.headers, out.rows.slice(0,50));
+  if(count>50) prev.insertAdjacentHTML("afterbegin", '<div class="small" style="padding:6px 8px">上位50件を表示中…</div>');
+  $("exportBtn").disabled = count===0 || out.headers.length===0;
+  $("exportShortBtn").disabled = (out.short || []).length===0;
+}
+
+function showBanner(msg){ const b=$("banner"); b.className="banner err"; b.textContent=msg; }
+
+/* ---------- エクスポート ---------- */
+function nowStamp(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+/* 結果ファイル名用: 西暦下2桁+月日時分（yymmddhhmm） */
+function resultStamp(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  return `${String(d.getFullYear()).slice(-2)}${p(d.getMonth()+1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+/* ヘッダー装飾・1行目固定・オートフィルタを付けた xlsx バイト列を作る */
+function buildStyledBytes(headers, rows, opt){
+  const aoa = [headers].concat(rows.map(r=>headers.map((_,i)=> r[i]==null?"":r[i])));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = headers.map(()=>({wch:16}));
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const lastCol = XLSX.utils.encode_col(range.e.c);
+  const filterRef = `A1:${lastCol}${range.e.r + 1}`;
+  if(opt.filter) ws["!autofilter"] = { ref: filterRef };
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, opt.sheetName || "Sheet1");
+  const bytes = new Uint8Array(XLSX.write(wb, {bookType:"xlsx", type:"array"}));
+  if(opt.header || opt.freeze || opt.filter){
+    try{ return patchOutput(bytes, {header:opt.header, freeze:opt.freeze, filterRef: opt.filter ? filterRef : null, redHeaderCol: opt.redHeaderCol || null}); }
+    catch(err){ console.warn("装飾/固定/フィルタの付与に失敗:", err); }
+  }
+  return bytes;
+}
+
+function exportXlsx(){
+  const out = state._result;
+  if(!out || !out.headers.length) return;
+  const redIdx = out.headers.indexOf("変更後入庫予定日");
+  const bytes = buildStyledBytes(out.headers, out.rows, {
+    header: true,
+    freeze: true,
+    filter: true,
+    sheetName: "抽出結果",
+    redHeaderCol: redIdx >= 0 ? XLSX.utils.encode_col(redIdx) : null,
+  });
+  downloadBlob(bytes, `伊東電機製品オーダーステータス変更情報_${resultStamp()}.xlsx`);
+}
+
+/* 除外した（納期短縮の）行だけを出力 */
+function exportShortXlsx(){
+  const out = state._result;
+  if(!out || !out.short || !out.short.length) return;
+  const redIdx = out.headers.indexOf("変更後入庫予定日");
+  const bytes = buildStyledBytes(out.headers, out.short, {
+    header: true,
+    freeze: true,
+    filter: true,
+    sheetName: "納期短縮抽出結果",
+    redHeaderCol: redIdx >= 0 ? XLSX.utils.encode_col(redIdx) : null,
+  });
+  downloadBlob(bytes, `伊東電機製品オーダーステータス変更情報【納期短縮】_${resultStamp()}.xlsx`);
+}
+
+/* 前処理後のA/Bを、ヘッダー装飾・1行目固定・オートフィルタ付きでダウンロード */
+function downloadPreprocessed(which){
+  const s = state[which];
+  if(!s || !s.headers.length) return;
+  const bytes = buildStyledBytes(s.headers, s.rows, {header:true, freeze:true, filter:true, sheetName:"前処理済"});
+  const base = String(s.name || ("ファイル"+which)).replace(/\.[^.]+$/, "");
+  downloadBlob(bytes, `${base}_前処理済_${nowStamp()}.xlsx`);
+}
+
+function patchOutput(bytes, opt){
+  if(typeof fflate === "undefined") return bytes;
+  const zip = fflate.unzipSync(bytes);
+
+  let headerStyle = null;
+  if(opt.header && zip["xl/styles.xml"]) headerStyle = addHeaderStyle(zip);
+
+  const path = "xl/worksheets/sheet1.xml";
+  if(zip[path]){
+    let xml = fflate.strFromU8(zip[path]);
+    if(headerStyle != null){
+      const overrides = opt.redHeaderCol ? { [opt.redHeaderCol]: headerStyle.red } : null;
+      xml = applyRowStyle(xml, 1, headerStyle.base, overrides);
+    }
+    if(opt.freeze) xml = addFreezePane(xml);
+    if(opt.filterRef && !/<autoFilter\b/.test(xml)){
+      xml = xml.replace('</sheetData>', '</sheetData><autoFilter ref="' + opt.filterRef + '"/>');
+    }
+    zip[path] = fflate.strToU8(xml);
+  }
+  return fflate.zipSync(zip, {level:6});
+}
+
+/* ヘッダー用スタイル（太字・青塗り・中央／赤塗り・中央）を styles.xml に追加し、style index を返す */
+function addHeaderStyle(zip){
+  let styles = fflate.strFromU8(zip["xl/styles.xml"]);
+  const cnt = re => { const m = styles.match(re); return m ? parseInt(m[1],10) : 0; };
+  const fontsCount = cnt(/<fonts count="(\d+)"/);
+  const fillsCount = cnt(/<fills count="(\d+)"/);
+  const xfCount = cnt(/<cellXfs count="(\d+)"/);
+  const fontId = fontsCount;
+  const blueFillId = fillsCount;
+  const redFillId = fillsCount + 1;
+  const baseXf = xfCount;
+  const redXf = xfCount + 1;
+
+  const fontXml = '<font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>';
+  const blueFill = '<fill><patternFill patternType="solid"><fgColor rgb="FF4472C4"/><bgColor indexed="64"/></patternFill></fill>';
+  const redFill  = '<fill><patternFill patternType="solid"><fgColor rgb="FFC00000"/><bgColor indexed="64"/></patternFill></fill>';
+  const mkXf = fid => '<xf numFmtId="0" fontId="' + fontId + '" fillId="' + fid + '" borderId="0" xfId="0"'
+              + ' applyFont="1" applyFill="1" applyAlignment="1">'
+              + '<alignment horizontal="center" vertical="center"/></xf>';
+
+  styles = styles
+    .replace(/<fonts count="\d+">/, '<fonts count="' + (fontsCount+1) + '">')
+    .replace('</fonts>', fontXml + '</fonts>')
+    .replace(/<fills count="\d+">/, '<fills count="' + (fillsCount+2) + '">')
+    .replace('</fills>', blueFill + redFill + '</fills>')
+    .replace(/<cellXfs count="\d+">/, '<cellXfs count="' + (xfCount+2) + '">')
+    .replace('</cellXfs>', mkXf(blueFillId) + mkXf(redFillId) + '</cellXfs>');
+
+  zip["xl/styles.xml"] = fflate.strToU8(styles);
+  return { base: baseXf, red: redXf };
+}
+
+/* 指定行の全セルに style index を付与（overrides: {列レター: styleIdx} で個別上書き） */
+function applyRowStyle(xml, rowNum, styleIdx, overrides){
+  const re = new RegExp('(<row r="' + rowNum + '"[^>]*>)([\\s\\S]*?)(</row>)');
+  return xml.replace(re, (m, open, inner, close)=>{
+    const inner2 = inner.replace(/<c r="([A-Z]+)\d+"([^>]*)>/g, (mm, col, attrs)=>{
+      const selfClose = /\/\s*$/.test(attrs);
+      const a = attrs.replace(/\/\s*$/, "").replace(/\s*s="\d+"/, "");
+      const idx = (overrides && overrides[col] != null) ? overrides[col] : styleIdx;
+      return '<c r="' + col + rowNum + '" s="' + idx + '"' + a + (selfClose ? "/" : ">");
+    });
+    return open + inner2 + close;
+  });
+}
+
+/* 1行目のウィンドウ枠固定を sheetView に注入 */
+function addFreezePane(xml){
+  const pane = '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>'
+             + '<selection pane="bottomLeft" activeCell="A2" sqref="A2"/>';
+  if(/<sheetView\b[^>]*\/>/.test(xml)){
+    return xml.replace(/<sheetView\b([^>]*?)\/>/, '<sheetView$1>' + pane + '</sheetView>');
+  }
+  if(/<sheetView\b[^>]*>[\s\S]*?<\/sheetView>/.test(xml)){
+    return xml.replace(/<sheetView\b([^>]*?)>[\s\S]*?<\/sheetView>/, '<sheetView$1>' + pane + '</sheetView>');
+  }
+  const sv = '<sheetViews><sheetView workbookViewId="0">' + pane + '</sheetView></sheetViews>';
+  if(/<dimension\b[^>]*\/>/.test(xml)) return xml.replace(/(<dimension\b[^>]*\/>)/, '$1' + sv);
+  return xml.replace(/(<worksheet\b[^>]*>)/, '$1' + sv);
+}
+
+function downloadBlob(bytes, filename){
+  const blob = new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1500);
+}
+
+/* ---------- ユーティリティ ---------- */
+function esc(s){
+  return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+function fmtCell(v){
+  if(v instanceof Date){
+    const p=n=>String(n).padStart(2,"0");
+    return `${v.getFullYear()}/${p(v.getMonth()+1)}/${p(v.getDate())}` + (v.getHours()||v.getMinutes()?` ${p(v.getHours())}:${p(v.getMinutes())}`:"");
+  }
+  return v;
+}
+
+/* ---------- イベント ---------- */
+$("file_A").addEventListener("change", e=>{ if(e.target.files[0]) readFileInto(e.target.files[0],"A"); });
+$("file_B").addEventListener("change", e=>{ if(e.target.files[0]) readFileInto(e.target.files[0],"B"); });
+$("sheet_A").addEventListener("change", e=>parseSheet("A", e.target.value));
+$("sheet_B").addEventListener("change", e=>parseSheet("B", e.target.value));
+
+$("exportBtn").addEventListener("click", exportXlsx);
+$("exportShortBtn").addEventListener("click", exportShortXlsx);
+$("dl_A").addEventListener("click", ()=>downloadPreprocessed("A"));
+$("dl_B").addEventListener("click", ()=>downloadPreprocessed("B"));
+
+/* ドラッグ&ドロップ */
+[["box_A","A"],["box_B","B"]].forEach(([box,which])=>{
+  const el = $(box);
+  el.addEventListener("dragover", e=>{ e.preventDefault(); el.classList.add("dragover"); });
+  el.addEventListener("dragleave", ()=> el.classList.remove("dragover"));
+  el.addEventListener("drop", e=>{
+    e.preventDefault(); el.classList.remove("dragover");
+    if(e.dataTransfer.files[0]) readFileInto(e.dataTransfer.files[0], which);
+  });
+});
+
+/* 初期化 */
+compute();
+</script>
+</body>
+</html>

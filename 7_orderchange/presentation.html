@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>オーダーステータス変更分抽出システム｜概要説明資料</title>
+<style>
+  :root{
+    --brand:#2563eb; --brand2:#1d4ed8; --ink:#0f172a; --muted:#64748b;
+    --line:#e2e8f0; --bg:#f8fafc; --soft:#f1f5f9;
+    --ok:#16a34a; --warn:#d97706; --err:#dc2626; --blue-soft:#eff6ff;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; color:var(--ink); background:var(--bg);
+    font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+    line-height:1.75; font-size:16px;
+  }
+  a{color:var(--brand); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 20px 90px}
+
+  /* Hero */
+  .hero{
+    background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#3b82f6 100%);
+    color:#fff; padding:54px 20px 46px;
+  }
+  .hero .inner{max-width:1040px; margin:0 auto}
+  .hero .kicker{display:inline-block; font-size:13px; letter-spacing:.14em; font-weight:700;
+    background:rgba(255,255,255,.16); padding:5px 12px; border-radius:999px; margin-bottom:18px}
+  .hero h1{margin:0 0 14px; font-size:34px; line-height:1.3; letter-spacing:.01em}
+  .hero p.lead{margin:0 0 22px; font-size:18px; color:#e0ecff; max-width:760px}
+  .tags{display:flex; flex-wrap:wrap; gap:10px}
+  .tag{background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35);
+    padding:7px 14px; border-radius:999px; font-size:14px; font-weight:600}
+
+  /* Nav */
+  nav.toc{position:sticky; top:0; z-index:20; background:rgba(255,255,255,.95);
+    backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 0}
+  nav.toc .inner{max-width:1040px; margin:0 auto; padding:0 20px; display:flex; gap:18px; flex-wrap:wrap; font-size:14px}
+  nav.toc a{color:#334155; font-weight:600}
+  nav.toc a:hover{color:var(--brand)}
+
+  section{margin-top:52px; scroll-margin-top:64px}
+  h2.sec{font-size:25px; margin:0 0 6px; display:flex; align-items:center; gap:12px}
+  h2.sec .n{display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px;
+    border-radius:10px; background:var(--brand); color:#fff; font-size:17px; font-weight:800; flex:none}
+  .sec-sub{color:var(--muted); margin:0 0 22px; font-size:15px}
+  h3{font-size:19px; margin:30px 0 10px}
+  p{margin:0 0 14px}
+  .lead-p{font-size:17px}
+
+  .card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px 24px;
+    box-shadow:0 1px 2px rgba(15,23,42,.04); margin-bottom:18px}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  .callout{border-left:5px solid var(--brand); background:var(--blue-soft);
+    border-radius:10px; padding:14px 18px; margin:16px 0}
+  .callout.warn{border-color:var(--warn); background:#fffbeb}
+  .callout.ok{border-color:var(--ok); background:#f0fdf4}
+  .callout b{display:block; margin-bottom:4px}
+
+  table{width:100%; border-collapse:collapse; font-size:15px; margin:12px 0 18px; background:#fff}
+  th,td{border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top}
+  thead th{background:var(--soft); font-weight:700; color:#334155}
+  tbody tr:nth-child(even){background:#fafcff}
+  td.center,th.center{text-align:center}
+
+  .pill{display:inline-block; padding:2px 10px; border-radius:999px; font-size:13px; font-weight:700}
+  .pill.b{background:#dbeafe; color:#1e40af}
+  .pill.g{background:#dcfce7; color:#166534}
+  .pill.y{background:#fef3c7; color:#92400e}
+  .pill.r{background:#fee2e2; color:#991b1b}
+
+  .kpi{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:6px 0 4px}
+  @media(max-width:820px){.kpi{grid-template-columns:1fr 1fr}}
+  .kpi .box{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center}
+  .kpi .box .num{font-size:26px; font-weight:800; color:var(--brand); line-height:1.2}
+  .kpi .box .lab{font-size:13px; color:var(--muted); margin-top:4px}
+
+  /* Flow diagram */
+  .flow{background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px; overflow:auto}
+  .flow svg{display:block; width:100%; min-width:720px; height:auto}
+
+  /* ===== Screen mockups ===== */
+  .shot{border:1px solid #cbd5e1; border-radius:14px; overflow:hidden; background:#fff;
+    box-shadow:0 14px 34px rgba(15,23,42,.14); margin:20px 0 8px}
+  .shot .bar{display:flex; align-items:center; gap:9px; padding:10px 14px; background:#eef2f7;
+    border-bottom:1px solid #dbe2ea}
+  .shot .dot{width:11px; height:11px; border-radius:50%; flex:none}
+  .shot .dot.r{background:#ef4444}.shot .dot.y{background:#f59e0b}.shot .dot.g{background:#22c55e}
+  .shot .url{flex:1; background:#fff; border:1px solid #dbe2ea; border-radius:999px;
+    padding:4px 12px; font-size:12px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .shot .screen{position:relative; padding:16px; background:linear-gradient(180deg,#eef2ff 0%,#f8fafc 140px,#f8fafc 100%)}
+  .cap{font-size:13px; color:var(--muted); text-align:center; margin:6px 0 4px}
+
+  .mk-header{background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:12px}
+  .mk-header h4{margin:0; font-size:17px}
+  .mk-header p{margin:3px 0 0; font-size:11.5px; color:#64748b}
+  .mk-card{background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; margin-bottom:10px}
+  .mk-card .ttl{font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; margin-bottom:10px}
+  .mk-step{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
+    border-radius:50%; background:#2563eb; color:#fff; font-size:11px; font-weight:700; flex:none}
+  .mk-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .mk-filebox{border:1.5px dashed #cbd5e1; border-radius:9px; padding:10px; background:#f8fafc}
+  .mk-filebox h5{margin:0 0 6px; font-size:11.5px; color:#334155}
+  .mk-filebox .note{font-size:10px; color:#94a3b8; margin-bottom:6px}
+  .mk-input{height:22px; border:1px solid #cbd5e1; border-radius:5px; background:#fff;
+    display:flex; align-items:center; padding:0 8px; font-size:10px; color:#94a3b8}
+  .mk-meta{margin-top:6px; font-size:10px; color:#64748b}
+  .mk-badge{display:inline-block; padding:1px 7px; border-radius:999px; font-size:9.5px; font-weight:700}
+  .mk-badge.ok{background:#dcfce7; color:#166534}
+  .mk-badge.no{background:#fef3c7; color:#92400e}
+  .mk-btn{display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700;
+    padding:5px 10px; border-radius:6px; border:1px solid #2563eb; background:#2563eb; color:#fff}
+  .mk-btn.ghost{background:#fff; color:#2563eb}
+  .mk-btn.green{background:#16a34a; border-color:#16a34a}
+  .mk-btn.dis{opacity:.45}
+  .mk-table{width:100%; border-collapse:collapse; font-size:10px; background:#fff}
+  .mk-table th,.mk-table td{border-bottom:1px solid #eef2f7; padding:4px 7px; text-align:left; white-space:nowrap}
+  .mk-table thead th{background:#f1f5f9; font-weight:600; position:sticky; top:0}
+  .mk-table td.red{background:#fde8e8; color:#991b1b; font-weight:700}
+
+  .hl{position:relative; outline:2.5px solid #f59e0b; outline-offset:2px; border-radius:7px}
+  .hl::after{content:attr(data-n); position:absolute; top:-13px; left:-11px; width:22px; height:22px;
+    background:#f59e0b; color:#fff; border-radius:50%; font-size:12px; font-weight:800;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(245,158,11,.5); z-index:3}
+  .legend{list-style:none; padding:0; margin:10px 0 0; display:grid; gap:7px}
+  .legend li{display:flex; gap:10px; align-items:flex-start; font-size:14.5px}
+  .legend .ln{flex:none; width:22px; height:22px; border-radius:50%; background:#f59e0b; color:#fff;
+    font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:2px}
+
+  /* busy overlay mock */
+  .mk-busy{position:absolute; inset:0; background:rgba(15,23,42,.5); display:flex;
+    flex-direction:column; align-items:center; justify-content:center; gap:12px; border-radius:14px}
+  .mk-spin{width:46px; height:46px; border-radius:50%; border:5px solid rgba(255,255,255,.35);
+    border-top-color:#fff; animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .mk-busy .t{color:#fff; font-size:14px; font-weight:800}
+  .mk-busy .s{color:#dbeafe; font-size:10px}
+  .mk-nochange{background:#fef3c7; border:2px solid #fcd34d; color:#92400e; border-radius:10px;
+    padding:20px; text-align:center; font-size:22px; font-weight:800; letter-spacing:.06em}
+
+  .footnote{font-size:13px; color:var(--muted)}
+  footer{margin-top:64px; border-top:1px solid var(--line); padding-top:22px; color:var(--muted); font-size:13px}
+
+  @media print{
+    nav.toc{display:none}
+    .hero{padding:24px 0}
+    section{page-break-inside:avoid}
+    body{font-size:12pt}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="inner">
+    <span class="kicker">SYSTEM OVERVIEW</span>
+    <h1>オーダーステータス変更分抽出システム</h1>
+    <p class="lead">受注データの「入庫日（納期）」が変わった行だけを、2つのExcelを突き合わせて自動抽出する業務ツールです。ブラウザだけで動き、データは外部に送信されません。</p>
+    <div class="tags">
+      <span class="tag">✔ インストール不要（HTMLを開くだけ）</span>
+      <span class="tag">✔ すべてブラウザ内で処理</span>
+      <span class="tag">✔ Excel(.xlsx)で出力</span>
+      <span class="tag">✔ 納期短縮分を別出力</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="inner">
+    <a href="#p1">1. 解決できること</a>
+    <a href="#p2">2. 基本の仕組み</a>
+    <a href="#p3">3. 抽出ルール</a>
+    <a href="#p4">4. 出力されるExcel</a>
+    <a href="#p5">5. 画面イメージ</a>
+    <a href="#p6">6. 動作環境・注意点</a>
+    <a href="#p7">7. 用語集</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- 1 -->
+  <section id="p1">
+    <h2 class="sec"><span class="n">1</span>このシステムで解決できること</h2>
+    <p class="sec-sub">毎日の受注データ更新で「どの製品の入庫日（納期）が動いたか」を、目視と手作業で探していませんか。</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">よくある困りごと</h3>
+      <div class="grid2">
+        <div>
+          <p><b>Before（手作業）</b></p>
+          <ul>
+            <li>変更前後の受注データをExcelで並べ、目で追って探す</li>
+            <li>行数が多く、見落とし・転記ミスが起きやすい</li>
+            <li>納期が「早まった（短縮）」ものと「遅れた」ものの区別が難しい</li>
+            <li>抽出した結果を整形（見出し・フィルタ）するのに時間がかかる</li>
+          </ul>
+        </div>
+        <div>
+          <p><b>After（このシステム）</b></p>
+          <ul>
+            <li>2つのExcelを読み込むだけで、変更行を自動抽出</li>
+            <li>キー（製品名＋受注ＮＯ）で正確に突合し、入庫日の差異だけを判定</li>
+            <li>納期短縮分は自動で別ファイルに分離</li>
+            <li>見出し装飾・固定・オートフィルタ付きのExcelをそのまま出力</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <div class="box"><div class="num">2ファイル</div><div class="lab">変更前後のExcelを読むだけ</div></div>
+      <div class="box"><div class="num">自動突合</div><div class="lab">製品名＋受注ＮＯで照合</div></div>
+      <div class="box"><div class="num">2種類</div><div class="lab">変更分／納期短縮分を出力</div></div>
+      <div class="box"><div class="num">0送信</div><div class="lab">データはPC外へ出さない</div></div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="p2">
+    <h2 class="sec"><span class="n">2</span>基本の仕組み</h2>
+    <p class="sec-sub">処理は「読み込み → 前処理 → 突合・抽出 → 出力」の4段階。すべてブラウザ内で完結します。</p>
+
+    <div class="flow">
+      <svg viewBox="0 0 960 360" role="img" aria-label="処理フロー図">
+        <defs>
+          <marker id="arw" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L8,3 L0,6 Z" fill="#2563eb"/>
+          </marker>
+          <marker id="arw2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/>
+          </marker>
+          <marker id="arw3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L8,3 L0,6 Z" fill="#d97706"/>
+          </marker>
+        </defs>
+        <!-- Input A -->
+        <rect x="20" y="40" width="170" height="70" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="105" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a8a">ファイル A</text>
+        <text x="105" y="92" text-anchor="middle" font-size="12" fill="#475569">変更前の受注データ</text>
+        <!-- Input B -->
+        <rect x="20" y="240" width="180" height="70" rx="10" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+        <text x="110" y="280" text-anchor="middle" font-size="15" font-weight="700" fill="#92400e">ファイル B</text>
+        <text x="110" y="302" text-anchor="middle" font-size="12" fill="#7c5a12">入庫日変更後の受注データ</text>
+        <!-- Preprocess -->
+        <rect x="270" y="150" width="150" height="90" rx="10" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="345" y="185" text-anchor="middle" font-size="14" font-weight="700" fill="#334155">前処理</text>
+        <text x="345" y="205" text-anchor="middle" font-size="11" fill="#64748b">見出し置換</text>
+        <text x="345" y="221" text-anchor="middle" font-size="11" fill="#64748b">空白の削除</text>
+        <!-- Match -->
+        <rect x="470" y="150" width="150" height="90" rx="10" fill="#eef2ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="545" y="183" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">突合</text>
+        <text x="545" y="203" text-anchor="middle" font-size="11" fill="#475569">製品名＋受注ＮＯ</text>
+        <text x="545" y="221" text-anchor="middle" font-size="11" fill="#475569">でキー照合</text>
+        <!-- Judge -->
+        <rect x="668" y="150" width="140" height="90" rx="10" fill="#ecfdf5" stroke="#16a34a" stroke-width="1.5"/>
+        <text x="738" y="183" text-anchor="middle" font-size="14" font-weight="700" fill="#166534">入庫日を判定</text>
+        <text x="738" y="203" text-anchor="middle" font-size="11" fill="#166534">変更あり？</text>
+        <text x="738" y="221" text-anchor="middle" font-size="11" fill="#166534">短縮 or 遅延</text>
+        <!-- arrows -->
+        <line x1="190" y1="75" x2="265" y2="150" stroke="#2563eb" stroke-width="2" marker-end="url(#arw)"/>
+        <line x1="200" y1="285" x2="265" y2="235" stroke="#d97706" stroke-width="2" marker-end="url(#arw3)"/>
+        <line x1="412" y1="195" x2="468" y2="195" stroke="#2563eb" stroke-width="2" marker-end="url(#arw)"/>
+        <line x1="620" y1="195" x2="666" y2="195" stroke="#16a34a" stroke-width="2" marker-end="url(#arw2)"/>
+        <!-- outputs -->
+        <rect x="838" y="30" width="102" height="64" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+        <text x="889" y="56" text-anchor="middle" font-size="11.5" font-weight="700" fill="#166534">抽出結果</text>
+        <text x="889" y="74" text-anchor="middle" font-size="10" fill="#15803d">.xlsx</text>
+        <rect x="838" y="150" width="102" height="64" rx="9" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+        <text x="889" y="176" text-anchor="middle" font-size="11.5" font-weight="700" fill="#92400e">納期短縮</text>
+        <text x="889" y="194" text-anchor="middle" font-size="10" fill="#a16207">.xlsx</text>
+        <rect x="838" y="272" width="102" height="64" rx="9" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="889" y="298" text-anchor="middle" font-size="11" font-weight="700" fill="#475569">変更無し表示</text>
+        <text x="889" y="316" text-anchor="middle" font-size="9.5" fill="#64748b">大きいメッセージ</text>
+        <line x1="808" y1="180" x2="834" y2="75" stroke="#16a34a" stroke-width="2" marker-end="url(#arw2)"/>
+        <line x1="808" y1="195" x2="834" y2="185" stroke="#d97706" stroke-width="2" marker-end="url(#arw3)"/>
+        <line x1="808" y1="215" x2="834" y2="300" stroke="#94a3b8" stroke-width="2" marker-end="url(#arw)"/>
+      </svg>
+    </div>
+    <p class="cap">▲ 全体の処理フロー。AとBを前処理した後、キーで突合し、入庫日の変化だけを出力します。</p>
+
+    <div class="grid3" style="margin-top:14px">
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">① 読み込み</h3>
+        <p class="footnote">ファイルA（変更前）とファイルB（変更後）を選択、またはドラッグ＆ドロップ。シートも切替可能。</p>
+      </div>
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">② 前処理（自動）</h3>
+        <p class="footnote">1行目を所定の16列ヘッダーに置換し、全セルの半角・全角スペースを削除。表記ゆれの影響を減らします。</p>
+      </div>
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">③ 突合・抽出</h3>
+        <p class="footnote">製品名＋受注ＮＯをキーに1対1で照合し、入庫日が異なる行を抽出。B側が早い（短縮）行は別枠へ。</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-top:0">④ 出力</h3>
+      <p class="footnote" style="margin-bottom:0">結果をExcel(.xlsx)で保存。見出しの青背景・太字・中央揃え、1行目の固定、オートフィルタが自動で付きます。変更が1件も無い場合は画面上に「オーダーステータス変更無し」と大きく表示します。</p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="p3">
+    <h2 class="sec"><span class="n">3</span>抽出ルール（何を「変更」とみなすか）</h2>
+    <p class="sec-sub">判定ロジックは決め打ちです。列の位置ではなく「列名」で項目を特定します。</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">突合キーと比較する列</h3>
+      <table>
+        <thead><tr><th style="width:160px">役割</th><th>項目</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill b">キー①</span></td><td><b>製品名</b>（D列）</td><td>同じ製品名どうしを対応付けます。</td></tr>
+          <tr><td><span class="pill b">キー②</span></td><td><b>受注ＮＯ</b>（K列）</td><td>受注番号まで一致する行を同一注文として突合。</td></tr>
+          <tr><td><span class="pill g">比較</span></td><td><b>入庫日</b>（E列）</td><td>この値が A と B で異なる行を「変更」と判定。</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <b>判定のポイント</b>
+        キー（製品名＋受注ＮＯ）が一致する行同士を、出現順に1対1で比較します。キーのいずれかが空欄の行は対象外です。
+      </div>
+    </div>
+
+    <h3>3つの判定結果</h3>
+    <table>
+      <thead>
+        <tr><th style="width:26%">ケース</th><th>条件</th><th>行き先</th><th class="center">出力</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="pill g">変更あり（通常）</span></td>
+          <td>入庫日が異なり、<b>変更後（B）が当初（A）以降</b>（同じ or 遅い）</td>
+          <td>「抽出結果」</td>
+          <td class="center"><span class="pill g">保存可</span></td>
+        </tr>
+        <tr>
+          <td><span class="pill y">納期短縮</span></td>
+          <td>入庫日が異なり、<b>変更後（B）が当初（A）より前</b>（早い）</td>
+          <td>「納期短縮抽出結果」（別枠に分離）</td>
+          <td class="center"><span class="pill y">保存可</span></td>
+        </tr>
+        <tr>
+          <td><span class="pill b">変更なし</span></td>
+          <td>入庫日が同じ、または該当キーが無い／変更が1件も無い</td>
+          <td>出力なし（画面に大きなメッセージ）</td>
+          <td class="center"><span class="pill r">保存不可</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="card">
+      <h3 style="margin-top:0">具体例で確認</h3>
+      <table>
+        <thead>
+          <tr><th>製品名</th><th class="center">受注ＮＯ</th><th class="center">A：当初入庫日</th><th class="center">B：変更後入庫日</th><th>判定</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>モーターA</td><td class="center">1001</td><td class="center">2026/11/20</td><td class="center">2026/11/25</td><td><span class="pill g">通常（遅延）</span></td></tr>
+          <tr><td>ギアB</td><td class="center">1002</td><td class="center">2026/10/30</td><td class="center">2026/10/28</td><td><span class="pill y">納期短縮</span></td></tr>
+          <tr><td>センサーC</td><td class="center">1003</td><td class="center">2026/12/01</td><td class="center">2026/12/01</td><td><span class="pill b">変更なし</span></td></tr>
+        </tbody>
+      </table>
+      <p class="footnote" style="margin-bottom:0">※ 日付は文字列・日付セル・数値のいずれでも比較できます（年/月/日の形式を自動解釈）。</p>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="p4">
+    <h2 class="sec"><span class="n">4</span>出力されるExcel</h2>
+    <p class="sec-sub">出力は「抽出結果」と「納期短縮抽出結果」の2種類。どちらも見出し装飾・固定・フィルタ付きです。</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">「抽出結果」の列構成</h3>
+      <table>
+        <thead><tr><th class="center" style="width:46px">#</th><th>列名</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td class="center">1</td><td>ＮＯ</td><td>連番</td></tr>
+          <tr><td class="center">2</td><td>製品コード</td><td>Aファイルの値</td></tr>
+          <tr><td class="center">3</td><td>製品名</td><td>Aファイルの値</td></tr>
+          <tr><td class="center">4</td><td>当初入庫予定日</td><td>A（変更前）の入庫日</td></tr>
+          <tr><td class="center">5</td><td><b>変更後入庫予定日</b></td><td>B（変更後）の入庫日。<b>見出しは赤で強調</b></td></tr>
+          <tr><td class="center">6</td><td>生産数</td><td>Aファイルの値</td></tr>
+          <tr><td class="center">7</td><td>登録日</td><td>Aファイルの値</td></tr>
+          <tr><td class="center">8</td><td>希望日</td><td>Aファイルの値</td></tr>
+          <tr><td class="center">9</td><td>営Ｃ</td><td>Aファイルの値</td></tr>
+          <tr><td class="center">10</td><td>向先名</td><td>Aファイルの値</td></tr>
+          <tr><td class="center">11</td><td>受注ＮＯ</td><td>Aファイルの値</td></tr>
+        </tbody>
+      </table>
+      <p class="footnote">※ 「納期短縮抽出結果」も同じ列構成で、納期が早まった行だけを収録します。</p>
+    </div>
+
+    <div class="grid2">
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">自動で付く書式</h3>
+        <ul style="margin:0">
+          <li>1行目：<b>青背景・白文字・太字・中央揃え</b></li>
+          <li>対象列「変更後入庫予定日」の見出しは<b>赤背景</b></li>
+          <li>1行目を<b>固定</b>（スクロールしても見出しが残る）</li>
+          <li><b>オートフィルタ</b>付き</li>
+        </ul>
+      </div>
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">ファイル名</h3>
+        <p style="font-size:14px; margin-bottom:6px">
+          <span class="pill g">通常</span><br>
+          <code>伊東電機製品オーダーステータス変更情報_<b>yymmddhhmm</b>.xlsx</code>
+        </p>
+        <p style="font-size:14px; margin-bottom:0">
+          <span class="pill y">短縮</span><br>
+          <code>伊東電機製品オーダーステータス変更情報【納期短縮】_<b>yymmddhhmm</b>.xlsx</code>
+        </p>
+        <p class="footnote" style="margin:8px 0 0">※ 末尾は保存日時（年下2桁＋月日＋時分）。上書き事故を防ぎます。</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-top:0">前処理後のデータも保存できる</h3>
+      <p style="margin-bottom:0">「ファイルA（前処理後）をダウンロード」「ファイルB（前処理後）をダウンロード」から、見出し置換・空白削除を済ませた状態のExcelも保存できます。突合前のデータ確認や、他システムへの受け渡しに使えます。</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="p5">
+    <h2 class="sec"><span class="n">5</span>画面イメージ</h2>
+    <p class="sec-sub">実際の画面構成を図で示します（レイアウトはイメージです）。</p>
+
+    <div class="shot">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">file:///…/オーダーステータス変更分抽出システム_v1b.html</span></div>
+      <div class="screen">
+        <div class="mk-header"><h4>オーダーステータス変更分抽出システム</h4><p>同じ形式のExcelを2つ読み込み、キーで突合し、入庫日が変わった行だけを出力します。</p></div>
+        <div class="mk-card">
+          <div class="ttl"><span class="mk-step">1</span>ファイルを読み込む</div>
+          <div class="mk-grid">
+            <div class="mk-filebox"><h5>📄 ファイル A</h5><div class="note">【以前の受注データ】</div><div class="mk-input">ファイルを選択…</div></div>
+            <div class="mk-filebox"><h5>📄 ファイル B</h5><div class="note">【入庫日変更後の受注データ】</div><div class="mk-input">ファイルを選択…</div></div>
+          </div>
+        </div>
+        <div class="mk-card">
+          <div class="ttl"><span class="mk-step">3</span>結果と書き出し</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px">
+            <span class="mk-badge no">0 件</span>
+            <div style="display:flex; gap:6px">
+              <span class="mk-btn green dis">⬇ 納期短縮抽出結果をExcelで保存</span>
+              <span class="mk-btn dis">⬇ 抽出結果をExcelで保存</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">▲ 起動直後の画面。まずはファイルA・Bを読み込みます。</p>
+  </section>
+
+  <section id="p5b">
+    <h3>処理中の表示（インジケーター）</h3>
+    <p>ファイルA・Bを両方読み込むと突合処理が始まります。その間は画面全体に半透明のオーバーレイとスピナーが表示され、「処理中であること」がひと目で分かります。</p>
+    <div class="shot">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">file:///…/オーダーステータス変更分抽出システム_v1b.html</span></div>
+      <div class="screen" style="min-height:190px">
+        <div class="mk-card"><div class="ttl"><span class="mk-step">3</span>結果と書き出し</div><div style="height:60px"></div></div>
+        <div class="mk-busy">
+          <div class="mk-spin"></div>
+          <div class="t">突合処理中…</div>
+          <div class="s">しばらくお待ちください（すべてブラウザ内で処理しています）</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">▲ 突合処理中はスピナーで実行中を明示。処理が終わると自動で消えます。</p>
+  </section>
+
+  <section id="p5c">
+    <h3>変更が無かったときの表示</h3>
+    <p>入庫日が変わった行が1件も無い場合、画面上に大きなメッセージを表示します。保存ボタンは押せない状態になります。</p>
+    <div class="shot">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">file:///…/オーダーステータス変更分抽出システム_v1b.html</span></div>
+      <div class="screen">
+        <div class="mk-card">
+          <div class="ttl"><span class="mk-step">3</span>結果と書き出し</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px">
+            <span class="mk-badge no">0 件</span>
+            <div style="display:flex; gap:6px">
+              <span class="mk-btn green dis">⬇ 納期短縮抽出結果をExcelで保存</span>
+              <span class="mk-btn dis">⬇ 抽出結果をExcelで保存</span>
+            </div>
+          </div>
+          <div class="mk-nochange">オーダーステータス変更無し</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">▲ 変更0件のときの表示。このメッセージが出たら出力の必要はありません。</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="p6">
+    <h2 class="sec"><span class="n">6</span>動作環境・注意点</h2>
+    <div class="grid2">
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">動作環境</h3>
+        <table>
+          <tbody>
+            <tr><th style="width:38%">対応ブラウザ</th><td>Microsoft Edge / Google Chrome 推奨（最新版）</td></tr>
+            <tr><th>入力ファイル</th><td>.xlsx / .xls / .csv</td></tr>
+            <tr><th>出力</th><td>.xlsx（Excel）</td></tr>
+            <tr><th>インストール</th><td>不要（HTMLを開くだけ）</td></tr>
+            <tr><th>通信</th><td>初回のみライブラリ取得のためネット接続が必要</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">安心して使うために</h3>
+        <ul style="margin:0">
+          <li>受注データは<b>ブラウザ内だけで処理</b>され、サーバーへは送信されません。</li>
+          <li>ページを再読み込みすると読み込んだ内容は消えます（保存されません）。</li>
+          <li>Excel出力はブラウザのダウンロード機能を使います。</li>
+          <li>処理はPCの性能とデータ量に依存します。件数が多いと数秒かかることがあります。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout warn">
+      <b>ネット接続について</b>
+      このツールは表計算処理ライブラリ（SheetJS・fflate）をCDNから読み込みます。初回表示時にインターネット接続が必要です。オフライン環境で使う場合は、事前にライブラリをローカル保存する対応が必要です。
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="p7">
+    <h2 class="sec"><span class="n">7</span>用語集</h2>
+    <table>
+      <thead><tr><th style="width:30%">用語</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td><b>突合（とつごう）</b></td><td>2つのデータをキーで対応付けて照合すること。</td></tr>
+        <tr><td><b>キー</b></td><td>行を対応付けるための項目。本システムは「製品名＋受注ＮＯ」。</td></tr>
+        <tr><td><b>入庫日</b></td><td>製品が入庫する予定日（納期）。本システムで変化を判定する対象。</td></tr>
+        <tr><td><b>納期短縮</b></td><td>変更後の入庫日が当初より早くなること。</td></tr>
+        <tr><td><b>前処理</b></td><td>見出しの置換や空白削除など、突合前の下ごしらえ。</td></tr>
+        <tr><td><b>オートフィルタ</b></td><td>Excelの見出し行に付く絞り込み機能。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>オーダーステータス変更分抽出システム 概要説明資料 ／ 対象バージョン: v1b 系（変更無し表示・処理中インジケーター対応版）</p>
+    <p>本資料は説明用です。実際の画面表示はブラウザ環境により多少異なる場合があります。</p>
+  </footer>
+</main>
+</body>
+</html>
