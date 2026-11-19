@@ -1,8 +1,10 @@
 <!DOCTYPE html>
+<!-- 最終更新: 2026-11-19 16:56 / オーダーステータス変更分抽出システム（2026-10-06仕様） -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="last-modified" content="2026-11-19T16:56+09:00">
 <title>オーダーステータス変更分抽出システム</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
@@ -23,6 +25,11 @@
   }
   header h1{margin:0; font-size:24px; letter-spacing:.02em}
   header p{margin:6px 0 0; color:var(--muted); font-size:15px}
+  .head-top{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .ver{
+    font-size:13px; font-weight:700; color:#1e40af; background:#dbeafe;
+    border:1px solid #bfdbfe; border-radius:999px; padding:3px 11px; white-space:nowrap;
+  }
   main{max-width:1180px; margin:0 auto; padding:24px 20px 80px}
   .card{
     background:var(--panel); border:1px solid var(--line); border-radius:14px;
@@ -92,7 +99,10 @@
 </head>
 <body>
 <header>
-  <h1>オーダーステータス変更分抽出システム</h1>
+  <div class="head-top">
+    <h1>オーダーステータス変更分抽出システム</h1>
+    <span class="ver" id="appVersion" title="このファイルの最終更新日">最終更新 2026-11-19 16:56</span>
+  </div>
   <p>同じ形式のExcelを2つ読み込み、キー列で突合し、条件に合った行だけを新しいExcelとして出力します。すべてブラウザ内で処理され、ファイルは外部に送信されません。</p>
 </header>
 
