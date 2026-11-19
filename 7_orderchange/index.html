@@ -66,8 +66,6 @@
   button.ghost:hover{background:#eff6ff}
   button.soft{background:#f1f5f9; color:#334155; border-color:#cbd5e1}
   button.soft:hover{background:#e2e8f0}
-  button.savegreen{background:var(--ok); border-color:var(--ok)}
-  button.savegreen:hover{background:#15803d}
   button:disabled{opacity:.45; cursor:not-allowed}
   .cond{display:grid; grid-template-columns:1.4fr 1fr 1.4fr auto; gap:10px; margin-bottom:10px; align-items:center}
   @media(max-width:700px){.cond{grid-template-columns:1fr 1fr}}
@@ -90,26 +88,6 @@
   .result-head{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px}
   .small{font-size:14px; color:var(--muted)}
   #resultEmpty{color:var(--muted); font-size:15px}
-  .nochange{
-    display:none; margin:18px 0 6px; padding:30px 20px; border-radius:14px;
-    background:#fef3c7; border:2px solid #fcd34d; color:#92400e;
-    font-size:30px; font-weight:800; letter-spacing:.06em; text-align:center;
-  }
-  .nochange.show{display:block}
-  .busy{
-    position:fixed; inset:0; background:rgba(15,23,42,.45);
-    display:none; align-items:center; justify-content:center; flex-direction:column;
-    gap:16px; z-index:999; backdrop-filter:blur(1px);
-  }
-  .busy.show{display:flex}
-  .busy .spinner{
-    width:56px; height:56px; border-radius:50%;
-    border:6px solid rgba(255,255,255,.35); border-top-color:#fff;
-    animation:spin .8s linear infinite;
-  }
-  @keyframes spin{ to{ transform:rotate(360deg) } }
-  .busy .msg{ color:#fff; font-size:18px; font-weight:700; letter-spacing:.05em }
-  .busy .sub{ color:rgba(255,255,255,.85); font-size:14px }
 </style>
 </head>
 <body>
@@ -171,7 +149,7 @@
     <h2><span class="step">3</span>結果と書き出し</h2>
     <div class="hint" style="margin-bottom:14px">
       2つのファイルを照合し、<b>製品名(D列)＋受注ＮＯ(K列)</b> が一致する行のうち、<b>入庫日(E列)</b> が異なる行を抽出します。<br>
-      ただし、<b>ファイルBの入庫日がファイルAの入庫日より古い（小さい）行は除外</b>します。
+      出力の左端に<b>「納期短縮」列</b>を追加し、<b>ファイルBの入庫日がファイルAの入庫日より古い（小さい）行</b>に「納期短縮」と記載します（それ以外は空白）。
     </div>
     <div class="banner err" id="banner"></div>
     <div class="result-head">
@@ -180,22 +158,14 @@
         <span class="small" id="resultInfo" style="margin-left:8px"></span>
       </div>
       <div class="row" style="align-items:center">
-        <button id="exportShortBtn" class="savegreen" disabled>⬇ 納期短縮抽出結果をExcel(.xlsx)で保存</button>
         <button id="exportBtn" disabled>⬇ 抽出結果をExcel(.xlsx)で保存</button>
       </div>
     </div>
     <div class="hint">出力ファイルには、1行目（青背景・太字・中央）固定＋オートフィルタが自動で付きます。</div>
-    <div id="noChange" class="nochange">オーダーステータス変更無し</div>
     <div class="preview" id="resultPrev" style="display:none; margin-top:14px"></div>
     <div id="resultEmpty" style="margin-top:12px">ファイルAとBを読み込むと、抽出結果のプレビューが表示されます。</div>
   </section>
 </main>
-
-<div class="busy" id="busy" aria-live="polite" aria-busy="true">
-  <div class="spinner"></div>
-  <div class="msg" id="busyMsg">突合処理中…</div>
-  <div class="sub">しばらくお待ちください（すべてブラウザ内で処理しています）</div>
-</div>
 
 <script>
 "use strict";
@@ -306,26 +276,8 @@ function buildTable(headers, rows){
 }
 
 /* ---------- UI 更新 ---------- */
-function showBusy(on, msg){
-  const el = $("busy");
-  if(!el) return;
-  el.classList.toggle("show", !!on);
-  el.setAttribute("aria-busy", on ? "true" : "false");
-  document.body.style.overflow = on ? "hidden" : "";
-  if(on && msg) $("busyMsg").textContent = msg;
-}
-
 function refreshAll(){
-  if(state.A && state.B){
-    showBusy(true, "突合処理中…");
-    /* インジケーターを描画させてから同期処理を実行する */
-    setTimeout(()=>{
-      try{ compute(); }
-      finally{ showBusy(false); }
-    }, 40);
-  }else{
-    compute();
-  }
+  compute();
 }
 
 /* ---------- 突合・抽出（決め打ち） ---------- */
@@ -349,8 +301,8 @@ function toTime(v){
   return isNaN(t) ? null : t;
 }
 
-/* 入庫日の変更抽出（専用出力レイアウト） */
-const DIFF_HEADERS = ["ＮＯ","製品コード","製品名","当初入庫予定日","変更後入庫予定日","生産数","登録日","希望日","営Ｃ","向先名","受注ＮＯ"];
+/* 入庫日の変更抽出（専用出力レイアウト／先頭に納期短縮マーカー列） */
+const DIFF_HEADERS = ["納期短縮","ＮＯ","製品コード","製品名","当初入庫予定日","変更後入庫予定日","生産数","登録日","希望日","営Ｃ","向先名","受注ＮＯ"];
 const DIFF_TAIL = ["生産数","登録日","希望日","営Ｃ","向先名","受注ＮＯ"];
 
 function computeDiff(out){
@@ -375,8 +327,7 @@ function computeDiff(out){
   const aIdx = n => hA.indexOf(n);
 
   const rows = [];
-  const shortRows = [];
-  let seq = 0, seqS = 0;
+  let seq = 0;
   for(const [k, ars] of gA){
     const brs = gB.get(k);
     if(!brs) continue;
@@ -386,25 +337,24 @@ function computeDiff(out){
       const av = val(a, cmpA), bv = val(b, cmpB);
       if(String(av) === String(bv)) continue;
       const ta = toTime(av), tb = toTime(bv);
+      const mark = (ta != null && tb != null && tb < ta) ? "納期短縮" : "";
       const base = [val(a, aIdx("製品コード")), val(a, aIdx("製品名")), av, bv]
         .concat(DIFF_TAIL.map(nm=> val(a, aIdx(nm))));
-      if(ta != null && tb != null && tb < ta){ seqS++; shortRows.push([seqS].concat(base)); continue; }
       seq++;
-      rows.push([seq].concat(base));
+      rows.push([mark, seq].concat(base));
     }
   }
   out.headers = DIFF_HEADERS.slice();
   out.rows = rows;
-  out.short = shortRows;
 }
 
 function compute(){
-  const out = { headers:[], rows:[], short:[] };
+  const out = { headers:[], rows:[] };
   try{
     if(!state.A && !state.B){ showResult(out, "ファイルAとBを読み込んでください。"); return; }
     computeDiff(out);
   }catch(err){
-    showResult({headers:[],rows:[], short:[]}, "エラー: "+err.message);
+    showResult({headers:[],rows:[]}, "エラー: "+err.message);
     return;
   }
   showResult(out, null, null);
@@ -417,28 +367,14 @@ function showResult(out, emptyMsg, label){
   badge.textContent = count.toLocaleString() + " 件";
   badge.className = "badge " + (count>0 ? "ok" : "no");
 
-  const noChange = $("noChange");
   if(emptyMsg && count===0){
     $("resultInfo").textContent = "";
     $("resultPrev").style.display = "none";
     $("resultEmpty").style.display = "block";
     $("resultEmpty").textContent = emptyMsg;
     $("exportBtn").disabled = true;
-    $("exportShortBtn").disabled = true;
-    noChange.classList.remove("show");
     return;
   }
-  const shortCount = (out.short || []).length;
-  if(count===0 && shortCount===0 && state.A && state.B){
-    $("resultInfo").textContent = "";
-    $("resultEmpty").style.display = "none";
-    $("resultPrev").style.display = "none";
-    noChange.classList.add("show");
-    $("exportBtn").disabled = true;
-    $("exportShortBtn").disabled = true;
-    return;
-  }
-  noChange.classList.remove("show");
   $("resultInfo").textContent = label ? `対象: ${label}` : "";
   $("resultEmpty").style.display = "none";
   const prev = $("resultPrev");
@@ -446,7 +382,6 @@ function showResult(out, emptyMsg, label){
   prev.innerHTML = buildTable(out.headers, out.rows.slice(0,50));
   if(count>50) prev.insertAdjacentHTML("afterbegin", '<div class="small" style="padding:6px 8px">上位50件を表示中…</div>');
   $("exportBtn").disabled = count===0 || out.headers.length===0;
-  $("exportShortBtn").disabled = (out.short || []).length===0;
 }
 
 function showBanner(msg){ const b=$("banner"); b.className="banner err"; b.textContent=msg; }
@@ -465,11 +400,42 @@ function resultStamp(){
   return `${String(d.getFullYear()).slice(-2)}${p(d.getMonth()+1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}`;
 }
 
+/* セル表示文字列の幅（全角=2／半角=1）を数える */
+function displayWidth(s){
+  let w = 0;
+  for(const ch of String(s==null?"":s)){
+    const c = ch.codePointAt(0);
+    const wide = c >= 0x1100 && (
+      c <= 0x115f || c === 0x2329 || c === 0x232a ||
+      (c >= 0x2e80 && c <= 0xa4cf) || (c >= 0xac00 && c <= 0xd7a3) ||
+      (c >= 0xf900 && c <= 0xfaff) || (c >= 0xfe30 && c <= 0xfe6f) ||
+      (c >= 0xff00 && c <= 0xff60) || (c >= 0xffe0 && c <= 0xffe6) ||
+      (c >= 0x20000 && c <= 0x3fffd)
+    );
+    w += wide ? 2 : 1;
+  }
+  return w;
+}
+
+/* 内容の最長幅に合わせて各列の幅を自動調整（wch） */
+function autoColWidths(headers, rows){
+  return headers.map((h, i)=>{
+    let maxW = displayWidth(h);
+    for(const r of rows){
+      const v = r[i];
+      const t = (v instanceof Date) ? fmtCell(v) : v;
+      const w = displayWidth(t);
+      if(w > maxW) maxW = w;
+    }
+    return { wch: Math.min(Math.max(maxW + 2, 4), 60) };
+  });
+}
+
 /* ヘッダー装飾・1行目固定・オートフィルタを付けた xlsx バイト列を作る */
 function buildStyledBytes(headers, rows, opt){
   const aoa = [headers].concat(rows.map(r=>headers.map((_,i)=> r[i]==null?"":r[i])));
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = headers.map(()=>({wch:16}));
+  ws["!cols"] = autoColWidths(headers, rows);
   const range = XLSX.utils.decode_range(ws["!ref"]);
   const lastCol = XLSX.utils.encode_col(range.e.c);
   const filterRef = `A1:${lastCol}${range.e.r + 1}`;
@@ -496,21 +462,6 @@ function exportXlsx(){
     redHeaderCol: redIdx >= 0 ? XLSX.utils.encode_col(redIdx) : null,
   });
   downloadBlob(bytes, `伊東電機製品オーダーステータス変更情報_${resultStamp()}.xlsx`);
-}
-
-/* 除外した（納期短縮の）行だけを出力 */
-function exportShortXlsx(){
-  const out = state._result;
-  if(!out || !out.short || !out.short.length) return;
-  const redIdx = out.headers.indexOf("変更後入庫予定日");
-  const bytes = buildStyledBytes(out.headers, out.short, {
-    header: true,
-    freeze: true,
-    filter: true,
-    sheetName: "納期短縮抽出結果",
-    redHeaderCol: redIdx >= 0 ? XLSX.utils.encode_col(redIdx) : null,
-  });
-  downloadBlob(bytes, `伊東電機製品オーダーステータス変更情報【納期短縮】_${resultStamp()}.xlsx`);
 }
 
 /* 前処理後のA/Bを、ヘッダー装飾・1行目固定・オートフィルタ付きでダウンロード */
@@ -635,7 +586,6 @@ $("sheet_A").addEventListener("change", e=>parseSheet("A", e.target.value));
 $("sheet_B").addEventListener("change", e=>parseSheet("B", e.target.value));
 
 $("exportBtn").addEventListener("click", exportXlsx);
-$("exportShortBtn").addEventListener("click", exportShortXlsx);
 $("dl_A").addEventListener("click", ()=>downloadPreprocessed("A"));
 $("dl_B").addEventListener("click", ()=>downloadPreprocessed("B"));
 
