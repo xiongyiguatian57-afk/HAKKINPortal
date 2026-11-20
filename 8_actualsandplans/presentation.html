@@ -199,7 +199,7 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
       </ul>
       <div class="covermeta">
         <div>対象読者<br><b>はじめて本システムを見る方・利用部門の責任者</b></div>
-        <div>版数<br><b>Rev.2.26</b></div>
+        <div>版数<br><b>Rev.2.27</b></div>
         <div>更新日<br><b>2026年11月20日</b></div>
       </div>
     </div>
@@ -615,11 +615,11 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
           <tr><td>ペットネーム</td><td>製品の形式（型番）に対応する、集計・管理用の製品名。マスタで形式と紐付けます。</td></tr>
           <tr><td>PN</td><td>ペットネームの略。本資料では、ペットネーム単位の数量集計（PNピボット相当）を指します。</td></tr>
           <tr><td>予実</td><td>予算・計画と実績の対比。金額（売価）を中心に確認する集計です。</td></tr>
-          <tr><td>営Ｃ</td><td>営業窓口コード。計画データでは2050がHAKKIN、それ以外はIWASAKIとして扱います。</td></tr>
+          <tr><td>営Ｃ</td><td>営業窓口コード。集計条件の「営Ｃ」で絞り込む際に使用します。</td></tr>
           <tr><td>形式</td><td>受注データの製品名、生産仕入実績の品目名に相当する型番。マスタ照合のキーです。</td></tr>
           <tr><td>マージ</td><td>生産仕入実績（実績）と受注データ（計画）を合わせて集計すること。</td></tr>
           <tr><td>未照合</td><td>型番とペットネーム対比表に該当がなく、ペットネームへ変換できなかった製品。製品名のまま集計されます。</td></tr>
-          <tr><td>HAKKIN / IWASAKI</td><td>集計上のブランド区分。実績は部門コード・ライン№・品目名、計画は営Ｃから判定します。</td></tr>
+          <tr><td>HAKKIN / IWASAKI</td><td>集計上のブランド区分。実績・計画とも、部門コード（受注は製造部門コード）・ライン№（受注は担当列）・品目名（受注は製品名）から判定します。</td></tr>
           <tr><td>FY（年度）</td><td>4月〜翌年3月の年度。設定値入力とペットネーム群集計で使用します。</td></tr>
           <tr><td>負荷率</td><td>生産計画 現状集計表で、全体生産実績／計画数を目標数で割った割合。</td></tr>
           <tr><td>予算累計・達成率</td><td>金額表で、月別予算の累計と、実績／計画が予算累計に対してどの程度かを示す割合。</td></tr>
@@ -658,7 +658,7 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
 
 <footer class="footer">
   <div class="wrap">
-    <div><strong>生産実績・工程計画 集計</strong><p>システム用途説明 / Rev.2.26 / 2026年11月20日</p><p>画面キャプチャは実データ取込時の表示例です。数値・名称は運用時点により変わります。</p></div>
+    <div><strong>生産実績・工程計画 集計</strong><p>システム用途説明 / Rev.2.27 / 2026年11月20日</p><p>画面キャプチャは実データ取込時の表示例です。数値・名称は運用時点により変わります。</p></div>
     <div style="text-align:right"><a class="btn" href="使い方ガイド.html">操作ガイド</a><br><a class="backtop" href="#about">▲ ページ上部へ</a></div>
   </div>
 </footer>

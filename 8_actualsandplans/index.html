@@ -480,11 +480,12 @@ td.totalcol, th.totalcol { border-left: 1px solid var(--line); }
     <div class="sub">受注データ（計画）×生産仕入実績（実績）×型番とペットネーム対比表</div>
   </div>
   <div class="stamp">
-    <span class="rev">Rev.2.26</span>
-    <span class="stampdate">更新: 2026-11-20 09:38</span>
+    <span class="rev">Rev.2.27</span>
+    <span class="stampdate">更新: 2026-11-20 10:25</span>
     <details class="revlog">
       <summary>更新履歴</summary>
       <ul>
+        <li><b>Rev.2.27</b>2026-11-20 受注データのブランド判定を実績と同じロジック（製造部門コード末尾0／1・ライン№・品目名末尾）に統一。営Ｃ2050による計画ブランド判定を廃止</li>
         <li><b>Rev.2.26</b>2026-11-20 配布用HTMLレポートの「生産計画 現状集計表」をtableタグで囲み、数量表・金額表がダッシュボードと同じ表組で表示されるよう修正</li>
         <li><b>Rev.2.24</b>2026-11-18 ダッシュボードの生産計画 現状集計表を「2. 集計条件」の集計値（生産数／金額）に連動して自動切替（金額時は金額表、それ以外は数量表）。Excel出力は数量・金額の2シートのまま</li>
         <li><b>Rev.2.23</b>2026-11-18 ダッシュボードの月別推移とブランド構成の間に「生産計画 現状集計表」（生産数量／生産金額の切替、前年実績・負荷率・予算累計・達成率）を追加。2シート構成のExcel出力と配布用HTMLレポートへの掲載に対応</li>
@@ -1062,18 +1063,13 @@ async function loadMaster(file) {
   void persistFile('master', file);
 }
 
-function brandOfAct(dept, line, name) {
+function brandOf(dept, line, name) {
   const d = noSpace(dept);
   const l = noSpace(line);
   const n = norm(name);
   if (/0$/.test(d)) return 'HAKKIN';
   if (/1$/.test(d) && (/^82/.test(l) || l === '8408' || l === '8409') && !/_$/.test(n)) return 'HAKKIN';
   return 'IWASAKI';
-}
-
-function brandOf(src, eigyo, muki, dept, line, name) {
-  if (src === 'act') return brandOfAct(dept, line, name);
-  return eigyo === '2050' ? 'HAKKIN' : 'IWASAKI';
 }
 
 async function loadPlan(file) {
@@ -1114,7 +1110,7 @@ async function loadPlan(file) {
       amount: qty * price,
       cost: qty * cost,
       eigyo,
-      brand: brandOf('plan', eigyo, norm(r[9])),
+      brand: brandOf(r[12], r[1], r[3]),
       muki: norm(r[9]),
       juchu: norm(r[10]),
       line: noSpace(r[1]),
@@ -1187,7 +1183,7 @@ async function loadAct(file) {
       cost,
       eigyo: is2050 ? '2050' : '',
       muki,
-      brand: brandOf('act', is2050 ? '2050' : '', muki, dept, line, name),
+      brand: brandOf(dept, line, name),
 
       juchu: norm(r[25]),
       line,
