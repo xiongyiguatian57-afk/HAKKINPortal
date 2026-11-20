@@ -270,8 +270,8 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
       <ul class="chips"><li>所要 15分</li><li>画面キャプチャ付き</li><li>コピーして使えるチェックリスト付き</li></ul>
       <div class="covermeta">
         <div>対象<br><b>初めて操作する方・運用担当者</b></div>
-        <div>版数<br><b>Rev.2.25</b></div>
-        <div>更新日<br><b>2026年11月18日</b></div>
+        <div>版数<br><b>Rev.2.26</b></div>
+        <div>更新日<br><b>2026年11月20日</b></div>
       </div>
     </div>
     <div class="coverpanel">
@@ -514,10 +514,11 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
       <h3 class="subhead">配布用HTMLレポートを出力する</h3>
       <ol class="do-list">
         <li>ダッシュボード上部の<b>「配布用HTMLレポート」</b>をクリックします。</li>
-        <li>条件・KPI・グラフ・構成・上位10・現状集計表・ペットネーム群集計を含む、単一のHTMLファイルが保存されます。</li>
+        <li>条件・KPI・グラフ・構成・上位10・現状集計表・ペットネーム群集計を含む、単一のHTMLファイルが保存されます。現状集計表は数量表・金額表の2つを、ダッシュボードと同じ罫線付きの表組で掲載します。</li>
         <li>メールに添付するか、ブラウザで開いて<b>印刷 → PDFに保存</b>を選びます。</li>
       </ol>
       <div class="tip"><b>ファイル名の例：</b><code>ダッシュボード_生産数_マージ_全種別_全社_2026-04_2027-03_20261118-1045.html</code>。表示中の条件と出力日時が名前に残るため、いつの資料か分かりやすくなります。</div>
+      <div class="tip"><b>現状集計表の表組：</b>配布用HTMLでは「生産計画 現状集計表」を数量表・金額表の2表で掲載します。項目・月別・合計の列を持つ罫線付きの表として表示され、ダッシュボードと同じ内容を確認できます。</div>
       <div class="tip warn"><b>レポートは静止画です：</b>配布用HTMLは出力時点のスナップショットで、元データは含みません。グラフのホバー表示や再集計はできません。最新化するときは、元のアプリで再出力してください。</div>
     </div>
   </div>
@@ -654,7 +655,7 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
           <tr><td>明細 Excel</td><td>集計条件の「集計データ詳細出力」</td><td><code>(集計出力)防爆製品生産計画(実績)現状yyyymmddhhmm.xlsx</code></td><td>条件に合う明細27列。実績行と計画行を入庫日順に収録。</td></tr>
           <tr><td>現状集計 Excel</td><td>現状集計表の「Excel出力」</td><td><code>生産計画_現状集計_年度_日時.xlsx</code><br>2シート</td><td>生産数量計画現状／生産予算金額状況。</td></tr>
           <tr><td>ペット群 Excel</td><td>ペット群集計の「Excel出力」</td><td><code>ペットネーム群別生産計画数予実_年度_ブランド_日時.xlsx</code></td><td>年度計画・月別生産数・小計・進捗率。2段ヘッダー。</td></tr>
-          <tr><td>配布用HTML</td><td>ダッシュボードの「配布用HTMLレポート」</td><td><code>ダッシュボード_集計値_区分_種別_ブランド_期間_日時.html</code></td><td>CSS・グラフSVG内蔵の単一HTML。印刷・PDF化可能。</td></tr>
+          <tr><td>配布用HTML</td><td>ダッシュボードの「配布用HTMLレポート」</td><td><code>ダッシュボード_集計値_区分_種別_ブランド_期間_日時.html</code></td><td>CSS・グラフSVG・数量表／金額表（表組）を内蔵した単一HTML。印刷・PDF化可能。</td></tr>
           <tr><td>未照合CSV</td><td>集計条件の「未照合リストCSV」</td><td><code>mishoui_開始-終了.csv</code></td><td>製品名ごとの件数・数量・初回／最終入庫日。</td></tr>
         </tbody>
       </table>
@@ -713,7 +714,7 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
 
 <footer class="footer">
   <div class="wrap">
-    <div><strong>生産実績・工程計画 集計</strong><p>使い方ガイド / Rev.2.25 / 2026年11月18日</p><p>画面キャプチャは実データ取込時の表示例です。数値・名称は運用時点により変わります。</p></div>
+    <div><strong>生産実績・工程計画 集計</strong><p>使い方ガイド / Rev.2.26 / 2026年11月20日</p><p>画面キャプチャは実データ取込時の表示例です。数値・名称は運用時点により変わります。</p></div>
     <div style="text-align:right"><a class="btn" href="システム用途説明.html">用途説明</a><br><a class="backtop" href="#prepare">▲ ページ上部へ</a></div>
   </div>
 </footer>

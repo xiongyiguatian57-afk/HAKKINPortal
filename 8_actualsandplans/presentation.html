@@ -199,8 +199,8 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
       </ul>
       <div class="covermeta">
         <div>対象読者<br><b>はじめて本システムを見る方・利用部門の責任者</b></div>
-        <div>版数<br><b>Rev.2.25</b></div>
-        <div>更新日<br><b>2026年11月18日</b></div>
+        <div>版数<br><b>Rev.2.26</b></div>
+        <div>更新日<br><b>2026年11月20日</b></div>
       </div>
     </div>
     <div class="heroart">
@@ -480,7 +480,7 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
           <span class="label">TAB 02</span>
           <h3>ダッシュボード：数字の「意味」を一目でつかむ</h3>
           <p>集計条件に連動して、KPI・月別推移・現状集計表・構成・上位10がまとまって更新されます。会議の冒頭で、全体の位置感を共有するのに向いています。</p>
-          <ul class="ticks"><li>実績と計画をブランド別の積上げで表示</li><li>目標・予算の累計線で着地を確認</li><li>そのまま配布できるHTMLレポートを出力</li></ul>
+          <ul class="ticks"><li>実績と計画をブランド別の積上げで表示</li><li>目標・予算の累計線で着地を確認</li><li>現状集計表も表組で載る配布用HTMLレポート</li></ul>
         </div>
         <figure class="shot">
           <div class="bar"><i></i><i></i><i></i><b>ダッシュボード / KPI・月別推移</b></div>
@@ -492,8 +492,8 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
         <div class="screen-copy">
           <span class="label">KEY VIEW</span>
           <h3>生産計画 現状集計表：計画と実績の差を一枚で確認</h3>
-          <p>Excelの「ダッシュボード表示用集計表」を参考にした表です。集計値が生産数なら数量表、金額なら金額表に自動で切り替わります。</p>
-          <ul class="ticks"><li>月別の目標・ブランド別実績・全体・負荷率</li><li>前年実績との比較、金額の予算累計・達成率</li><li>数量・金額の2シートをExcelに出力</li></ul>
+          <p>Excelの「ダッシュボード表示用集計表」を参考にした表です。集計値が生産数なら数量表、金額なら金額表に自動で切り替わります。配布用HTMLレポートにも、数量表・金額表の2つを同じ罫線付きの表組で掲載します。</p>
+          <ul class="ticks"><li>月別の目標・ブランド別実績・全体・負荷率</li><li>前年実績との比較、金額の予算累計・達成率</li><li>数量・金額の2シートをExcelに出力</li><li>配布用HTMLでも数量表・金額表を表組で掲載</li></ul>
         </div>
         <figure class="shot">
           <div class="bar"><i></i><i></i><i></i><b>生産計画 現状集計表 / 生産数量</b></div>
@@ -567,7 +567,7 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
     <div class="effects">
       <div class="effect"><div class="icon">01</div><div><h3>同じ条件を再現できる</h3><p>プリセットと条件項目が画面に残るため、担当者が変わっても同じ前提で数字を確認できます。</p></div></div>
       <div class="effect"><div class="icon">02</div><div><h3>更新から確認までが速い</h3><p>3ファイルを取り込めば集計・グラフ・現状表が一度に更新され、貼り付けやグラフ作成の手作業を減らせます。</p></div></div>
-      <div class="effect"><div class="icon">03</div><div><h3>説明用の資料を作りやすい</h3><p>配布用HTMLレポートは1ファイルで完結し、そのまま配布・印刷・PDF化できます。Excel出力も用途別に用意されています。</p></div></div>
+      <div class="effect"><div class="icon">03</div><div><h3>説明用の資料を作りやすい</h3><p>配布用HTMLレポートは1ファイルで完結し、ダッシュボードのグラフに加えて、生産計画 現状集計表（数量表・金額表）も表組で掲載します。そのまま配布・印刷・PDF化できます。Excel出力も用途別に用意されています。</p></div></div>
       <div class="effect"><div class="icon">04</div><div><h3>データを外部に出さない</h3><p>解析・集計はブラウザ内で完結します。サーバー処理やクラウドへのアップロードは行いません。</p></div></div>
     </div>
   </div>
@@ -623,7 +623,7 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
           <tr><td>FY（年度）</td><td>4月〜翌年3月の年度。設定値入力とペットネーム群集計で使用します。</td></tr>
           <tr><td>負荷率</td><td>生産計画 現状集計表で、全体生産実績／計画数を目標数で割った割合。</td></tr>
           <tr><td>予算累計・達成率</td><td>金額表で、月別予算の累計と、実績／計画が予算累計に対してどの程度かを示す割合。</td></tr>
-          <tr><td>配布用HTMLレポート</td><td>ダッシュボードの内容をCSS・グラフごと1ファイルに保存したもの。メール添付や印刷に使えます。</td></tr>
+          <tr><td>配布用HTMLレポート</td><td>ダッシュボードの内容をCSS・グラフ・表ごと1ファイルに保存したもの。生産計画 現状集計表も数量表・金額表の表組で掲載されます。メール添付や印刷に使えます。</td></tr>
         </tbody>
       </table>
     </div>
@@ -658,7 +658,7 @@ h2{font-size:clamp(28px,3.2vw,40px);line-height:1.35;margin:0 0 14px;color:var(-
 
 <footer class="footer">
   <div class="wrap">
-    <div><strong>生産実績・工程計画 集計</strong><p>システム用途説明 / Rev.2.25 / 2026年11月18日</p><p>画面キャプチャは実データ取込時の表示例です。数値・名称は運用時点により変わります。</p></div>
+    <div><strong>生産実績・工程計画 集計</strong><p>システム用途説明 / Rev.2.26 / 2026年11月20日</p><p>画面キャプチャは実データ取込時の表示例です。数値・名称は運用時点により変わります。</p></div>
     <div style="text-align:right"><a class="btn" href="使い方ガイド.html">操作ガイド</a><br><a class="backtop" href="#about">▲ ページ上部へ</a></div>
   </div>
 </footer>

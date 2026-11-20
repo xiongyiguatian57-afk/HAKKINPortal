@@ -480,12 +480,12 @@ td.totalcol, th.totalcol { border-left: 1px solid var(--line); }
     <div class="sub">受注データ（計画）×生産仕入実績（実績）×型番とペットネーム対比表</div>
   </div>
   <div class="stamp">
-    <span class="rev">Rev.2.25</span>
-    <span class="stampdate">更新: 2026-11-18 16:05</span>
+    <span class="rev">Rev.2.26</span>
+    <span class="stampdate">更新: 2026-11-20 09:38</span>
     <details class="revlog">
       <summary>更新履歴</summary>
       <ul>
-        <li><b>Rev.2.25</b>2026-11-18 生産計画 現状集計表の文字を1段拡大（表13px・見出し12.5px・列幅調整）。3.集計結果のボタン表示を「Excel出力」に統一</li>
+        <li><b>Rev.2.26</b>2026-11-20 配布用HTMLレポートの「生産計画 現状集計表」をtableタグで囲み、数量表・金額表がダッシュボードと同じ表組で表示されるよう修正</li>
         <li><b>Rev.2.24</b>2026-11-18 ダッシュボードの生産計画 現状集計表を「2. 集計条件」の集計値（生産数／金額）に連動して自動切替（金額時は金額表、それ以外は数量表）。Excel出力は数量・金額の2シートのまま</li>
         <li><b>Rev.2.23</b>2026-11-18 ダッシュボードの月別推移とブランド構成の間に「生産計画 現状集計表」（生産数量／生産金額の切替、前年実績・負荷率・予算累計・達成率）を追加。2シート構成のExcel出力と配布用HTMLレポートへの掲載に対応</li>
         <li><b>Rev.2.22</b>2026-11-18 ペットネーム群別集計のExcel出力（表示中の年度・ブランド・除外設定を反映、計画/月別/小計/進捗率、2段ヘッダー）を追加</li>
@@ -2431,14 +2431,17 @@ function snapCell(v, type) {
   return fmtInt(v);
 }
 
-function snapTableMarkup(d, view, withCols = true) {
+function snapTableMarkup(d, view, withCols = true, widths = null) {
   const rows = snapRows(d, view);
   const n = d.months.length;
   const labels = d.months.map((m) => Number(m.slice(5)) + '月');
   const annual = n === 12 ? (view === 'qty' ? '年間数量' : '年間金額') : '合計';
   let html = '';
   if (withCols) {
-    html += '<colgroup><col style="width:250px">' + '<col style="width:76px">'.repeat(n) + '<col style="width:100px"></colgroup>';
+    const itemW = widths && widths.item ? widths.item : 250;
+    const monthW = widths && widths.month ? widths.month : 76;
+    const totalW = widths && widths.total ? widths.total : 100;
+    html += `<colgroup><col style="width:${itemW}px">` + `<col style="width:${monthW}px">`.repeat(n) + `<col style="width:${totalW}px"></colgroup>`;
   }
   html += '<thead><tr><th>項目</th>' + labels.map((m) => `<th>${m}</th>`).join('') + `<th>${annual}</th></tr></thead><tbody>`;
   for (const row of rows) {
@@ -2698,9 +2701,9 @@ function buildDashboardReport(cond, t = new Date()) {
       <h2>生産計画 現状集計表</h2>
       <p class="repmeta">数量表はLED灯具、金額表は全種別。期間・データ区分・ブランド等は集計条件に連動します（種別は固定）。</p>
       <p class="repmeta">${esc(snapMetaText(snapRep, 'qty'))}</p>
-      <div class="tblwrap">${snapTableMarkup(snapRep, 'qty', false)}</div>
+      <div class="tblwrap"><table class="snaptable">${snapTableMarkup(snapRep, 'qty', true, { item: 210, month: 56, total: 78 })}</table></div>
       <p class="repmeta" style="margin-top:14px">${esc(snapMetaText(snapRep, 'amt'))}</p>
-      <div class="tblwrap">${snapTableMarkup(snapRep, 'amt', false)}</div>
+      <div class="tblwrap"><table class="snaptable">${snapTableMarkup(snapRep, 'amt', true, { item: 210, month: 56, total: 78 })}</table></div>
     </section>
     <div class="duo">
       <section><h2>ブランド構成</h2>${inner('#chartBrand')}</section>
